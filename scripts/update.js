@@ -156,13 +156,15 @@ function parseBoards(h) {
   return out;
 }
 class Blocked extends Error {}
-async function updateMatchups(slugMap, prev) {
+const { parseBuilds, parseItemList, kebab } = require("./wrc.js");
+async function updateMatchups(slugMap, prev, prevBuilds) {
   let listH;
   try { listH = await get("https://wildriftcore.com/en/champions/", { tries: 2 }); }
   catch (e) { if (/HTTP 403/.test(e.message)) throw new Blocked("wildriftcore.com bu ağdan erişimi engelliyor (403)"); throw e; }
   const slugs = [...new Set([...listH.matchAll(/href="\/en\/champions\/([a-z0-9-]+)\/"/g)].map(m => m[1]))];
   if (slugs.length < 120) throw new Error(`Eşleşme: liste çok kısa (${slugs.length})`);
   const MU = { top: {}, jg: {}, mid: {}, adc: {}, sup: {} };
+  const B = { c: {}, src: {}, champSrc: {} }; let bOk = 0;
   const to = s => slugMap[canon(s)];
   let ok = 0, fail = 0;
   for (const s of slugs) {
@@ -171,6 +173,16 @@ async function updateMatchups(slugMap, prev) {
       const me = to(s); if (!me) { problems.push("eşleşme: tanınmayan slug " + s); continue; }
       for (const r in boards) MU[r][me] = boards[r].map(([o, e, wr, pr]) => [to(o) || o, e, wr, pr]).filter(x => slugMap[canon(x[0])] || to(x[0]));
       ok++;
+      B.champSrc[me] = `/assets/champions/icons/${s}.webp`;
+      await sleep(2500);
+      try {
+        const r = parseBuilds(await get(`https://wildriftcore.com/tr/champions/${s}/builds/`, { tries: 4 }));
+        if (Object.keys(r.roles).length) { B.c[me] = { r: r.roles, sit: r.sit }; Object.assign(B.src, r.icons); bOk++; }
+        else problems.push("build: boş sayfa " + s);
+      } catch (e) {
+        problems.push("build " + s + ": " + e.message);
+        if (prevBuilds && prevBuilds.c && prevBuilds.c[me]) B.c[me] = prevBuilds.c[me];
+      }
     } catch (e) {
       fail++; problems.push("eşleşme " + s + ": " + e.message);
       const me = to(s);
@@ -186,56 +198,82 @@ async function updateMatchups(slugMap, prev) {
     if (Math.sign(x[1]) === -Math.sign(e)) agree++; else dis++;
   }
   if (dis > agree * 0.05) throw new Error(`Eşleşme: tutarsız veri (${dis} çelişki / ${agree} uyum)`);
-  log("eşleşme", ok, "sayfa,", fail, "hata,", agree, "çift tutarlı");
-  return MU;
+  log("eşleşme", ok, "sayfa,", fail, "hata,", agree, "çift tutarlı; build", bOk, "şampiyon");
+  if (bOk < ok * 0.85) { problems.push(`Build: ${ok} şampiyondan yalnızca ${bOk} okunabildi; eski build verisi korunuyor`); return { MU, B: null }; }
+  return { MU, B };
 }
 
 /* ---------- 4. Yama notları ---------- */
+const { parseNotes } = require("./notes.js");
 async function updateNotes(patch, profiles, itemTr) {
   const slug = "wild-rift-patch-notes-" + patch.replace(".", "-");
   const url = `https://wildrift.leagueoflegends.com/tr-tr/news/game-updates/${slug}/`;
   const h = await get(url, { okMissing: true });
   if (!h) { log("yama notu bulunamadı:", url); return null; }
-  const bodies = [], cards = [];
-  walk(nextData(h), o => {
-    if (typeof o.body === "string") bodies.push(o.body);
-    if (o.character && typeof o.character.name === "string") cards.push(`<h4>${o.character.name}</h4>`); // şampiyon/eşya değişiklik kartları
-  });
-  const heads = [...cards, ...(bodies.join("\n").match(/<h[2-5][^>]*>[\s\S]*?<\/h[2-5]>/g) || [])];
-  const up = s => s.toLocaleUpperCase("tr").replace(/\s+/g, " ").trim();
-  const champByName = {}; for (const s in profiles) champByName[up(profiles[s].n)] = s;
-  const itemByName = {}; for (const en in itemTr) itemByName[up(itemTr[en])] = en;
-  const champs = new Set(), items = new Set();
-  for (const raw of heads) {
-    const t = up(strip(raw)).replace(/\[.*?\]/g, "").trim();
-    if (champByName[t]) champs.add(champByName[t]);
-    else if (itemByName[t]) items.add(itemByName[t]);
-    else for (const n in champByName) if (t.length > 2 && t.startsWith(n + " ")) champs.add(champByName[n]);
-  }
+  const { ch, it } = parseNotes(nextData(h), profiles, itemTr);
   const title = (h.match(/<title>([^<]*)<\/title>/) || [])[1] || "";
-  log("yama notu", patch, champs.size, "şampiyon,", items.size, "eşya");
-  return { patch, url, title: strip(title), champs: [...champs], items: [...items] };
+  log("yama notu", patch, Object.keys(ch).length, "şampiyon,", Object.keys(it).length, "eşya");
+  return { patch, url, title: strip(title), champs: Object.keys(ch), items: Object.keys(it).filter(k => it[k].known), ch, it };
 }
 
-/* ---------- 5. Eşya simgeleri (yalnızca eksikse) ---------- */
-async function updateItemIcons(itemEn, prevIcons) {
-  const icons = { ...(prevIcons || {}) };
-  const missing = itemEn.filter(n => !icons[n] || !fs.existsSync(path.join(ROOT, icons[n])));
+/* ---------- 5. Simgeler ----------
+ * Önce Wild Rift'in kendi oyun içi simgeleri (wildriftcore.com, yalnızca yerelden erişilebilir),
+ * bulunamayanlar için Riot Data Dragon. Biçim: { item:{kebab:yol}, champ:{slug:yol}, rune:{ad:yol} }
+ */
+const ITEM_ALIAS = { "dominiks-regards": "lord-dominiks-regards", "staff-of-flowing-waters": "staff-of-flowing-water", "mercurys-treads": "mercury-boots" };
+async function saveRaw(url, file, state) {
+  const full = path.join(IMG, file);
+  if (state.images[file] === url && fs.existsSync(full)) return "img/" + file;
+  const buf = await get(url, { binary: true, tries: 3 });
+  fs.mkdirSync(path.dirname(full), { recursive: true });
+  fs.writeFileSync(full, buf); state.images[file] = url;
+  return "img/" + file;
+}
+function normIcons(prev) {
+  if (prev && prev.item) return { item: { ...prev.item }, champ: { ...(prev.champ || {}) }, rune: { ...(prev.rune || {}) } };
+  const item = {}; for (const en in prev || {}) item[kebab(en)] = prev[en]; // eski düz biçimden geçiş
+  return { item, champ: {}, rune: {} };
+}
+async function updateWrIcons(B, itemEn, prev, state) {
+  const icons = normIcons(prev);
+  const W = "https://wildriftcore.com";
+  const list = parseItemList(await get(W + "/en/items/"), "en");
+  const want = {}; // kebab → kaynak
+  for (const k in list) if (list[k].src) want[k] = list[k].src;
+  for (const k in B.src) if (!k.startsWith("rune:")) want[k] ||= B.src[k].src;
+  for (const en of itemEn) { const k = kebab(en), w = ITEM_ALIAS[k]; if (w && want[w]) want[k] = want[w]; }
+  let n = 0;
+  const jobs = [
+    ...Object.entries(want).map(([k, src]) => [`wr/item/${k}.webp`, W + src, p => icons.item[k] = p]),
+    ...Object.entries(B.champSrc).map(([slug, src]) => [`wr/champ/${slug}.webp`, W + src, p => icons.champ[slug] = p]),
+    ...Object.entries(B.src).filter(([k]) => k.startsWith("rune:")).map(([k, v]) => [`wr/rune/${kebab(v.en)}.webp`, W + v.src, p => icons.rune[v.en] = p]),
+  ];
+  for (const [file, url, set] of jobs) {
+    const had = state.images[file] === url;
+    try { set(await saveRaw(url, file, state)); if (!had) { n++; await sleep(300); } }
+    catch (e) { problems.push("simge " + file + ": " + e.message); }
+  }
+  log("WR simgeleri:", Object.keys(icons.item).length, "eşya,", Object.keys(icons.champ).length, "şampiyon,", Object.keys(icons.rune).length, "rün;", n, "yeni indirildi");
+  return icons;
+}
+async function updateItemIcons(itemEn, prev) {
+  const icons = normIcons(prev);
+  const missing = itemEn.filter(n => { const p = icons.item[kebab(n)]; return !p || !fs.existsSync(path.join(ROOT, p)); });
   if (!missing.length) return icons;
   const ver = JSON.parse(await get("https://ddragon.leagueoflegends.com/api/versions.json"))[0];
   const dd = JSON.parse(await get(`https://ddragon.leagueoflegends.com/cdn/${ver}/data/en_US/item.json`)).data;
   const byName = {}; for (const id in dd) if (!byName[dd[id].name] || dd[id].gold && dd[id].gold.purchasable) byName[dd[id].name] = id;
-  const alias = { "Dominik's Regards": "Lord Dominik's Regards", "Wit's End": "Wit's End", "Statikk Shiv": "Statikk Shiv" };
+  const alias = { "Dominik's Regards": "Lord Dominik's Regards" };
   for (const n of missing) {
     const id = byName[alias[n] || n]; if (!id) continue;
     try {
       const buf = await get(`https://ddragon.leagueoflegends.com/cdn/${ver}/img/item/${id}.png`, { binary: true });
       const f = `img/item/${hash(n)}.png`;
       fs.mkdirSync(path.join(ROOT, "img/item"), { recursive: true });
-      fs.writeFileSync(path.join(ROOT, f), buf); icons[n] = f;
+      fs.writeFileSync(path.join(ROOT, f), buf); icons.item[kebab(n)] = f;
     } catch (e) { problems.push("eşya simgesi " + n + ": " + e.message); }
   }
-  log("eşya simgesi", Object.keys(icons).length, "/", itemEn.length);
+  log("eşya simgesi (Data Dragon yedeği)", Object.keys(icons.item).length);
   return icons;
 }
 
@@ -247,6 +285,7 @@ async function updateItemIcons(itemEn, prevIcons) {
   const prevStats = readGlobal("stats.js", "WR_STATS");
   const prevProfiles = readGlobal("profiles.js", "WR_PROFILES");
   const prevMU = readGlobal("matchups.js", "WR_MU");
+  const prevBuilds = readGlobal("builds.js", "WR_BUILDS");
   const prevMeta = readGlobal("meta.js", "WR_META") || {};
   const items = readGlobal("items.js", "WR_ITEMS"); // elle bakılan eşya listesi
   const now = new Date();
@@ -269,10 +308,23 @@ async function updateItemIcons(itemEn, prevIcons) {
   }
   const slugMap = {}; for (const s in profiles || {}) slugMap[canon(s)] = s;
 
-  // 3. eşleşmeler: yama değiştiyse ya da 20 saatten eskiyse
+  let wrB = null;
+  // 3. eşleşmeler + buildler: yama değiştiyse ya da 20 saatten eskiyse
   const muAge = prevMeta.matchupsAt ? (now - new Date(prevMeta.matchupsAt)) / 36e5 : 99;
   if (!args.has("--skip-matchups") && (!prevMU || patchChanged || muAge > 20 || args.has("--full"))) {
-    try { const mu = await updateMatchups(slugMap, prevMU); writeGlobal("matchups.js", "WR_MU", mu, "Eşleşme puanları, kaynak: wildriftcore.com"); prevMeta.matchupsAt = now.toISOString(); prevMeta.matchupsPatch = patch; }
+    try {
+      const { MU: mu, B } = await updateMatchups(slugMap, prevMU, prevBuilds);
+      writeGlobal("matchups.js", "WR_MU", mu, "Eşleşme puanları, kaynak: wildriftcore.com"); prevMeta.matchupsAt = now.toISOString(); prevMeta.matchupsPatch = patch;
+      if (B) {
+        wrB = B;
+        // items.js'te olmayan eşyaların Türkçe adları
+        const known = new Set((items || []).map(i => kebab(i[0])).flatMap(k => [k, ITEM_ALIAS[k]]));
+        const trList = parseItemList(await get("https://wildriftcore.com/tr/items/"), "tr");
+        const names = {}; for (const k in B.src) if (!k.startsWith("rune:") && !known.has(k)) names[k] = [B.src[k].en, (trList[k] && trList[k].n) || B.src[k].en];
+        writeGlobal("builds.js", "WR_BUILDS", { patch, c: Object.fromEntries(Object.keys(B.c).sort().map(k => [k, B.c[k]])), names }, "Şampiyon buildleri (CN sunucu verisi), kaynak: wildriftcore.com");
+        prevMeta.buildsAt = now.toISOString();
+      }
+    }
     catch (e) {
       if (e instanceof Blocked) log("ATLANDI:", e.message, "— eşleşmeler yerel çalıştırmayla güncellenir (scripts/yerel-guncelle.cmd)");
       else { failed = true; problems.push(e.message); }
@@ -288,7 +340,11 @@ async function updateItemIcons(itemEn, prevIcons) {
 
   // 5. eşya simgeleri
   let icons = readGlobal("icons.js", "WR_ICONS");
-  if (items) { try { icons = await updateItemIcons(items.map(i => i[0]), icons); writeGlobal("icons.js", "WR_ICONS", icons, "Eşya simgeleri, kaynak: Riot Data Dragon"); } catch (e) { problems.push("eşya simgeleri: " + e.message); } }
+  if (items) {
+    if (wrB) { try { icons = await updateWrIcons(wrB, items.map(i => i[0]), icons, state); } catch (e) { problems.push("WR simgeleri: " + e.message); } }
+    try { icons = await updateItemIcons(items.map(i => i[0]), icons); } catch (e) { problems.push("eşya simgeleri: " + e.message); }
+    writeGlobal("icons.js", "WR_ICONS", icons, "Simgeler, kaynak: Wild Rift (wildriftcore.com), yedek: Riot Data Dragon");
+  }
 
   // 6. meta
   const meta = {

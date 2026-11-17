@@ -91,9 +91,23 @@ new Set([...Object.keys(P),...Object.keys(CUR)]).forEach(slug=>{
   CH[key(name)] = c; BYSLUG[slug] = c; LIST.push(c);
 });
 LIST.sort((a,b)=>a.disp.localeCompare(b.disp,"tr"));
-const IT = {}, ILIST = [];
-(window.WR_ITEMS||[]).forEach(([en,tr,cost,cat,st,fx])=>{const i={en,tr,cost,cat,st,fx,icon:ICON[en]||null};IT[en]=i;ILIST.push(i);});
-const CHANGED_ITEMS = new Set((META.notes&&META.notes.items)||[]);
+/* Simgeler: Wild Rift oyun içi simgeleri (yoksa Data Dragon yedeği) */
+const kb = s => (s||"").toLowerCase().replace(/'/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const ICO_ITEM = ICON.item || Object.fromEntries(Object.entries(ICON).map(([k,v])=>[kb(k),v]));
+const ICO_CHAMP = ICON.champ || {}, ICO_RUNE = ICON.rune || {};
+const ITEM_ALIAS = {"lord-dominiks-regards":"dominiks-regards","staff-of-flowing-water":"staff-of-flowing-waters","mercury-boots":"mercurys-treads"};
+const WB = window.WR_BUILDS || {}, BUILDS = WB.c || {};
+const IT = {}, ILIST = [], SLUG2EN = {};
+(window.WR_ITEMS||[]).forEach(([en,tr,cost,cat,st,fx])=>{const k=kb(en);const i={en,tr,cost,cat,st,fx,icon:ICO_ITEM[k]||null};IT[en]=i;ILIST.push(i);SLUG2EN[k]=en;});
+Object.entries(ITEM_ALIAS).forEach(([w,k])=>{ if(SLUG2EN[k]){ SLUG2EN[w]=SLUG2EN[k]; if(ICO_ITEM[w]) IT[SLUG2EN[k]].icon=ICO_ITEM[w]; } });
+// Buildlerde geçen ama elle bakılan listede olmayan eşyalar
+Object.entries(WB.names||{}).forEach(([k,[en,tr]])=>{ if(SLUG2EN[k]) return; SLUG2EN[k]=en; if(!IT[en]) IT[en]={en,tr,cost:0,cat:"",st:"",fx:"",icon:ICO_ITEM[k]||null}; });
+const itemOf = slug => SLUG2EN[slug] || slug;
+/* Yama değişiklikleri: v = buff | nerf | adj | rework | new */
+const NOTES = META.notes || {}, CHG = NOTES.ch || {}, ICHG = NOTES.it || {};
+const CHANGED_ITEMS = new Set(NOTES.it ? Object.keys(ICHG).filter(k=>IT[k]) : (NOTES.items||[]));
+const VMARK = {buff:["▲","Güçlendirildi"],nerf:["▼","Zayıflatıldı"],adj:["⇅","Dengelendi"],rework:["⟳","Yeniden tasarlandı"],new:["★","Yeni şampiyon"]};
+const chgBadge = v => v&&VMARK[v] ? `<i class="chg" data-v="${v}" title="${VMARK[v][1]}" aria-label="${VMARK[v][1]}">${VMARK[v][0]}</i>` : "";
 const iname = en => IT[en] ? IT[en].tr : en;
 
 /* Eşleşme tahtası: MU[koridor][şampiyon] = [[rakip, puan, rakibinKO, rakibinSO]]; puan>0 => rakip bu şampiyona karşı avantajlı */
@@ -115,13 +129,16 @@ function findChamp(v){const k=key(v);if(!k)return null;return CH[k]||LIST.find(c
 const $ = s=>document.querySelector(s);
 const esc = s=>String(s==null?"":s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
 const pct = v => v==null ? "–" : "%"+v.toFixed(1).replace(".",",");
-function por(c,cls){
-  const img = c.prof && c.prof.p ? `<img src="${c.prof.p}" alt="" loading="lazy">` : `<span class="ini">${esc(c.disp.slice(0,2))}</span>`;
-  return `<span class="por${cls?" "+cls:""}">${img}</span>`;
+function por(c,cls,noMark){
+  const src = ICO_CHAMP[c.slug] || (c.prof && c.prof.p);
+  const img = src ? `<img src="${src}" alt="" loading="lazy">` : `<span class="ini">${esc(c.disp.slice(0,2))}</span>`;
+  return `<span class="por${cls?" "+cls:""}${ICO_CHAMP[c.slug]?" wr":""}">${img}${noMark?"":chgBadge(CHG[c.slug]&&CHG[c.slug].v)}</span>`;
 }
 const tierB = c => `<span class="tier" data-t="${c.tier}" title="Kademe ${c.tier}">${c.tier}</span>`;
 const roleB = r => `<span class="role" data-r="${r}">${ROLE[r]}</span>`;
 const icoImg = (en,cls) => { const i=IT[en]; return i&&i.icon ? `<img class="${cls||"ico"}" src="${i.icon}" alt="" loading="lazy">` : ""; };
+/* Büyük eşya kutusu: simge + küçük ad, değiştiyse işaret */
+const itile = (en,n) => { const i=IT[en]; return `<button type="button" class="itile" data-item="${esc(en)}" title="${esc(iname(en))}">${n?`<span class="n">${n}</span>`:""}<span class="ib">${i&&i.icon?`<img src="${i.icon}" alt="" loading="lazy">`:`<span class="ini">${esc(iname(en).slice(0,2))}</span>`}${chgBadge(ICHG[en]&&ICHG[en].v)}</span><span class="nm">${esc(iname(en))}</span></button>`; };
 function itm(en,n){const i=IT[en];return `<button type="button" class="itm" data-item="${esc(en)}" title="${i?esc(i.st+" — "+i.fx):""}">${n?`<span class="n">${n}</span>`:""}${icoImg(en)}${esc(iname(en))}</button>`}
 const champBtnAttrs = c => `data-go="s-${c.slug}"`;
 
@@ -158,15 +175,41 @@ function slotHTML(c,ph){
 /* Genel tıklama: profile git, item göster */
 document.addEventListener("click",e=>{
   const g=e.target.closest("main [data-go]"); if(g){location.hash=g.dataset.go;return}
-  const it=e.target.closest("main [data-item]"); if(it){showItem(it.dataset.item)}
+  const ch=e.target.closest("[data-chg]"); if(ch){showChange(ch.dataset.chg);return}
+  const it=e.target.closest("main [data-item], .sheet [data-item]"); if(it){showItem(it.dataset.item)}
 });
+/* Yama değişikliği satırı: "Ad: eski → yeni" → işaretli, sade gösterim */
+const SLOT_S = {"PASİF":"P","1":"1","2":"2","3":"3","ULTİ":"U"};
+function lineHTML([t,d]){
+  const ci=t.indexOf(":"), name=ci>0?t.slice(0,ci):"", rest=ci>0?t.slice(ci+1):t, ar=rest.split("→");
+  const sym=d>0?"▲":d<0?"▼":"⇅", cls=d>0?"good":d<0?"bad":"even";
+  const val = ar.length===2 ? `<span class="old">${esc(ar[0].trim())}</span><span class="to">→</span><b class="new">${esc(ar[1].trim())}</b>` : esc(rest.trim());
+  return `<li class="ln ${cls}"><i>${sym}</i><span>${name?`<span class="lk">${esc(name)}</span> `:""}${val}</span></li>`;
+}
+function changeBody(ch){
+  if(!ch) return "";
+  if(ch.v==="new"&&!ch.c.length) return '<p class="muted small" style="margin:0">Bu yamada oyuna eklendi.</p>';
+  return `<div class="chparts">${ch.c.map(([name,slot,icon,lines])=>`<div class="chp">
+      <span class="chico">${icon?`<img src="${icon}" alt="" loading="lazy">`:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="2"/></svg>`}${slot?`<span class="sk">${esc(SLOT_S[slot]||slot)}</span>`:""}</span>
+      <div style="min-width:0"><div class="chn">${esc(name?titleTR(name):"Temel değerler")}</div><ul class="lns">${lines.map(lineHTML).join("")}</ul></div></div>`).join("")}</div>
+    ${ch.s?`<details class="why"><summary>Riot neden değiştirdi?</summary><p>${esc(ch.s)}</p></details>`:""}`;
+}
+const vPill = v => VMARK[v] ? `<span class="vpill" data-v="${v}">${VMARK[v][0]} ${VMARK[v][1]}</span>` : "";
+function showChange(slug){
+  const c=BYSLUG[slug], ch=CHG[slug]; if(!c||!ch) return;
+  ov.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(c.disp)} değişiklikleri" style="width:min(560px,100%)">
+    <div class="sheet-head">${por(c,"sm",true)}<div style="min-width:0;flex:1"><h3 style="margin:0">${esc(c.disp)}</h3>${vPill(ch.v)}</div><button class="btn" type="button" data-close aria-label="Kapat">✕</button></div>
+    ${changeBody(ch)}
+    <div class="row"><a class="btn gold" href="#s-${c.slug}" data-close>Profili aç</a><span class="muted small">Yama ${esc(NOTES.patch||"")}</span></div></div>`;
+  ov.hidden=false; ov.querySelector("[data-close]").focus();
+}
 function showItem(en){
   const i=IT[en]; if(!i) return;
   ov.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(i.tr)}" style="width:min(460px,100%)">
-    <div class="sheet-head">${icoImg(en,"ico-lg")}<h3>${esc(i.tr)}</h3><button class="btn" type="button" data-close>Kapat</button></div>
-    ${CHANGED_ITEMS.has(en)?`<div class="tag even" style="justify-self:start">Yama ${esc(META.patch)}'de değişti — güncel değerler için yama notuna bak</div>`:""}
-    <div class="muted small">${esc(CAT[i.cat])} · İngilizce adı: ${esc(i.en)}${i.cost?` · ${i.cost} altın`:""}</div>
-    <div style="color:var(--teal)">${esc(i.st)}</div><div>${esc(i.fx)}</div></div>`;
+    <div class="sheet-head">${icoImg(en,"ico-lg")}<h3 style="flex:1">${esc(i.tr)}</h3><button class="btn" type="button" data-close aria-label="Kapat">✕</button></div>
+    ${ICHG[en]?`<div>${vPill(ICHG[en].v)} <span class="muted small">Yama ${esc(NOTES.patch||"")}</span></div>${changeBody(ICHG[en])}`:CHANGED_ITEMS.has(en)?`<div class="tag even" style="justify-self:start">Yama ${esc(META.patch)}'de değişti</div>`:""}
+    <div class="muted small">${i.cat?esc(CAT[i.cat])+" · ":""}İngilizce adı: ${esc(i.en)}${i.cost?` · ${i.cost} altın`:""}</div>
+    ${i.st?`<div style="color:var(--teal)">${esc(i.st)}</div>`:""}${i.fx?`<div>${esc(i.fx)}</div>`:""}</div>`;
   ov.hidden=false; ov.querySelector("[data-close]").focus();
 }
 
@@ -181,6 +224,31 @@ function buildHTML(c){
     <div class="brow"><span class="l">Büyüler</span><div class="items"><span class="chip" style="color:var(--fg)">${esc(SPELLS[c.main])}</span></div></div>
   </div>`;
 }
+/* ===== WILD RIFT BUILDLERİ (CN sunucu verisi) ===== */
+const VAR = {standard:["⚔️","Standart"],"anti-tank":["🛡️","Tanklara karşı"],sustain:["❤️","Uzun dövüş"],poke:["🎯","Dürtmeye karşı"],engage:["⚡","Dalış takımı"],safety:["🧱","Güvenli"],burst:["💥","Ani hasar"],"anti-heal":["🩸","İyileşmeye karşı"],"anti-ap":["✨","Büyüye karşı"],"anti-ad":["🗡️","Fiziksele karşı"],splitpush:["🏰","Koridor baskısı"],tank:["🛡️","Tank"],peel:["🤝","Takımı koru"],"anti-dive":["🧱","Dalışa karşı"],pen:["🔪","Zırh delme"],utility:["🧰","Destekleyici"],bruiser:["💪","Dövüşçü"]};
+const SITS = [[/İyileş/i,"🩸","İyileşmeye karşı"],[/tank|HP/i,"🛡️","Tanklara karşı"],[/AD burst/i,"🗡️","Fiziksel patlamaya karşı"],[/AP burst/i,"✨","Büyü patlamasına karşı"],[/hareketli/i,"💨","Kaçan rakiplere karşı"]];
+const RUNE_TR = {"Conqueror":"Yenilmez","Lethal Tempo":"Ölümcül Tempo","Electrocute":"Elektrik Ver","Grasp of the Undying":"Hortlağın Pençesi","Summon Aery":"Aery","Aery":"Aery","Arcane Comet":"Sihirli Yıldız","Phase Rush":"Sürat Coşkusu","Fleet Footwork":"Ayağı Çabuk","Guardian":"Muhafız","Aftershock":"Artçı Şok","Dark Harvest":"Karanlık Hasat","First Strike":"İlk Vuruş","Kraken Slayer":"Kraken Avcısı","Glacial Augment":"Buzul Takviyesi"};
+const runeTR = n => RUNE_TR[n] || n;
+const runeImg = (n,cls) => ICO_RUNE[n] ? `<img class="${cls||""}" src="${ICO_RUNE[n]}" alt="${esc(runeTR(n))}" title="${esc(runeTR(n))}" loading="lazy">` : `<span class="chip">${esc(runeTR(n))}</span>`;
+let bRole=null, bVar=0;
+const wrBuild = (c,r) => { const b=BUILDS[c.slug]; if(!b) return null; const rr = b.r[r] ? r : b.r[c.main] ? c.main : Object.keys(b.r)[0]; return rr ? {role:rr, ...b.r[rr], sit:b.sit||[]} : null; };
+function buildCard(c){
+  const b=BUILDS[c.slug];
+  if(!b) return `<h2>Önerilen build <small>${esc(ARCH[c.arch].lbl)} · tahmini</small></h2>${buildHTML(c)}`;
+  const roles=Object.keys(b.r); if(!roles.includes(bRole)) bRole=roles.includes(pRole)?pRole:roles.includes(c.main)?c.main:roles[0];
+  const R=b.r[bRole]; if(!R.v[bVar]) bVar=0; const V=R.v[bVar]; const vm=VAR[V[0]]||["🔧",V[1]||V[0]];
+  return `<h2>Önerilen buildler <small>Wild Rift · en iyi oyuncular</small></h2>
+    ${roles.length>1?`<div class="seg" style="margin-bottom:10px">${roles.map(r=>`<button type="button" data-br="${r}" aria-pressed="${r===bRole}">${ROLE[r]}</button>`).join("")}</div>`:""}
+    <div class="vtabs" role="tablist">${R.v.map((v,i)=>{const m=VAR[v[0]]||["🔧",v[1]||v[0]];return `<button type="button" role="tab" data-bv="${i}" aria-selected="${i===bVar}" title="${esc(v[3].join(" · "))}"><span class="em">${m[0]}</span>${esc(m[1])}</button>`}).join("")}</div>
+    ${V[3].length?`<div class="when">${V[3].map(w=>`<span>${esc(w)}</span>`).join("")}</div>`:""}
+    <div class="irow">${V[2].map((s,i)=>itile(itemOf(s),i+1)).join('<span class="arrow">›</span>')}</div>
+    <div class="bsub">
+      ${R.boots?`<div><span class="l">👟</span>${itile(itemOf(R.boots))}</div>`:""}
+      ${R.runes&&R.runes.length?`<div class="runes"><span class="l">◈</span>${runeImg(R.runes[0],"ks")}<span class="minor">${R.runes.slice(1).map(n=>runeImg(n)).join("")}</span><span class="rn">${esc(runeTR(R.runes[0]))}</span></div>`:""}
+      <div><span class="l">✦</span><span class="chip">${esc(SPELLS[bRole])}</span></div>
+    </div>
+    ${b.sit&&b.sit.length?`<div class="step-t" style="margin-top:12px">Duruma göre</div><div class="sits">${b.sit.map(([s,ctx])=>{const m=SITS.find(x=>x[0].test(ctx))||[0,"•",ctx];return `<div class="sit" title="${esc(ctx)}"><span class="em">${m[1]}</span>${itile(itemOf(s))}<span class="ctx">${esc(m[2])}</span></div>`}).join("")}</div>`:""}`;
+}
 /* e: satırdaki şampiyonun bakış açısından puan (>0 iyi) */
 function pickRow(c,e,note,role){
   const T=EDGE_TXT(e); const w=role?roleWR(c,role):null;
@@ -194,12 +262,16 @@ function renderHome(){
   $("#heroFaces").innerHTML = top5.map(c=>`<button class="facebtn" style="width:auto" type="button" ${champBtnAttrs(c)} aria-label="${esc(c.disp)}">${por(c)}<span>${esc(c.disp)}</span></button>`).join("");
   // Yama notları (otomatik)
   const n = META.notes;
-  const champs = n ? n.champs.map(s=>BYSLUG[s]).filter(Boolean) : [];
+  const ORDER=["new","rework","buff","nerf","adj"];
+  const champs = n ? (n.champs||[]).map(s=>BYSLUG[s]).filter(Boolean).sort((a,b)=>ORDER.indexOf((CHG[a.slug]||{}).v)-ORDER.indexOf((CHG[b.slug]||{}).v)) : [];
+  const items = n ? (n.it ? Object.keys(ICHG) : (n.items||[])).sort((a,b)=>ORDER.indexOf((ICHG[a]||{}).v)-ORDER.indexOf((ICHG[b]||{}).v)) : [];
+  const used = new Set([...champs.map(c=>(CHG[c.slug]||{}).v),...items.map(e=>(ICHG[e]||{}).v)]);
   const newOnes = LIST.filter(c=>c.isNew);
   $("#patchNotes").innerHTML = (n ? `
-    <p class="muted small" style="margin:0 0 10px">Resmi Türkçe yama notlarından otomatik çıkarıldı.</p>
-    ${champs.length?`<div class="step-t">Değişen şampiyonlar (${champs.length})</div><div class="faces" style="margin-bottom:12px">${champs.map(c=>`<button class="facebtn" type="button" ${champBtnAttrs(c)}>${por(c,"sm")}<span>${esc(c.disp)}</span></button>`).join("")}</div>`:""}
-    ${n.items.length?`<div class="step-t">Değişen eşyalar (${n.items.length})</div><div class="items" style="margin-bottom:12px">${n.items.map(en=>itm(en)).join("")}</div>`:""}
+    <div class="vlegend">${ORDER.filter(v=>used.has(v)).map(v=>`<span>${chgBadge(v)} ${VMARK[v][1]}</span>`).join("")}</div>
+    ${champs.length?`<div class="chgrid">${champs.map(c=>`<button class="chtile" type="button" data-chg="${c.slug}" aria-label="${esc(c.disp)}: ${esc((VMARK[(CHG[c.slug]||{}).v]||["",""])[1])}">${por(c)}<span>${esc(c.disp)}</span></button>`).join("")}</div>`:""}
+    ${items.length?`<div class="chgrid it">${items.map(en=>itile(en)).join("")}</div>`:""}
+    <p class="muted small" style="margin:10px 0">Ayrıntı için simgeye dokun.</p>
     <a href="${esc(n.url)}" target="_blank" rel="noopener">Yama ${esc(n.patch)} notlarının tamamını oku →</a>`
     : `<p class="muted">Bu yamanın Türkçe notları henüz yayınlanmadı.</p>`)
     + (newOnes.length?`<div class="callout" style="margin-top:12px"><b>Sisteme yeni eklenenler:</b> ${newOnes.map(c=>`<a href="#s-${c.slug}">${esc(c.disp)}</a>`).join(", ")}</div>`:"");
@@ -316,7 +388,18 @@ function renderItem(){
   $("#i-enemies").innerHTML=iEn.map((c,i)=>`<button class="slot${c?" filled":""}" type="button" data-slot="${i}">${slotHTML(c,EN_PH[i])}</button>`).join("");
   const out=$("#i-out"), en=iEn.filter(Boolean);
   if(!iMe){out.innerHTML='<div class="empty">Önce kendi şampiyonunu seç. Rakipleri ekledikçe öneriler güncellenir.</div>';return}
-  const cls=CLASS_OF[iMe.arch], a=ARCH[iMe.arch], core=OVERRIDE[iMe.name]||a.core, p=analyse(en);
+  const cls=CLASS_OF[iMe.arch], p=analyse(en);
+  let a=ARCH[iMe.arch], core=OVERRIDE[iMe.name]||a.core, vNote="";
+  // Wild Rift build verisi varsa rakibe uyan varyantı seç
+  const wb=wrBuild(iMe,iMe.main);
+  if(wb){
+    const want = p.tank.length>=2 ? ["anti-tank"] : (p.burst.length>=2||p.aa.length>=2) ? ["safety","sustain"] : p.ap>=3 ? ["poke","safety"] : [];
+    const V = wb.v.find(v=>want.includes(v[0])) || wb.v[0];
+    const its = V[2].map(itemOf);
+    a = {...a, start: undefined, boots: wb.boots?itemOf(wb.boots):a.boots, rune: runeTR(wb.runes[0]||a.rune), late: its.slice(3)};
+    core = its.slice(0,3);
+    if(V!==wb.v[0]) vNote = `Rakibe göre <b>${esc((VAR[V[0]]||["",V[1]])[1])}</b> buildi seçildi. `;
+  }
   const recs=new Map();
   p.threats.forEach(t=>(POOL[t.k][cls]||[]).forEach(([n,why],i)=>{
     const cur=recs.get(n), sc=t.s*10-i;
@@ -340,7 +423,7 @@ function renderItem(){
   out.innerHTML=`<div class="grid2">
     <div class="card"><h2>Bu maç için item sıran <small>${esc(iMe.disp)} · ${esc(a.lbl)}</small></h2>
       <div class="path">${path.map((s,i)=>{const it=IT[s.n];return `<div class="pstep${s.k==="sit"?" sit":""}"><span class="no">${i+1}</span><span style="min-width:0"><button type="button" class="itm" data-item="${esc(s.n)}" style="padding:0;border:0;background:none;font-weight:600;font-size:15px">${icoImg(s.n)}${esc(iname(s.n))}</button>${s.k==="sit"?' <span class="badge">BU MAÇA ÖZEL</span>':""}<br><span class="why">${esc(s.why)}</span></span><span class="cost">${it&&it.cost?it.cost+" altın":""}</span></div>`}).join("")}</div>
-      <p class="muted small" style="margin:12px 0 0">Turkuaz kutular rakip takım yüzünden eklendi. Itemın adına dokununca özelliklerini görürsün. Ana rün: <b>${esc(a.rune)}</b> · Büyüler: <b>${esc(SPELLS[iMe.main])}</b></p>
+      <p class="muted small" style="margin:12px 0 0">${vNote}Turkuaz kutular rakip takım yüzünden eklendi. Itemın adına dokununca özelliklerini görürsün. Ana rün: <b>${esc(a.rune)}</b> · Büyüler: <b>${esc(SPELLS[iMe.main])}</b></p>
     </div>
     <div class="card"><h2>Rakip takım neyle tehdit ediyor <small>${en.length}/5 şampiyon</small></h2>
       ${en.length?`<div class="dmgbar" role="img" aria-label="Fiziksel %${adP}, büyü %${100-adP}"><i style="width:${adP}%;background:var(--ad)"></i><i style="width:${100-adP}%;background:var(--ap)"></i></div>
@@ -363,17 +446,27 @@ let cRole="all";
 $("#c-roles").innerHTML=[["all","Tümü"],...Object.entries(ROLE)].map(([k,v])=>`<button type="button" data-r="${k}" aria-pressed="${k==="all"}">${v}</button>`).join("");
 $("#c-roles").addEventListener("click",e=>{const b=e.target.closest("[data-r]");if(!b)return;cRole=b.dataset.r;[...$("#c-roles").children].forEach(x=>x.setAttribute("aria-pressed",x===b));renderGrid()});
 $("#c-q").addEventListener("input",renderGrid);
+/* Sıralama tercihi tarayıcıda hatırlanır */
+const pref = (k,d) => { try { return localStorage.getItem(k) || d; } catch { return d; } };
+const setPref = (k,v) => { try { localStorage.setItem(k,v); } catch {} };
+let cSort = pref("rk-csort","az"), tSort = pref("rk-tsort","wr");
+const segSet = (id,v) => [...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x.dataset.s===v));
+segSet("#c-sort",cSort);
+$("#c-sort").addEventListener("click",e=>{const b=e.target.closest("[data-s]");if(!b)return;cSort=b.dataset.s;setPref("rk-csort",cSort);segSet("#c-sort",cSort);renderGrid()});
+const TORD = {S:0,A:1,B:2,C:3,D:4,"?":5};
 function renderGrid(){
   const q=key($("#c-q").value);
-  const rows=LIST.filter(c=>(cRole==="all"||c.roles.includes(cRole))&&(!q||key(c.disp).includes(q)));
-  $("#c-grid").innerHTML=rows.map(c=>`<button class="ccard" type="button" ${champBtnAttrs(c)}>${por(c)}<span class="nm">${esc(c.disp)}</span><span class="bt">${tierB(c)}<small>${pct(c.wr)}</small></span></button>`).join("")||'<div class="empty">Bulunamadı.</div>';
+  const wrOf = c => cRole==="all" ? c.wr : (c.rs[cRole]?c.rs[cRole][0]:null);
+  const rows=LIST.filter(c=>(cRole==="all"||c.roles.includes(cRole))&&(!q||key(c.disp).includes(q)))
+    .sort(cSort==="tier" ? (a,b)=>(TORD[tierOf(wrOf(a))]-TORD[tierOf(wrOf(b))])||((wrOf(b)||0)-(wrOf(a)||0)) : (a,b)=>a.disp.localeCompare(b.disp,"tr"));
+  $("#c-grid").innerHTML=rows.map(c=>`<button class="ccard" type="button" ${champBtnAttrs(c)}>${por(c)}<span class="nm">${esc(c.disp)}</span><span class="bt">${(t=>`<span class="tier" data-t="${t}">${t}</span>`)(tierOf(wrOf(c)))}<small>${pct(wrOf(c))}</small></span></button>`).join("")||'<div class="empty">Bulunamadı.</div>';
 }
 
 /* ===== PROFİL ===== */
 let pRole=null, pSlug=null;
 function renderProfile(slug){
   const c=BYSLUG[slug]; const v=$("#v-profil");
-  if(slug!==pSlug){pSlug=slug;pRole=null;}
+  if(slug!==pSlug){pSlug=slug;pRole=null;bRole=null;bVar=0;}
   if(!c){v.innerHTML='<div class="empty">Şampiyon bulunamadı. <a href="#sampiyonlar">Listeye dön</a>.</div>';return}
   const pr=c.prof||{};
   const br=boardRoles(c); if(!br.includes(pRole)) pRole=br.includes(c.main)?c.main:br[0];
@@ -399,10 +492,11 @@ function renderProfile(slug){
       ${c.isNew?'<p class="callout small" style="margin:10px 0 0">Bu şampiyon yeni yamayla otomatik eklendi. Sınıfı ve önerilen build resmi sınıfına göre tahmin edildi.</p>':""}
     </div>
   </div>
+  ${CHG[c.slug]?`<div class="card chcard" data-v="${CHG[c.slug].v}"><h2>Yama ${esc(NOTES.patch||"")}'de ${vPill(CHG[c.slug].v)}</h2>${changeBody(CHG[c.slug])}</div>`:""}
   <div class="grid2">
-    <div class="card"><h2>Yetenekler</h2><div class="abil">${(pr.ab||[]).map(a=>`<div class="ab">${a[3]?`<img src="${a[3]}" alt="">`:'<span></span>'}<div><div class="k">${esc(slotName[a[1]]||a[1])}</div><div class="n">${esc(a[0])}</div><p>${esc(a[2])}</p></div></div>`).join("")||'<div class="empty">Yetenek bilgisi yok.</div>'}</div></div>
+    <div class="card"><h2>Yetenekler</h2><div class="abil">${(pr.ab||[]).map(a=>{const cp=CHG[c.slug]&&CHG[c.slug].c.find(p=>p[0]===a[0]);const d=cp?cp[3].reduce((x,l)=>x+l[1],0):null;return `<div class="ab${cp?" chg-ab":""}">${a[3]?`<span class="abi"><img src="${a[3]}" alt="">${cp?chgBadge(d>0?"buff":d<0?"nerf":"adj"):""}</span>`:'<span></span>'}<div><div class="k">${esc(slotName[a[1]]||a[1])}</div><div class="n">${esc(a[0])}</div><p>${esc(a[2])}</p></div></div>`}).join("")||'<div class="empty">Yetenek bilgisi yok.</div>'}</div></div>
     <div style="display:grid;gap:20px;align-content:start">
-      <div class="card"><h2>Önerilen build <small>${esc(ARCH[c.arch].lbl)}</small></h2>${buildHTML(c)}</div>
+      <div class="card" id="pf-build">${buildCard(c)}</div>
       <div class="card"><h2>Nasıl oynanır</h2><p style="margin:0">${esc(c.tip)}</p></div>
       <div class="card"><h2>Karşısına çıkarsa nasıl yenilir</h2>${howToBeat(c)}</div>
     </div>
@@ -416,6 +510,7 @@ function renderProfile(slug){
   <div class="row"><button class="btn gold" type="button" id="pf-k">Buna kontra bul</button><button class="btn" type="button" id="pf-i">Bu şampiyonla item rehberi</button></div>`;
   $("#pf-k").onclick=()=>{kRole="auto";location.hash="kontra-"+c.slug};
   $("#pf-i").onclick=()=>{iMe=c;location.hash="item"};
+  $("#pf-build").onclick=e=>{const b=e.target.closest("[data-br],[data-bv]");if(!b)return;if(b.dataset.br){bRole=b.dataset.br;bVar=0}else bVar=+b.dataset.bv;$("#pf-build").innerHTML=buildCard(c)};
   const pr2=$("#pf-roles"); if(pr2) pr2.onclick=e=>{const b=e.target.closest("[data-r]");if(!b)return;pRole=b.dataset.r;const y=window.scrollY;renderProfile(slug);window.scrollTo(0,y)};
   document.title = `${c.disp} · Rift Kontra`;
 }
@@ -423,10 +518,12 @@ function renderProfile(slug){
 /* ===== KADEME ===== */
 let tRole="top";
 $("#t-roles").innerHTML=Object.entries(ROLE).map(([k,v])=>`<button type="button" data-r="${k}" aria-pressed="${k===tRole}">${v}</button>`).join("");
+segSet("#t-sort",tSort);
+$("#t-sort").addEventListener("click",e=>{const b=e.target.closest("[data-s]");if(!b)return;tSort=b.dataset.s;setPref("rk-tsort",tSort);segSet("#t-sort",tSort);renderTier()});
 $("#t-roles").addEventListener("click",e=>{const b=e.target.closest("[data-r]");if(!b)return;tRole=b.dataset.r;[...$("#t-roles").children].forEach(x=>x.setAttribute("aria-pressed",x===b));renderTier()});
 function renderTier(){
   const r=tRole;
-  const rows=LIST.filter(c=>c.rs[r]&&c.rs[r][1]>=0.5).map(c=>({c,wr:c.rs[r][0],pr:c.rs[r][1]})).sort((a,b)=>b.wr-a.wr);
+  const rows=LIST.filter(c=>c.rs[r]&&c.rs[r][1]>=0.5).map(c=>({c,wr:c.rs[r][0],pr:c.rs[r][1]})).sort(tSort==="az"?(a,b)=>a.c.disp.localeCompare(b.c.disp,"tr"):(a,b)=>b.wr-a.wr);
   const noData=LIST.filter(c=>!Object.keys(c.rs).length).map(c=>c.disp);
   $("#t-out").innerHTML=["S","A","B","C","D"].map(t=>{const g=rows.filter(x=>tierOf(x.wr)===t);return `<div class="tierrow"><div class="tl" data-t="${t}">${t}</div><div class="faces">${g.map(x=>`<button class="facebtn" type="button" ${champBtnAttrs(x.c)} title="Seçilme oranı ${pct(x.pr)}">${por(x.c)}<span>${esc(x.c.disp)}</span><small>${pct(x.wr)}</small></button>`).join("")||'<span class="muted small" style="line-height:56px">Bu kademede şampiyon yok.</span>'}</div></div>`}).join("")
    + `<p class="muted small" style="margin:12px 0 0">${ROLE_LONG[r]} için bu koridorda en az %0,5 oranında seçilen şampiyonlar gösterilir; bir şampiyon birden çok koridorda görünebilir. Yama ${esc(META.patch||"")} · ${esc((window.WR_STATS||{}).rank||"")}.${noData.length?` Bu yamada verisi olmayanlar: ${esc(noData.join(", "))}.`:""}</p>`;

@@ -66,6 +66,12 @@ nav.tabs a[aria-current="page"]{color:var(--gold-ink);background:var(--gold)}
 main{padding-block:28px 56px;min-height:70vh}
 .view{display:grid;gap:24px}
 .page-head{display:grid;gap:6px}
+.quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.quick{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.quick a{display:flex;align-items:center;gap:10px;padding:14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);color:var(--fg);text-decoration:none}
+.quick a:hover{border-color:var(--gold)}.quick .qi{font-size:22px;line-height:1}
+details.gl>summary{cursor:pointer;list-style-position:inside;color:var(--fg);font-weight:600}
+details.gl[open]>summary{margin-bottom:12px}
 .eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 .page-head h1{font-size:clamp(26px,4vw,36px)}
 .page-head p{margin:0;color:var(--muted);max-width:70ch}
@@ -96,7 +102,61 @@ main{padding-block:28px 56px;min-height:70vh}
 .por{position:relative;flex:none;width:56px;height:56px;border-radius:10px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line)}
 .por img{width:100%;height:100%;object-fit:cover;object-position:50% 18%;display:block}
 .por.sm{width:40px;height:40px;border-radius:8px}
-.por.lg{width:120px;height:136px;border-radius:14px}
+.por.lg{width:128px;height:128px;border-radius:16px}
+.por.wr img{object-position:50% 30%}
+/* Yama değişikliği işaretleri */
+.chg{position:absolute;right:2px;bottom:2px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:800;line-height:1;color:#fff;box-shadow:0 0 0 2px var(--bg);z-index:1}
+.por.sm .chg{width:15px;height:15px;font-size:9px}
+.por.lg .chg{width:28px;height:28px;font-size:16px;right:6px;bottom:6px}
+.chg[data-v="buff"]{background:#22a55b}.chg[data-v="nerf"]{background:#d9483b}.chg[data-v="adj"]{background:#c99a12}
+.chg[data-v="rework"]{background:#8a5cf0}.chg[data-v="new"]{background:#2f86e8}
+.vlegend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0 0 12px;font-size:13px;color:var(--muted)}
+.vlegend span{display:inline-flex;align-items:center;gap:6px}.vlegend .chg{position:static;box-shadow:none}
+.chgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px;margin-bottom:12px}
+.chtile{border:0;background:none;padding:0;cursor:pointer;display:grid;gap:4px;justify-items:center;color:var(--fg)}
+.chtile .por{width:60px;height:60px}.chtile span:last-child{font-size:12px;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chtile:hover .por,.chtile:focus-visible .por{border-color:var(--gold)}
+.vpill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;vertical-align:middle}
+.vpill[data-v="buff"]{background:var(--good-soft);color:var(--good)}.vpill[data-v="nerf"]{background:var(--bad-soft);color:var(--bad)}
+.vpill[data-v="adj"]{background:var(--even-soft);color:var(--even)}.vpill[data-v="rework"],.vpill[data-v="new"]{background:var(--teal-soft);color:var(--teal)}
+.chparts{display:grid;gap:10px}
+.chp{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:start}
+.chico{position:relative;width:44px;height:44px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;color:var(--muted)}
+.chico img{width:100%;height:100%;border-radius:7px;display:block}.chico svg{width:22px;height:22px}
+.chico .sk{position:absolute;left:-4px;top:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:5px;background:var(--gold);color:var(--gold-ink);font:700 10px/16px var(--f-mono);text-align:center}
+.chn{font-family:var(--f-display);font-weight:700;font-size:15px}
+.lns{list-style:none;margin:4px 0 0;padding:0;display:grid;gap:4px}
+.ln{display:grid;grid-template-columns:18px minmax(0,1fr);gap:6px;font-size:14px;align-items:baseline}
+.ln>i{font-style:normal;font-weight:800;font-size:12px}.ln.good>i{color:var(--good)}.ln.bad>i{color:var(--bad)}.ln.even>i{color:var(--even)}
+.ln .lk{color:var(--muted)}.ln .old{color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--muted) 50%,transparent)}
+.ln .to{margin:0 5px;color:var(--muted)}.ln.good .new{color:var(--good)}.ln.bad .new{color:var(--bad)}.ln.even .new{color:var(--even)}
+details.why{margin-top:10px;font-size:13px;color:var(--muted)}details.why summary{cursor:pointer;color:var(--teal)}details.why p{margin:6px 0 0}
+.chcard[data-v="buff"]{border-color:color-mix(in srgb,var(--good) 45%,var(--line))}.chcard[data-v="nerf"]{border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+.abi{position:relative;display:block;width:48px;height:48px}.ab.chg-ab{border-color:var(--gold)}
+/* Eşya kutuları ve buildler */
+.itile{position:relative;border:0;background:none;padding:0;cursor:pointer;display:grid;gap:3px;justify-items:center;width:64px;color:var(--fg)}
+.itile .ib{position:relative;width:52px;height:52px;border-radius:10px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center}
+.itile .ib img{width:100%;height:100%;display:block}.itile .ib .ini{font-size:12px;color:var(--muted)}
+.itile .ib .chg{width:15px;height:15px;font-size:9px}
+.itile .nm{font-size:11px;line-height:1.2;text-align:center;color:var(--muted);max-width:64px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.itile .n{position:absolute;left:-2px;top:-4px;z-index:1;width:18px;height:18px;border-radius:50%;background:var(--gold);color:var(--gold-ink);font:700 11px/18px var(--f-mono);text-align:center}
+.itile:hover .ib,.itile:focus-visible .ib{border-color:var(--teal)}
+.chgrid.it{grid-template-columns:repeat(auto-fill,minmax(68px,1fr))}
+.vtabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.vtabs button{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);font:inherit;font-size:13px;cursor:pointer}
+.vtabs button[aria-selected="true"]{border-color:var(--gold);background:var(--gold-soft);color:var(--fg);font-weight:600}
+.vtabs .em{font-size:15px;line-height:1}
+.when{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}.when span{font-size:12px;color:var(--muted);background:var(--surface-2);border-radius:6px;padding:2px 8px}
+.irow{display:flex;align-items:flex-start;flex-wrap:wrap;gap:4px}.irow .arrow{color:var(--muted);line-height:52px}
+.bsub{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.bsub>div{display:flex;align-items:center;gap:8px}.bsub .l{font-size:16px;color:var(--muted)}
+.runes img{border-radius:50%;background:#0b0f18;display:block}.runes .ks{width:44px;height:44px}.runes .minor{display:flex;gap:3px}.runes .minor img{width:26px;height:26px}
+.runes .rn{font-size:13px;font-weight:600}
+.sits{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.sit{position:relative;display:grid;justify-items:center;gap:2px;text-align:center}.sit .em{position:absolute;top:-6px;right:12px;font-size:16px;z-index:2}
+.sit .ctx{font-size:11px;color:var(--teal);line-height:1.2}
+/* Wild Rift kimliği */
+.brand .wr{font:700 10px/1 var(--f-mono);letter-spacing:.12em;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:3px 5px}
 .por .ini{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;color:var(--muted)}
 
 /* Seçim düğmesi (şampiyon yuvası) */
@@ -272,7 +332,7 @@ footer p{margin:0 0 6px;max-width:90ch}
 <header class="bar"><div class="wrap">
   <a class="brand" href="#ana" aria-label="Ana sayfa">
     <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><path d="M14 2 25 8v12L14 26 3 20V8z" fill="none" stroke="var(--gold)" stroke-width="2"/><path d="M9 18l5-9 5 9" fill="none" stroke="var(--teal)" stroke-width="2.2" stroke-linejoin="round"/></svg>
-    <b>Rift <span>Kontra</span></b>
+    <b>Rift <span>Kontra</span></b><span class="wr">WILD RIFT</span>
   </a>
   <span class="patch">Yama 7.3f</span>
   <nav class="tabs" aria-label="Bölümler">
@@ -293,21 +353,19 @@ footer p{margin:0 0 6px;max-width:90ch}
     <div>
       <div class="eyebrow">Wild Rift · Yama <span class="js-patch">7.3f</span></div>
       <h1>Rakibini gör, <em>doğru şampiyonu</em> ve <em>doğru itemi</em> seç.</h1>
-      <p><span class="js-count">143</span> şampiyonun Türkçe profili, yetenekleri, kime karşı güçlü olduğu ve rakip takıma göre item yolu tek yerde. Veriler her yamada kendiliğinden güncellenir.</p>
       <div class="row" style="margin-top:16px"><button class="btn gold" type="button" id="homeSearch">Şampiyon ara</button><span class="muted small" id="freshness"></span></div>
     </div>
     <div class="hero-faces" id="heroFaces"></div>
   </div>
-  <div class="grid3">
-    <a class="go" href="#kontra"><span class="k">ŞAMPİYON SEÇİMİNDE</span><h3>Kontra Seç</h3><p>Karşı koridorda kim var? Onu seç, koridorunu söyle. Sana karşı iyi gidecek şampiyonları sıralarız.</p><span class="cta">Kontra bul →</span></a>
-    <a class="go" href="#item"><span class="k">MAÇ BAŞLAYINCA</span><h3>Item Rehberi</h3><p>Kendi şampiyonunu ve rakip beşi seç. Rakibin iyileşmesine, hasar türüne ve kitle kontrolüne göre item sıranı çıkarırız.</p><span class="cta">Item yolu çıkar →</span></a>
-    <a class="go" href="#sampiyonlar"><span class="k">ÖĞRENMEK İÇİN</span><h3>Şampiyon Profilleri</h3><p>Yetenekler, zorluk, kazanma oranı, önerilen build, rün ve sihirdar büyüleri, nasıl oynanır, nasıl yenilir.</p><span class="cta">Profillere göz at →</span></a>
+  <div class="quick">
+    <a href="#kontra"><span class="qi">⚔️</span><b>Kontra Seç</b></a>
+    <a href="#item"><span class="qi">🛒</span><b>Item Rehberi</b></a>
+    <a href="#sampiyonlar"><span class="qi">👤</span><b>Şampiyonlar</b></a>
+    <a href="#kademe"><span class="qi">🏆</span><b>Kademe Listesi</b></a>
   </div>
-  <div class="grid2">
-    <div class="card"><h2>Bu yamanın güçlüleri <small>koridora göre en yüksek kazanma oranı</small></h2><div class="rolebest" id="roleBest"></div></div>
-    <div class="card"><h2>Yama <span class="js-patch">7.3f</span>'de neler değişti</h2><div id="patchNotes"></div></div>
-  </div>
-  <div class="card"><h2>Sitede geçen terimler</h2>
+  <div class="card"><h2>Yama <span class="js-patch">7.3f</span>'de neler değişti</h2><div id="patchNotes"></div></div>
+  <div class="card"><h2>Bu yamanın güçlüleri</h2><div class="rolebest" id="roleBest"></div></div>
+  <details class="card gl"><summary><h2 style="display:inline">Sitede geçen terimler</h2></summary>
     <dl class="gloss">
       <dt>Kontra</dt><dd>Bir şampiyona karşı koridorda avantajlı olan şampiyon.</dd>
       <dt>KO / SO / YO</dt><dd>Kazanma oranı, seçilme oranı, yasaklanma oranı. Çin sunucusu Challenger ve üstü dereceli maçlar.</dd>
@@ -319,12 +377,12 @@ footer p{margin:0 0 6px;max-width:90ch}
       <dt>Çekirdek item</dt><dd>Şampiyonun neredeyse her maçta aldığı ilk üç ana item.</dd>
       <dt>Durumsal item</dt><dd>Rakip takıma göre çekirdeğin arasına eklediğin item.</dd>
     </dl>
-  </div>
+  </details>
 </section>
 
 <!-- KONTRA -->
 <section class="view" id="v-kontra" hidden>
-  <div class="page-head"><div class="eyebrow">Şampiyon seçiminde</div><h1>Kontra Seç</h1><p>Rakibin hangi şampiyonu aldıysa onu seç. Liste, güncel yamanın eşleşme verisine göre o şampiyona karşı avantajlı olanları gösterir: önce en büyük avantaj, eşitse koridorda kazanma oranı yüksek olan.</p></div>
+  <div class="page-head"><div class="eyebrow">Şampiyon seçiminde</div><h1>Kontra Seç</h1><p>Rakibi seç, ona karşı avantajlı şampiyonları gör.</p></div>
   <div class="card steps">
     <div class="step"><span class="step-n">1</span><div><div class="step-t">Rakip şampiyonu seç</div><div id="k-slot"></div></div></div>
     <div class="step"><span class="step-n">2</span><div><div class="step-t">Hangi koridorda oynayacaksın?</div><div class="seg" id="k-roles"></div></div></div>
@@ -334,7 +392,7 @@ footer p{margin:0 0 6px;max-width:90ch}
 
 <!-- ITEM -->
 <section class="view" id="v-item" hidden>
-  <div class="page-head"><div class="eyebrow">Maç başlayınca</div><h1>Item Rehberi</h1><p>Kendi şampiyonunu ve rakip takımı seç. Rehber önce rakibin neyle tehdit ettiğini açıklar, sonra sıralı bir item yolu önerir. Rakip eksik olsa da çalışır.</p></div>
+  <div class="page-head"><div class="eyebrow">Maç başlayınca</div><h1>Item Rehberi</h1><p>Şampiyonunu ve rakipleri seç, maça özel item sıranı al.</p></div>
   <div class="card steps">
     <div class="step"><span class="step-n">1</span><div><div class="step-t">Senin şampiyonun</div><div id="i-me" style="max-width:320px"></div></div></div>
     <div class="step"><span class="step-n">2</span><div><div class="step-t">Rakip takım <span class="muted small">(bildiğin kadarını seç)</span></div><div class="slots5" id="i-enemies"></div></div></div>
@@ -345,8 +403,8 @@ footer p{margin:0 0 6px;max-width:90ch}
 
 <!-- ŞAMPİYONLAR -->
 <section class="view" id="v-sampiyonlar" hidden>
-  <div class="page-head"><div class="eyebrow">Öğrenmek için</div><h1>Şampiyonlar</h1><p>Bir şampiyona dokun: yetenekleri, build'i, rünü, kime karşı güçlü ve zayıf olduğu açılır.</p></div>
-  <div class="toolbar"><div class="seg" id="c-roles"></div><input id="c-q" type="search" placeholder="Şampiyon ara" aria-label="Şampiyon ara"></div>
+  <div class="page-head"><div class="eyebrow">Öğrenmek için</div><h1>Şampiyonlar</h1></div>
+  <div class="toolbar"><div class="seg" id="c-roles"></div><div class="seg" id="c-sort" aria-label="Sıralama"><button type="button" data-s="az" aria-pressed="true">A–Z</button><button type="button" data-s="tier" aria-pressed="false">Kademe S→D</button></div><input id="c-q" type="search" placeholder="Şampiyon ara" aria-label="Şampiyon ara"></div>
   <div class="cgrid" id="c-grid"></div>
 </section>
 
@@ -355,28 +413,28 @@ footer p{margin:0 0 6px;max-width:90ch}
 
 <!-- KADEME -->
 <section class="view" id="v-kademe" hidden>
-  <div class="page-head"><div class="eyebrow">Yama <span class="js-patch">7.3f</span></div><h1>Kademe Listesi</h1><p>Kademe, bir şampiyonun bu yamada ne kadar güçlü olduğunu gösteren harf notudur. Okul notu gibi düşün: S en iyisi, D en zayıfı. Not, şampiyonun Çin sunucusunda Challenger ve üstü dereceli maçlardaki kazanma oranından hesaplanır . Portrenin altındaki sayı o kazanma oranıdır.</p></div>
-  <div class="card"><dl class="gloss">
+  <div class="page-head"><div class="eyebrow">Yama <span class="js-patch">7.3f</span></div><h1>Kademe Listesi</h1><p>S en güçlü, D en zayıf. Portrenin altındaki sayı kazanma oranı.</p></div>
+  <details class="card gl"><summary>S, A, B, C, D ne demek?</summary><dl class="gloss">
     <dt><span class="tier" data-t="S">S</span></dt><dd><b>Çok güçlü</b> · maçların %52,5'inden fazlasını kazanıyor. Bu yamanın en iyileri, sık yasaklanırlar.</dd>
     <dt><span class="tier" data-t="A">A</span></dt><dd><b>Güçlü</b> · %51–52,5. Rahatça seçilebilir.</dd>
     <dt><span class="tier" data-t="B">B</span></dt><dd><b>Dengeli</b> · %49,5–51. Normal; iyi oynarsan kazandırır.</dd>
     <dt><span class="tier" data-t="C">C</span></dt><dd><b>Biraz zayıf</b> · %48–49,5. İyi bildiğin şampiyonsa sorun değil.</dd>
     <dt><span class="tier" data-t="D">D</span></dt><dd><b>Zayıf</b> · %48'in altı. Bu yamada geride; yeni çıkan ya da zayıflatılan şampiyonlar burada olur.</dd>
-  </dl><p class="muted small" style="margin:10px 0 0">Kademe genel güçtür. Rakibine göre seçim yapıyorsan Kontra Seç sayfası daha doğru sonuç verir.</p></div>
-  <div class="seg" id="t-roles"></div>
+  </dl><p class="muted small" style="margin:10px 0 0">Kademe genel güçtür. Rakibine göre seçim yapıyorsan Kontra Seç sayfası daha doğru sonuç verir.</p></details>
+  <div class="toolbar"><div class="seg" id="t-roles"></div><div class="seg" id="t-sort" aria-label="Kademe içi sıralama"><button type="button" data-s="wr" aria-pressed="true">Kazanma oranı</button><button type="button" data-s="az" aria-pressed="false">A–Z</button></div></div>
   <div class="card" id="t-out"></div>
 </section>
 
 <!-- EŞYALAR -->
 <section class="view" id="v-esyalar" hidden>
-  <div class="page-head"><div class="eyebrow">Yama 7.2 sonrası</div><h1>Eşyalar</h1><p>Oyundaki Türkçe adlarıyla. Altta küçük yazı, İngilizce istemci kullananlar için orijinal ad. 7.2 ile aktif efsunlar kaldırıldı; Zhonya'nın Kumsaati ve Civalı Kuşak gibi aktifler artık itemın kendisinde.</p></div>
+  <div class="page-head"><div class="eyebrow">Yama 7.2 sonrası</div><h1>Eşyalar</h1><p>Oyundaki Türkçe adlarıyla. Simgeye dokun, ayrıntı açılsın.</p></div>
   <div class="toolbar"><div class="seg" id="e-cats"></div><input id="e-q" type="search" placeholder="Item veya özellik ara (örn. kalkan)" aria-label="Item ara"></div>
   <div class="igrid" id="e-grid"></div>
 </section>
 </main>
 
 <footer><div class="wrap">
-  <p>Şampiyon profilleri ve görseller: resmi Wild Rift Türkçe sitesi. İstatistikler: riftpatchnotes.com (Çin sunucusu, Challenger+). Türkçe item adları resmi yama notlarından. Kontra ve eşleşme puanları: wildriftcore.com eşleşme tahtası (Çin sunucusu Master+). Kafa kafaya kazanma yüzdeleri halka açık yayımlanmadığı için gösterilen yüzdeler şampiyonların koridordaki genel oranlarıdır.</p>
+  <p>Kaynaklar: resmi Wild Rift Türkçe sitesi ve yama notları · riftpatchnotes.com (oranlar, CN Challenger+) · wildriftcore.com (eşleşme, build ve oyun içi simgeler, CN sunucusu).</p>
   <p id="footFresh"></p>
   <p>Bu site hayran yapımıdır; Riot Games ile bağlantılı değildir. Wild Rift ve ilgili görseller Riot Games'e aittir. Kaynak kodu: <a href="https://github.com/servetskr/rift-kontra" target="_blank" rel="noopener">GitHub</a>.</p>
 </div></footer>
@@ -390,6 +448,7 @@ footer p{margin:0 0 6px;max-width:90ch}
 <script src="data/stats.js"></script>
 <script src="data/profiles.js"></script>
 <script src="data/matchups.js"></script>
+<script src="data/builds.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
