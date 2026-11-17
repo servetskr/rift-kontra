@@ -248,7 +248,7 @@ function renderKontra(){
       ${even.length?`<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">Dengeli eşleşmeler (${even.length}) <span class="muted small">— kim iyi oynarsa kazanır</span></summary><div class="list" style="margin-top:8px">${even.map(x=>pickRow(x.c,0,`Eşit eşleşme${role==="all"?" · "+ROLE[x.r]:""}`,x.r)).join("")}</div></details>`:""}
       <h2 style="margin-top:18px">Bunları seçme <small>${esc(kEnemy.disp)} bunlara karşı üstün</small></h2>
       <div class="list">${bad.map(x=>pickRow(x.c,x.e,`${esc(kEnemy.disp)} karşısında zorlanır${role==="all"?" · "+ROLE[x.r]:""}`,x.r)).join("")||'<div class="empty">Bu koridorda dezavantajlı eşleşme yok.</div>'}</div>
-      <p class="muted small" style="margin:14px 0 0">Puan, WildRiftCore'un yama ${esc(META.patch||"")} eşleşme tahtasından gelir (Çin sunucusu, Master+). +3 en büyük avantaj, −3 en büyük dezavantaj. Sağdaki yüzde, o şampiyonun bu koridordaki genel kazanma oranıdır; iki şampiyonun birbirine karşı oranı değildir.</p>
+      <p class="muted small" style="margin:14px 0 0">Puan, WildRiftCore'un eşleşme tahtasından gelir (${META.matchupsAt?"güncelleme: "+fmtDate(META.matchupsAt):""}${META.matchupsPatch&&META.matchupsPatch!==META.patch?", önceki yama "+esc(META.matchupsPatch)+" verisi; yeni yama verisi bekleniyor":""}) (Çin sunucusu, Master+). +3 en büyük avantaj, −3 en büyük dezavantaj. Sağdaki yüzde, o şampiyonun bu koridordaki genel kazanma oranıdır; iki şampiyonun birbirine karşı oranı değildir.</p>
     </div>
   </div>`;
 }

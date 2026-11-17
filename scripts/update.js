@@ -130,12 +130,13 @@ async function updateProfiles(state, prev) {
     }
   }
   await Promise.all([worker(), worker(), worker()]);
-  const n = Object.keys(out).length;
+  const sorted = {}; Object.keys(out).sort().forEach(k => sorted[k] = out[k]); // sabit sıra: gereksiz commit olmasın
+  const n = Object.keys(sorted).length;
   if (n < cards.length * 0.95) throw new Error(`Profiller: ${cards.length} şampiyondan yalnızca ${n} okunabildi`);
   const added = prev ? Object.keys(out).filter(s => !prev[s]) : [];
   if (added.length) log("YENİ ŞAMPİYON:", added.join(", "));
   log("profil", n, "şampiyon");
-  return out;
+  return sorted;
 }
 
 /* ---------- 3. Eşleşme puanları ---------- */
@@ -154,8 +155,11 @@ function parseBoards(h) {
   }
   return out;
 }
+class Blocked extends Error {}
 async function updateMatchups(slugMap, prev) {
-  const listH = await get("https://wildriftcore.com/en/champions/");
+  let listH;
+  try { listH = await get("https://wildriftcore.com/en/champions/", { tries: 2 }); }
+  catch (e) { if (/HTTP 403/.test(e.message)) throw new Blocked("wildriftcore.com bu ağdan erişimi engelliyor (403)"); throw e; }
   const slugs = [...new Set([...listH.matchAll(/href="\/en\/champions\/([a-z0-9-]+)\/"/g)].map(m => m[1]))];
   if (slugs.length < 120) throw new Error(`Eşleşme: liste çok kısa (${slugs.length})`);
   const MU = { top: {}, jg: {}, mid: {}, adc: {}, sup: {} };
@@ -268,8 +272,11 @@ async function updateItemIcons(itemEn, prevIcons) {
   // 3. eşleşmeler: yama değiştiyse ya da 20 saatten eskiyse
   const muAge = prevMeta.matchupsAt ? (now - new Date(prevMeta.matchupsAt)) / 36e5 : 99;
   if (!args.has("--skip-matchups") && (!prevMU || patchChanged || muAge > 20 || args.has("--full"))) {
-    try { const mu = await updateMatchups(slugMap, prevMU); writeGlobal("matchups.js", "WR_MU", mu, "Eşleşme puanları, kaynak: wildriftcore.com"); prevMeta.matchupsAt = now.toISOString(); }
-    catch (e) { failed = true; problems.push(e.message); }
+    try { const mu = await updateMatchups(slugMap, prevMU); writeGlobal("matchups.js", "WR_MU", mu, "Eşleşme puanları, kaynak: wildriftcore.com"); prevMeta.matchupsAt = now.toISOString(); prevMeta.matchupsPatch = patch; }
+    catch (e) {
+      if (e instanceof Blocked) log("ATLANDI:", e.message, "— eşleşmeler yerel çalıştırmayla güncellenir (scripts/yerel-guncelle.cmd)");
+      else { failed = true; problems.push(e.message); }
+    }
   }
 
   // 4. yama notları
