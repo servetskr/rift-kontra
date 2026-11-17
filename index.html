@@ -1,7 +1,16 @@
+<!doctype html>
+<html lang="tr">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Rift Kontra</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<title>Rift Kontra · Wild Rift Türkçe kontra ve item rehberi</title>
+<meta name="description" content="Wild Rift için Türkçe kontra seçici, rakibe göre item rehberi, şampiyon profilleri ve kademe listesi. Her yamada otomatik güncellenir.">
+<meta property="og:title" content="Rift Kontra">
+<meta property="og:description" content="Wild Rift Türkçe kontra ve item rehberi. Her yamada otomatik güncellenir.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0c131d">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -253,7 +262,12 @@ input::placeholder{color:var(--muted)}
 footer{border-top:1px solid var(--line);padding-block:22px;color:var(--muted);font-size:13px}
 footer p{margin:0 0 6px;max-width:90ch}
 @media (prefers-reduced-motion:no-preference){.pick,.ccard,.go,.slot,.itm,.pbtn{transition:border-color .15s,background .15s}}
+.ico{width:20px;height:20px;border-radius:4px;flex:none;vertical-align:middle}
+.ico-md{width:36px;height:36px;border-radius:6px;flex:none}
+.ico-lg{width:48px;height:48px;border-radius:8px;flex:none}
 </style>
+</head>
+<body>
 
 <header class="bar"><div class="wrap">
   <a class="brand" href="#ana" aria-label="Ana sayfa">
@@ -277,9 +291,10 @@ footer p{margin:0 0 6px;max-width:90ch}
 <section class="view" id="v-ana">
   <div class="hero">
     <div>
-      <div class="eyebrow">Wild Rift · Yama 7.3f</div>
+      <div class="eyebrow">Wild Rift · Yama <span class="js-patch">7.3f</span></div>
       <h1>Rakibini gör, <em>doğru şampiyonu</em> ve <em>doğru itemi</em> seç.</h1>
-      <p>143 şampiyonun Türkçe profili, yetenekleri, kime karşı güçlü olduğu ve rakip takıma göre item yolu tek yerde. Nereden başlayacağını bilmiyorsan aşağıdaki üç kartla başla.</p>
+      <p><span class="js-count">143</span> şampiyonun Türkçe profili, yetenekleri, kime karşı güçlü olduğu ve rakip takıma göre item yolu tek yerde. Veriler her yamada kendiliğinden güncellenir.</p>
+      <div class="row" style="margin-top:16px"><button class="btn gold" type="button" id="homeSearch">Şampiyon ara</button><span class="muted small" id="freshness"></span></div>
     </div>
     <div class="hero-faces" id="heroFaces"></div>
   </div>
@@ -290,17 +305,7 @@ footer p{margin:0 0 6px;max-width:90ch}
   </div>
   <div class="grid2">
     <div class="card"><h2>Bu yamanın güçlüleri <small>koridora göre en yüksek kazanma oranı</small></h2><div class="rolebest" id="roleBest"></div></div>
-    <div class="card"><h2>7.3f'de neler değişti</h2>
-      <ul class="news">
-        <li><b>Yeni şampiyon:</b> Sylas. Henüz düşük kazanma oranında (%44,2) ama en çok yasaklanan ikinci şampiyon.</li>
-        <li><b>Güçlenenler:</b> Akshan, Graves, Lucian, Rumble, Yasuo.</li>
-        <li><b>Zayıflayanlar:</b> Irelia, Kalista, Kassadin, Shen. Viktor'un hasarı ilk vuruşa kaydırıldı.</li>
-        <li><b>Güçlenen itemlar:</b> Kaniçen, Hextech Füzekemer, Lich Boğan, Luden'in Feryadı, Morellonomikon, Asırlık Sopa.</li>
-        <li><b>Zayıflayan itemlar:</b> Kara Sis Tırpanı, Dağın Siperi, Kararma, Liandry'nin Eziyeti.</li>
-        <li><b>Orman:</b> Çarp'ın yanma hasarı ve orman koruma altını düşürüldü.</li>
-        <li><b>Hatırlatma (7.2):</b> Aktif efsunlar kaldırıldı. Çizmeler 10. dakikadan sonra 3. aşamaya yükseltilebiliyor.</li>
-      </ul>
-    </div>
+    <div class="card"><h2>Yama <span class="js-patch">7.3f</span>'de neler değişti</h2><div id="patchNotes"></div></div>
   </div>
   <div class="card"><h2>Sitede geçen terimler</h2>
     <dl class="gloss">
@@ -319,7 +324,7 @@ footer p{margin:0 0 6px;max-width:90ch}
 
 <!-- KONTRA -->
 <section class="view" id="v-kontra" hidden>
-  <div class="page-head"><div class="eyebrow">Şampiyon seçiminde</div><h1>Kontra Seç</h1><p>Rakibin hangi şampiyonu aldıysa onu seç. Liste, 7.3f eşleşme verisine göre o şampiyona karşı avantajlı olanları gösterir: önce en büyük avantaj, eşitse koridorda kazanma oranı yüksek olan.</p></div>
+  <div class="page-head"><div class="eyebrow">Şampiyon seçiminde</div><h1>Kontra Seç</h1><p>Rakibin hangi şampiyonu aldıysa onu seç. Liste, güncel yamanın eşleşme verisine göre o şampiyona karşı avantajlı olanları gösterir: önce en büyük avantaj, eşitse koridorda kazanma oranı yüksek olan.</p></div>
   <div class="card steps">
     <div class="step"><span class="step-n">1</span><div><div class="step-t">Rakip şampiyonu seç</div><div id="k-slot"></div></div></div>
     <div class="step"><span class="step-n">2</span><div><div class="step-t">Hangi koridorda oynayacaksın?</div><div class="seg" id="k-roles"></div></div></div>
@@ -350,7 +355,7 @@ footer p{margin:0 0 6px;max-width:90ch}
 
 <!-- KADEME -->
 <section class="view" id="v-kademe" hidden>
-  <div class="page-head"><div class="eyebrow">Yama 7.3f</div><h1>Kademe Listesi</h1><p>Kademe, bir şampiyonun bu yamada ne kadar güçlü olduğunu gösteren harf notudur. Okul notu gibi düşün: S en iyisi, D en zayıfı. Not, şampiyonun Çin sunucusunda Challenger ve üstü dereceli maçlardaki kazanma oranından hesaplanır (16.11.2026). Portrenin altındaki sayı o kazanma oranıdır.</p></div>
+  <div class="page-head"><div class="eyebrow">Yama <span class="js-patch">7.3f</span></div><h1>Kademe Listesi</h1><p>Kademe, bir şampiyonun bu yamada ne kadar güçlü olduğunu gösteren harf notudur. Okul notu gibi düşün: S en iyisi, D en zayıfı. Not, şampiyonun Çin sunucusunda Challenger ve üstü dereceli maçlardaki kazanma oranından hesaplanır . Portrenin altındaki sayı o kazanma oranıdır.</p></div>
   <div class="card"><dl class="gloss">
     <dt><span class="tier" data-t="S">S</span></dt><dd><b>Çok güçlü</b> · maçların %52,5'inden fazlasını kazanıyor. Bu yamanın en iyileri, sık yasaklanırlar.</dd>
     <dt><span class="tier" data-t="A">A</span></dt><dd><b>Güçlü</b> · %51–52,5. Rahatça seçilebilir.</dd>
@@ -371,693 +376,20 @@ footer p{margin:0 0 6px;max-width:90ch}
 </main>
 
 <footer><div class="wrap">
-  <p>Şampiyon profilleri ve görseller: resmi Wild Rift Türkçe sitesi. İstatistikler: riftpatchnotes.com (Çin sunucusu, Challenger+, 7.3f, 16.11.2026). Türkçe item adları resmi yama notlarından. Kontra ve eşleşme puanları: wildriftcore.com eşleşme tahtası (7.3f, Çin sunucusu Master+, 17.11.2026). Kafa kafaya kazanma yüzdeleri halka açık yayımlanmadığı için gösterilen yüzdeler şampiyonların koridordaki genel oranlarıdır.</p>
-  <p>Bu site hayran yapımıdır; Riot Games ile bağlantılı değildir. Wild Rift ve ilgili görseller Riot Games'e aittir.</p>
+  <p>Şampiyon profilleri ve görseller: resmi Wild Rift Türkçe sitesi. İstatistikler: riftpatchnotes.com (Çin sunucusu, Challenger+). Türkçe item adları resmi yama notlarından. Kontra ve eşleşme puanları: wildriftcore.com eşleşme tahtası (Çin sunucusu Master+). Kafa kafaya kazanma yüzdeleri halka açık yayımlanmadığı için gösterilen yüzdeler şampiyonların koridordaki genel oranlarıdır.</p>
+  <p id="footFresh"></p>
+  <p>Bu site hayran yapımıdır; Riot Games ile bağlantılı değildir. Wild Rift ve ilgili görseller Riot Games'e aittir. Kaynak kodu: <a href="https://github.com/servetskr/rift-kontra" target="_blank" rel="noopener">GitHub</a>.</p>
 </div></footer>
 
 <div class="overlay" id="ov" hidden></div>
 
-<script src="data.js"></script>
-<script src="matchups.js"></script>
-<script>
-"use strict";
-const P = window.WR_PROFILES || {};
-
-/* ===== KÜRATÖR VERİSİ =====
- ad|koridorlar|arketip|hasar|etiketler|ona karşı iyi olanlar|onun iyi olduğu rakipler|ipucu */
-const CHAMP_RAW = `
-Aatrox|top|bruiser|AD|heal,cc,dash|Fiora,Vayne,Irelia,Kennen,Teemo|Garen,Nasus,Sion,Ornn,Malphite|Q'nun uç kısmıyla vurursan ekstra hasar ve havaya kaldırma alırsın. Savaşın ortasında kalıp can çalarak uzun dövüşleri kazanır.
-Ahri|mid|mage_burst|AP|cc,dash|Kassadin,Fizz,Yasuo,Galio,Zed|Lux,Ziggs,Vel'Koz,Veigar,Annie|Önce cazibe (E) isabet ettir, sonra komboyu bas. Ultinin üç atılmasını kaçış için de saklayabilirsin.
-Akali|mid,top|ap_assassin|AP|dash,burst|Galio,Lissandra,Malphite,Annie,Renekton|Ziggs,Vel'Koz,Lux,Ryze,Viktor|Duman (2) içinde görünmezsin; rakip kontrol totemi koyarsa ya da nokta hedefli kitle kontrolü atarsa açığa çıkarsın.
-Akshan|mid,adc|crit_adc|AD|dash,burst|Galio,Annie,Malphite,Lissandra,Pantheon|Ziggs,Vel'Koz,Lux,Seraphine,Heimerdinger|Pasif çift atış kısa takaslarda güçlü; kanca ile hem kaç hem kovala.
-Alistar|sup|tank_sup|AP|cc,engage,tank,heal|Morgana,Janna,Zyra,Lulu,Braum|Sona,Soraka,Yuumi,Nami,Seraphine|2+1 kombosuyla hedefi takımına at. Ultisi aldığı hasarı büyük oranda azaltır.
-Ambessa|top|bruiser|AD|dash,shield|Fiora,Jax,Poppy,Kennen,Renekton|Sion,Ornn,Nasus,Jayce,Kayle|Atılma zincirleriyle girip çıkar; Poppy'nin 2'si ve uzun sersemletmeler kombosunu keser.
-Amumu|jg,sup|tank_jg|AP|cc,engage,tank|Lee Sin,Kindred,Graves,Nidalee,Morgana|Master Yi,Tryndamere,Evelynn,Kha'Zix,Rengar|Erken kamp temizliği yavaş; 5. seviyeden sonra ultisi tek başına takım savaşı açar.
-Annie|mid,sup|mage_burst|AP|cc,burst|Ziggs,Vel'Koz,Lux,Kassadin,Hwei|Yasuo,Zed,Akali,Katarina,Fizz|Pasif 4 yükte sersemletme hazırdır; Tibbers + Sıçra ani giriş sağlar.
-Ashe|adc,sup|crit_adc|AD|cc,poke|Draven,Lucian,Samira,Kalista,Tristana|Vayne,Kog'Maw,Twitch,Jinx,Smolder|Yavaşlatmayla rakibi geri iterek vur; ulti oku uzaktan savaş açar.
-Aurelion Sol|mid|mage_control|AP|poke,cc|Zed,Fizz,Katarina,Kassadin,Akali|Viktor,Lux,Ziggs,Vel'Koz,Galio|Yıldız tozu yükleri oyun ilerledikçe büyür; erken oyunda suikastçılardan uzak dur.
-Aurora|mid,top|mage_battle|AP|dash,cc|Kassadin,Galio,Fizz,Zed,Yasuo|Lux,Ziggs,Vel'Koz,Annie,Veigar|Geri sekme ile mesafe aç; ulti alanı rakipleri içinde tutar.
-Bard|sup|enchanter|AP|cc,heal|Blitzcrank,Nautilus,Pyke,Leona|Sona,Soraka,Yuumi|Haritadaki çanları topla, güçlen; ultisi alandaki herkesi zamanda dondurur, dost ve düşman fark etmez.
-Blitzcrank|sup|tank_sup|AP|cc,engage|Morgana,Janna,Alistar,Braum,Lulu|Sona,Soraka,Yuumi,Senna,Nami|Kancayı minyon arkasına atma; Morgana kalkanı kancayı boşa çıkarır.
-Brand|mid,sup|mage_control|AP|poke,cc|Zed,Fizz,Katarina,Kassadin,Yasuo|Galio,Ryze,Taliyah,Braum,Maokai|Pasif yanma tanklara yüzde hasar verir; yeteneklerini alev almış hedefe sırala.
-Braum|sup|tank_sup|AD|cc,shield,tank|Zyra,Lux,Brand,Vel'Koz,Karma|Blitzcrank,Thresh,Nautilus,Pyke,Leona|Kalkanı (3) mermileri durdurur; kanca ve beceri atışlı desteklere karşı mükemmel.
-Caitlyn|adc|lethal_adc|AD|poke,cc|Samira,Draven,Kalista,Lucian,Xayah|Kai'Sa,Jinx,Twitch,Kog'Maw,Vayne|Uzun menzilinle koridoru kontrol et; tuzak + ağ sonrası kafadan atış çok sert vurur.
-Camille|top|skirmisher|AD|dash,cc,true|Darius,Renekton,Jax,Poppy,Malphite|Kayle,Nasus,Ornn,Sion,Teemo|Duvara tutunma (3) Poppy'nin 2'sine takılır. Ultisindeki hedef alanın dışına kaçamaz.
-Cho'Gath|top|tank|AP|cc,heal,tank|Fiora,Vayne,Gwen,Mordekaiser,Darius|Riven,Yone,Yasuo,Kennen,Jayce|Ulti yığınlarıyla kalıcı can kazanır; yüzde hasar veren rakipler onu eritir.
-Corki|adc,mid|caster_adc|mixed|poke|Draven,Samira,Lucian,Kalista,Tristana|Jinx,Kog'Maw,Smolder,Ashe|Füze dalgalarıyla güvenli dürt; Valkyrie ile kaç ya da gir.
-Darius|top,jg|juggernaut|AD|cc,heal|Vayne,Jax,Fiora,Teemo,Jayce,Kennen|Nasus,Sion,Kayle,Garen,Mordekaiser|Pasif 5 yüke çıkınca Noxus Kudreti açılır. Rakip, Q'nun iç halkasında durursa iyileşemezsin.
-Diana|jg,mid|ap_assassin|AP|dash,burst,shield|Graves,Kindred,Lee Sin,Talon,Nocturne|Master Yi,Evelynn,Rengar,Shyvana|Q ile işaretlediğin hedefe atılman hızlı yenilenir; çok hedefe vurdukça kalkanın büyür.
-Draven|adc|crit_adc|AD|burst|Caitlyn,Varus,Jhin,Ashe|Kai'Sa,Jinx,Vayne,Kog'Maw,Twitch|Baltaları yakalamak hasarının yarısı. Pasif hayran altınıyla erken kartopu yap.
-Dr. Mundo|top,jg|tank|AD|heal,tank|Fiora,Vayne,Gwen,Mordekaiser,Darius|Sion,Malphite,Ornn,Nasus,Yasuo|Rakipte ağır yara yoksa ultisiyle neredeyse ölümsüzdür.
-Ekko|jg,mid|ap_assassin|AP|dash,burst,shield|Lee Sin,Graves,Nidalee,Rengar,Kha'Zix|Master Yi,Evelynn,Shyvana,Hecarim|Ulti seni birkaç saniye önceki konumuna döndürür; savaşa erken gir, ultiyle geri dön.
-Evelynn|jg|ap_assassin|AP|stealth,burst|Lee Sin,Nidalee,Rengar,Kindred,Graves|Master Yi,Shyvana,Nunu & Willump|Kamuflajdayken kontrol totemleri seni gösterir. 4. seviyeden sonra baskınların güçlenir.
-Ezreal|adc|caster_adc|mixed|poke,dash|Samira,Draven,Lucian,Kalista,Tristana|Jinx,Kog'Maw,Smolder,Twitch,Ashe|Q isabetleri tüm bekleme sürelerini kısaltır. Atılmayla güvende kal, dürterek koridoru kazan.
-Fiddlesticks|jg|mage_control|AP|cc,heal,burst|Lee Sin,Nidalee,Kindred,Graves,Rengar|Master Yi,Tryndamere,Hecarim,Xin Zhao|Ultiyi çalıdan veya görüş dışından başlat; Zhonya'nın Kumsaati ile çok güvenli.
-Fiora|top|skirmisher|AD|heal,true,dash|Pantheon,Poppy,Malphite,Kennen,Teemo|Aatrox,Darius,Cho'Gath,Sion,Mordekaiser|Savuşturma (2) ile rakibin önemli kitle kontrolünü karşılarsan takas senindir.
-Fizz|mid,jg|ap_assassin|AP|dash,burst|Galio,Lissandra,Kassadin,Vex,Malphite|Lux,Ziggs,Vel'Koz,Mel,Viktor|Mızrağın üstüne çıkarak (3) kritik yetenekten kaç; Vex ve Lissandra atılmalarını cezalandırır.
-Galio|mid,sup|ap_tank|AP|cc,tank,engage|Ryze,Vladimir,Viktor,Brand,Ziggs|Akali,Fizz,Katarina,Kassadin,Ahri,Yasuo|Büyü hasarını emen pasif kalkanı büyü suikastçılarına karşı harika. Ultiyle başka koridora uç.
-Garen|top|juggernaut|AD|tank|Vayne,Teemo,Darius,Jayce,Kennen|Yasuo,Yone,Kayle,Akali,Nasus|Kısa takas yap, çalıya çekil; pasif yenilenmeyle can topla.
-Gnar|top|bruiser|AD|cc,poke|Renekton,Irelia,Riven,Jax,Kennen|Garen,Nasus,Sion,Ornn,Malphite|Küçük Gnar'da uzaktan vur, Mega Gnar'da duvar yanında ulti at.
-Gragas|jg,top|ap_tank|AP|cc,engage,dash,heal|Graves,Lee Sin,Kindred,Kha'Zix|Master Yi,Evelynn,Amumu|Ultiyle rakibi takımına doğru it; gövde darbesi (3) ilk çarptığı rakibi sersemletir.
-Graves|jg|ad_assassin|AD|burst,dash|Rammus,Jax,Nocturne,Vi,Xin Zhao|Fiddlesticks,Evelynn,Diana,Ekko,Lillia|Hızlı kamp temizliği ve rakip ormanına girme; Rammus'un zırhı ona karşı çok etkili.
-Gwen|top,jg|mage_battle|AP|heal,dash,true|Darius,Renekton,Kennen,Jayce,Teemo|Cho'Gath,Ornn,Malphite,Sion,K'Sante|Kutsal Sis (2) dışarıdan gelen hasarı keser; yüzde hasarı tanklara karşı çok etkili.
-Hecarim|jg|bruiser|AD|engage,cc,dash|Rammus,Poppy,Fiddlesticks,Vi,Nocturne|Master Yi,Kindred,Nidalee,Evelynn|Hareket hızı hasar demek. Yavaşlatma ve Poppy'nin 2'si gibi durdurucular onu frenler.
-Heimerdinger|mid|mage_control|AP|poke,cc|Kassadin,Fizz,Katarina,Zed,Akshan|Yasuo,Yone,Irelia,Riven|Taretleri kule önüne kurup alanı kontrol et.
-Hwei|mid|mage_control|AP|poke,cc|Zed,Fizz,Katarina,Kassadin,Akali|Viktor,Orianna,Ryze,Lissandra,Taliyah|Uzak menzilli dürtme ve alan kontrolü; kaçışı zayıf, konumlanma şart.
-Irelia|top,mid|skirmisher|AD|dash,heal|Jax,Renekton,Sett,Poppy,Volibear|Gnar,Jayce,Kayle,Teemo,Vayne|Q'yu düşük canlı minyonlara vurup sıfırlayarak sıçra. Pasif 4 yükteyken çok güçlü.
-Janna|sup|enchanter|AP|cc,shield|Lux,Vel'Koz,Zyra,Brand,Swain|Blitzcrank,Thresh,Nautilus,Leona,Alistar|Hortum ve ultiyle rakibin girişini boşa çıkar. Kalkanı nişancına saldırı gücü de verir.
-Jarvan IV|jg|bruiser|AD|cc,engage,dash|Kindred,Graves,Nidalee,Kha'Zix,Jax|Master Yi,Lillia,Evelynn,Rengar|Bayrak + mızrak kombosuyla sıçra ve kaldır; ultiyle hedefi kapat.
-Jax|top,jg|skirmisher|AD|dash,cc|Malphite,Teemo,Kennen,Poppy,Volibear|Darius,Irelia,Fiora,Riven,Yasuo|Karşı Saldırı (3) normal saldırıları savuşturur; büyü ağırlıklı rakiplerde zorlanır.
-Jayce|top,mid|ad_assassin|AD|poke|Irelia,Camille,Malphite,Riven,Rengar|Darius,Garen,Nasus,Sion,Dr. Mundo|Hızlandırılmış küre ile uzaktan dürt, çekiç formuyla bitir.
-Jhin|adc|lethal_adc|AD|poke,cc|Samira,Kalista,Lucian,Tristana|Draven,Jinx,Kog'Maw,Twitch|4. mermi kritik ve eksik can hasarı vurur; işaretli hedefi 2 ile köklendir.
-Jinx|adc|crit_adc|AD|cc|Draven,Samira,Lucian,Kalista,Caitlyn,Kai'Sa|Sivir,Miss Fortune,Varus,Xayah|Erken oyunda zayıf; skor aldıktan sonraki hızlanmayla takım savaşını temizler.
-Kai'Sa|adc|crit_adc|mixed|dash,burst|Draven,Lucian,Yunara,Caitlyn|Jinx,Twitch,Sivir,Miss Fortune,Vayne|Yetenek evrimleri aldığın itemlara bağlı; Q yalnız hedefe çok hasar verir.
-Kalista|adc|onhit_adc|AD|dash|Draven,Miss Fortune,Ashe,Sivir|Caitlyn,Ezreal,Jhin,Corki,Jinx|Her saldırıda sek; mızrakları yığıp 3 ile çek.
-Karma|sup,mid|mage_sup|AP|shield,poke|Leona,Nautilus,Blitzcrank,Alistar,Pyke|Sona,Soraka,Yuumi,Zilean,Lulu|Mantra ile güçlenmiş Q dürtmesi erken koridoru ezer.
-Kassadin|mid|ap_assassin|AP|dash,burst|Zed,Talon,Pantheon,Akshan|Ahri,Syndra,Orianna,Heimerdinger,Hwei|4. seviyeden önce çok zayıf; büyü direnci veren pasifi büyücülere karşı fark yaratır.
-Katarina|mid|ap_assassin|AP|dash,burst|Galio,Annie,Lissandra,Kassadin,Vex|Lux,Ziggs,Vel'Koz,Hwei,Syndra|Hançerleri toplayarak bekleme sürelerini sıfırla; ultisi kitle kontrolüyle kesilir.
-Kayle|top,mid|ap_onhit|mixed|heal,shield|Darius,Renekton,Pantheon,Riven,Irelia|Nasus,Malphite,Cho'Gath,Ornn,Mordekaiser|11. ve 16. seviyede çok güçlenir; erken oyunda minyon kes ve hayatta kal.
-Kayn|jg|ad_assassin|AD|dash,heal|Lee Sin,Graves,Poppy,Jarvan IV|Master Yi,Lillia,Evelynn|Rakip takıma göre form seç: tanklar çoksa Rhaast, kırılganlar çoksa Gölge Suikastçı.
-Kennen|top|ap_assassin|AP|cc,poke|Gwen,Mordekaiser,Akali,Jayce,Gnar|Riven,Irelia,Jax,Fiora,Garen|Pasif 3 yükte sersemletir. Ultisi takım savaşında birden çok rakibi sersemletir.
-Kha'Zix|jg|ad_assassin|AD|stealth,burst,dash|Rammus,Vi,Rengar,Nocturne,Warwick|Lillia,Kindred,Nidalee|Yalnız kalan hedefe ekstra hasar; yetenek evrimlerini rakibe göre seç.
-Kindred|jg|crit_adc|AD|dash|Rengar,Kha'Zix,Nocturne,Lee Sin,Talon|Hecarim,Amumu,Jarvan IV,Darius,Shyvana|İşaretleri avlayarak yük topla; ultisi takım arkadaşlarının ölmesini engeller.
-Kog'Maw|adc|onhit_adc|mixed|poke|Draven,Samira,Tristana,Lucian,Caitlyn|Miss Fortune,Sivir,Varus,Smolder|2 ile menzili uzayan geç oyun taşıyıcısı; mutlaka korunmalı (Lulu, Braum ideal).
-K'Sante|top|tank|AD|cc,dash,tank|Vayne,Fiora,Gwen,Mordekaiser,Kayle|Riven,Yasuo,Yone,Gnar,Jayce|Ultiyle zırhını bırakıp saldırı moduna geçersin; yüzde hasar onu yener.
-Lee Sin|jg|bruiser|AD|dash,cc|Rammus,Poppy,Warwick,Jax|Evelynn,Kindred,Ekko,Amumu,Nidalee|Erken oyunda çok güçlü; baskınlarla fark yarat, oyun uzarsa etkisi düşer.
-Leona|sup|tank_sup|AP|cc,engage,tank|Janna,Morgana,Braum,Alistar,Milio|Sona,Soraka,Yuumi,Nami,Senna|3 ile atıl, Q ile sersemlet, ultiyle takım savaşını aç.
-Lillia|jg|mage_battle|AP|cc|Graves,Kha'Zix,Lee Sin,Kayn,Rengar|Darius,Master Yi,Olaf,Shyvana|Hız yükleriyle kamplar arasında koş; ultisinin uykusu savaşı açar.
-Lissandra|mid|mage_control|AP|cc,burst|Ziggs,Vel'Koz,Lux,Hwei,Orianna|Katarina,Fizz,Akali,Zed,Yasuo|Ultiyi kendine atıp hayatta kal; atılan suikastçıları dondur.
-Lucian|adc,mid|crit_adc|AD|dash,burst|Caitlyn,Draven,Varus|Kai'Sa,Ezreal,Ashe,Jhin,Kog'Maw|Kısa menzilli; atılıp pasif çift atışla takas yap. Orman baskınlarıyla iyi uyum.
-Lulu|sup|enchanter|AP|shield,cc|Blitzcrank,Nautilus,Leona,Pyke,Zyra|Yuumi,Soraka,Sona|Kalkan + dönüştürme (2) ile suikastçıyı etkisiz bırak; ultiyle havaya kaldır.
-Lux|sup,mid|mage_burst|AP|poke,cc,shield|Zed,Fizz,Katarina,Kassadin,Yasuo|Lissandra,Annie,Galio,Janna|Q iki hedefi köklendirir; ultiyle uzaktan son vuruş ve dürtme.
-Malphite|top,sup|tank|AP|cc,tank,engage|Mordekaiser,Gwen,Vayne,Kennen,Akali|Jax,Fiora,Irelia,Yasuo,Tryndamere|Zırh yığdıkça Q hasarın artar; çok hedefli ultisi savaşı bitirir.
-Maokai|sup,top,jg|tank_sup|AP|cc,tank,heal|Zyra,Brand,Lux,Vel'Koz,Senna|Pyke,Rakan,Alistar,Blitzcrank|Fidanları çalılara dik; 2 ile hedefi kilitle.
-Master Yi|jg|crit_melee|AD|dash,true|Rammus,Amumu,Nunu & Willump,Lillia,Hecarim|Skarner,Shyvana|Alfa Darbesi (Q) ile hedeflenemez ol; sert kitle kontrolüne (Rammus, Amumu) dikkat.
-Mel|mid|mage_burst|AP|poke|Zed,Fizz,Katarina,Kassadin,Akali|Lux,Ezreal,Vel'Koz,Ziggs,Hwei|2 mermileri geri yansıtır; mermisiz yakın dövüşçüler ona karşı rahattır.
-Milio|sup|enchanter|AP|shield,heal|Pyke,Blitzcrank,Thresh,Zyra,Brand|Leona,Nautilus,Rell,Alistar|Ultisi takımdaki kitle kontrolünü temizler ve iyileştirir; dalan desteklere karşı seç.
-Miss Fortune|adc|lethal_adc|AD|poke,burst|Draven,Samira,Lucian,Caitlyn|Kalista,Kog'Maw,Vayne,Ezreal|Seken Q ile dürt; ultisi kalabalık savaşta yıkıcı.
-Mordekaiser|top|mage_battle|AP|shield|Vayne,Fiora,Darius,Kennen,Olaf|Malphite,Cho'Gath,Ornn,Sion,Garen|Ultiyle rakibi teke tek kendi alemine çek; Olaf'ın ultisi ve Fiora'nın savuşturması onu cezalandırır.
-Morgana|sup,mid|mage_sup|AP|cc,shield|Zyra,Brand,Vel'Koz,Senna,Lux|Blitzcrank,Thresh,Nautilus,Leona,Pyke|Kara Kalkan kitle kontrolünü engeller; kancalı ve dalan desteklere karşı ideal.
-Nami|sup|enchanter|AP|cc,heal|Leona,Nautilus,Pyke,Blitzcrank,Alistar|Soraka,Sona,Yuumi|Baloncuğu (Q) isabet ettir; 3 ile nişancının saldırılarını güçlendir.
-Nasus|top|juggernaut|AD|heal,tank|Darius,Teemo,Kennen,Vayne,Jayce|Malphite,Ornn,Sion,Dr. Mundo|Q ile son vuruş yaparak yük kas; yükü yüksek Nasus herkesi ezer.
-Nautilus|sup|tank_sup|AP|cc,engage,tank|Morgana,Janna,Braum,Milio|Sona,Soraka,Yuumi,Nami,Senna|Çapayı duvara atarak hızlı hareket et; ultisi nokta hedefli, kaçılmaz.
-Nidalee|jg|ap_assassin|AP|poke,dash,heal|Hecarim,Kha'Zix,Rammus,Lee Sin|Amumu,Jarvan IV,Ekko,Evelynn|Mızrak (Q) uzaktan büyük hasar verir; hızlı kamp temizler, rakip ormanına girmeye uygun.
-Nilah|adc|crit_adc|AD|dash,shield,heal|Caitlyn,Draven,Varus,Ashe|Ezreal,Kog'Maw,Jhin|Yakın menzilli nişancı; 2 normal saldırılardan kaçar, ultisi çevredeki rakipleri çeker.
-Nocturne|jg|bruiser|AD|engage,burst|Rammus,Poppy,Jax,Warwick|Hecarim,Kindred,Graves,Kha'Zix|Ultisi tüm haritayı karartır; 6. seviye baskınlarını önceden planla.
-Norra|mid|mage_control|AP|poke|Zed,Fizz,Katarina,Kassadin,Akali|Viktor,Orianna,Ryze|Geçitlerle haritada hızlı dolaşır; erken oyunda suikastçılardan uzak dur.
-Nunu & Willump|jg|tank_jg|AP|cc,heal,engage|Graves,Lee Sin,Kha'Zix,Nidalee|Master Yi,Kindred,Evelynn|Büyüyen kartopuyla hızlı baskın; Q ile ejderha ve Baron'u güvenle al.
-Olaf|top,jg|juggernaut|AD|heal|Vayne,Teemo,Kennen,Poppy,Jayce|Darius,Mordekaiser,Garen,Sett,Sion|Ultisi süresince kitle kontrolünden etkilenmezsin; uzaktan vurup kaçanlar ona karşı güçlü.
-Orianna|mid|mage_control|AP|cc,shield|Zed,Fizz,Katarina,Kassadin,Akali|Galio,Lissandra,Annie,Veigar|Küreyi dalan takım arkadaşına bağla; ultisi rakipleri tek noktaya çeker.
-Ornn|top|tank|mixed|cc,tank|Vayne,Fiora,Gwen,Mordekaiser,Darius|Riven,Yasuo,Gnar,Jayce,Kennen|Takım arkadaşlarının itemlarını geliştirir; ultisinin koçuyla iki kez havaya kaldır.
-Pantheon|jg,top,sup|ad_assassin|AD|cc,burst|Malphite,Jax,Rammus,Poppy,Garen|Fiora,Kayle,Kassadin,Akshan,Teemo|Erken oyunda çok güçlü; kalkanı (3) önden gelen hasarı engeller.
-Poppy|top,jg|tank|AD|cc,tank|Mordekaiser,Teemo,Vayne,Olaf,Kayle|Camille,Irelia,Yasuo,Fiora,Riven,Hecarim|2 atılmaları durdurur; atılmaya dayanan şampiyonlara karşı seç.
-Pyke|sup|ad_assassin|AD|cc,burst,stealth|Braum,Morgana,Alistar,Leona,Nautilus|Sona,Soraka,Yuumi,Nami,Senna|Ultiyle infaz edince takım arkadaşın da altın alır; 2 ile görünmeden yaklaş.
-Rakan|sup|enchanter|AP|cc,engage,shield,dash|Morgana,Janna,Braum,Maokai|Sona,Soraka,Yuumi,Nami|2 ile atılıp havaya kaldır, 3 ile nişancına kalkanla dön. Xayah ile güçlü ikili.
-Rammus|jg|tank_jg|AP|cc,tank|Lillia,Evelynn,Diana,Fiddlesticks|Master Yi,Graves,Tryndamere,Kha'Zix,Kindred|Savunma Duruşu (2) zırhını yükseltir ve saldıranı yaralar; fiziksel hasarlı ormancılara karşı seç.
-Rell|sup|tank_sup|AP|cc,engage,tank|Janna,Morgana,Milio,Senna|Sona,Soraka,Yuumi,Nami,Lulu|Attan inip atıl; 2 ile havaya kaldır, ultiyle rakipleri çek.
-Renekton|top|bruiser|AD|cc,dash,heal|Jax,Kennen,Vayne,Poppy,Olaf|Irelia,Riven,Kayle,Camille,Gwen|Öfken 50'nin üstündeyken yeteneklerin güçlenir; erken oyunda baskı kur.
-Rengar|jg|ad_assassin|AD|stealth,burst|Rammus,Jax,Poppy,Warwick,Malphite|Kindred,Evelynn,Nidalee,Kha'Zix,Lillia|Çalıdan sıçra; ultiyle en kırılgan hedefi avla.
-Riven|top|bruiser|AD|dash,cc,shield|Renekton,Malphite,Poppy,Garen,Kennen|Kayle,Nasus,Sion,Teemo,Jayce|Q ile normal saldırıyı sırayla kullan; 3'ün kalkanı takasta hasar emer.
-Rumble|top,mid|mage_battle|AP|poke|Irelia,Yasuo,Kennen,Fiora,Jax|Malphite,Sion,Nasus,Ornn,Darius|Isını 50–100 arasında tut; ultisinin alan hasarı takım savaşında çok iyi.
-Ryze|mid|mage_battle|AP|cc,poke|Zed,Talon,Kassadin,Brand|Galio,Vladimir,Annie|Q-3-2 sırasını döndür; geç oyunda sürekli hasar veren büyücü.
-Samira|adc|crit_adc|AD|dash,burst|Sivir,Vayne,Kai'Sa,Tristana|Ashe,Ezreal,Jinx,Caitlyn,Jhin|Stil derecesini S'ye çıkar, ultiyle çevreyi tara. Rüzgâr duvarı (2) mermileri keser.
-Senna|sup,adc|lethal_adc|AD|poke,heal|Pyke,Nautilus,Leona,Blitzcrank|Soraka,Sona,Yuumi,Janna|Ruhları topla, menzil ve kritik kazan; uzaktan takım arkadaşını iyileştir.
-Seraphine|sup,mid|mage_sup|AP|cc,heal,shield|Pyke,Blitzcrank,Nautilus,Alistar|Soraka,Sona,Yuumi,Karma|Her 3. yeteneğin iki kez atılır; ultisi uzaktan birden çok rakibi büyüler.
-Sett|top,jg,sup|juggernaut|AD|cc,shield,true|Vayne,Teemo,Kennen,Jayce,Fiora|Irelia,Yasuo,Yone,Riven|2, biriken hasarını gerçek hasara çevirir. Ultiyle tankı rakip takımın ortasına fırlat.
-Shen|top,sup|tank|mixed|cc,tank,shield|Darius,Gwen,Mordekaiser,Vayne,Teemo|Yasuo,Yone,Tryndamere,Jax,Irelia|Ultiyle haritanın öbür ucundaki arkadaşını koru; 2 normal saldırıları engeller.
-Shyvana|jg|juggernaut|mixed|burst|Lee Sin,Kindred,Graves,Nidalee,Kha'Zix|Rammus,Nunu & Willump,Hecarim|Ejderha formunda alan hasarı; ejderha mücadelelerinde güçlü.
-Singed|top|tank|AP|poke,cc|Vayne,Kennen,Teemo,Jayce|Nasus,Sion,Ornn|Zehir iziyle rakibi peşinden koştur; 3 ile rakibi takımının içine fırlat.
-Sion|top|tank|AD|cc,tank|Darius,Vayne,Fiora,Gwen,Mordekaiser|Malphite,Ornn,Garen,Kayle|Q'yu tam doldurursan havaya kaldırır. Ölünce pasifle yapı yıkmaya devam et.
-Sivir|adc|crit_adc|AD|shield|Draven,Caitlyn,Kai'Sa,Lucian|Samira,Kalista,Kog'Maw|Büyü Kalkanı (3) kritik yeteneği emer; ultisi takıma hız verir.
-Skarner|jg|tank_jg|AD|cc,tank|Lee Sin,Graves,Kindred,Nidalee|Kha'Zix,Rengar,Evelynn|Ultiyle hedefi sürükleyip kendi takımına getir.
-Smolder|adc|caster_adc|AD|poke|Draven,Samira,Lucian,Kalista,Caitlyn|Jinx,Kog'Maw,Ashe,Corki|Q yükleri (225+) yanma ve infaz açar; erken oyunda güvenli minyon kes.
-Sona|sup|enchanter|AP|heal,poke,cc|Blitzcrank,Nautilus,Pyke,Leona,Alistar|Yuumi,Soraka,Lulu|Aura güçlendirmeleriyle dürt; ultisi takım savaşında birden çok rakibi sersemletir.
-Soraka|sup|enchanter|AP|heal|Blitzcrank,Pyke,Nautilus,Leona,Alistar|Yuumi,Sona,Lulu|Q ile kendini, 2 ile arkadaşını iyileştir. Rakip ağır yara alırsa zayıflar.
-Swain|sup,mid|mage_battle|AP|heal,cc|Senna,Vel'Koz,Zyra,Brand|Leona,Nautilus,Alistar,Blitzcrank|Ultiyle can çalarak takım savaşının ortasında kal.
-Sylas|mid,jg|ap_assassin|AP|dash,heal|Pantheon,Talon,Zed,Galio|Orianna,Annie,Veigar,Lux|Rakip ultilerini çal; zincirle atılıp sabitle. Yeni şampiyon, yamalarda sık değişebilir.
-Syndra|mid|mage_burst|AP|cc,burst|Fizz,Kassadin,Yasuo,Zed|Lux,Annie,Veigar,Viktor,Katarina|Küreleri biriktir; ultisi küre sayısıyla büyür ve tek hedefi siler.
-Talon|jg,mid|ad_assassin|AD|dash,burst|Rammus,Galio,Lissandra,Malphite|Kassadin,Ryze,Lux,Vel'Koz,Ziggs|Duvar atlamasıyla (3) hızlı baskın yolları kur.
-Taliyah|mid,jg|mage_control|AP|cc,poke|Zed,Fizz,Katarina,Kassadin,Yasuo|Viktor,Ryze,Annie|Ulti duvarıyla hızlı geçiş yap; 3'ün taşları atılmaları cezalandırır.
-Teemo|top|ap_onhit|AP|poke|Jayce,Gnar,Kennen,Pantheon,Akali|Darius,Garen,Nasus,Olaf,Sett|Mantarları çalı girişlerine ve hedef alanlarına diz. Kör eden Q normal saldırıyı keser.
-Thresh|sup|tank_sup|AP|cc,engage,shield|Morgana,Braum,Janna,Milio|Sona,Soraka,Yuumi,Nami,Seraphine|Kancadan sonra fenerle arkadaşını yanına getir; ruh toplayarak zırh kazan.
-Tristana|adc|crit_adc|AD|dash,burst|Caitlyn,Draven,Varus|Ezreal,Jhin,Kog'Maw|Roket zıplaması skorla sıfırlanır; 3'ün bombası kule ve tek hedef için çok güçlü.
-Tryndamere|jg,top|crit_melee|AD|dash|Malphite,Jax,Teemo,Poppy,Rammus|Nasus,Kayle,Sion,Garen|Ultisi birkaç saniye ölümsüzlük verir; karşısında Tutuştur ve ağır yara kullan.
-Twisted Fate|mid|mage_control|AP|cc,poke|Zed,Fizz,Katarina,Kassadin,Yasuo|Ryze,Galio,Viktor|Altın kartla sabitle; ultiyle haritanın her yerine baskın yap.
-Twitch|adc|crit_adc|AD|stealth,poke|Caitlyn,Draven,Kai'Sa,Lucian|Sivir,Jhin,Ezreal|Görünmeden yaklaş; ultisiyle menzil uzar ve oklar sıra boyunca delip geçer.
-Urgot|top|juggernaut|AD|cc,shield|Vayne,Fiora,Kennen,Teemo,Jayce|Sion,Garen,Ornn,Malphite|Bacak atışlarıyla (2) uzaktan takas yap; ultisi düşük canlı rakibi infaz eder.
-Varus|adc|lethal_adc|AD|poke,cc|Samira,Kalista,Vayne|Draven,Lucian,Tristana,Kog'Maw|Uzaktan Q ile dürt; ultisi zincirleme köklendirir.
-Vayne|adc,top|onhit_adc|AD|dash,true,stealth|Caitlyn,Draven,Ashe,Jhin|Darius,Garen,Mordekaiser,Cho'Gath,K'Sante,Samira|Gümüş Oklar üç vuruşta yüzde gerçek hasar verir; tanklara karşı en iyi seçimlerden.
-Veigar|mid|mage_burst|AP|cc,burst|Kassadin,Fizz,Zed,Ziggs|Katarina,Akali,Yasuo,Talon|Q ile son vuruş yaparak kalıcı yetenek gücü yığ; kafes (3) alanı kilitler.
-Vel'Koz|mid,sup|mage_burst|AP|poke,true|Zed,Fizz,Katarina,Akali,Yasuo|Lissandra,Maokai,Braum,Janna|Uzaktan dürt; 3 yükte gerçek hasar patlaması.
-Vex|mid|mage_burst|AP|cc,burst|Ziggs,Vel'Koz,Lux,Hwei|Fizz,Katarina,Akali,Yasuo,Zed|Pasifi atılan şampiyonları korkutur; atılmalı suikastçılara karşı seç.
-Vi|jg|bruiser|AD|cc,engage,dash|Poppy,Rammus,Jax|Graves,Hecarim,Kha'Zix,Master Yi|Ultisi nokta hedefli ve durdurulamaz; arka hattaki taşıyıcıyı yakala.
-Viego|jg|skirmisher|AD|dash,heal|Rammus,Jax,Poppy,Lee Sin|Evelynn,Kindred,Nidalee|Rakip ölünce bedenini ele geçir; sıfırlamalarla art arda skor al.
-Viktor|mid|mage_control|AP|cc,poke|Zed,Fizz,Katarina,Kassadin,Akali,Yasuo|Ziggs,Orianna,Lux,Annie|Hextech geliştirmeleri yeteneklerini güçlendirir; geç oyunda alan kontrolü.
-Vladimir|mid,top|mage_battle|AP|heal,burst|Zed,Talon,Fizz,Kassadin|Galio,Annie,Lux,Orianna|Kan Havuzu (2) ile her şeyden kaç; rakip ağır yara alırsa iyileşmesi düşer.
-Volibear|top,jg|juggernaut|mixed|cc,heal|Vayne,Teemo,Jayce,Gnar,Kennen|Irelia,Jax,Yasuo,Riven,Camille|Ultiyle kuleyi devre dışı bırakıp kule altına dal.
-Warwick|jg|juggernaut|AD|heal,cc|Rammus,Jax,Poppy,Graves|Kha'Zix,Rengar,Lee Sin,Evelynn|Düşük canlı rakibi kokla, hızlan ve ultiyle kilitle.
-Wukong|jg,top|bruiser|AD|cc,stealth,engage|Jax,Rammus,Poppy|Master Yi,Lillia,Evelynn|Klonla (2) hasardan kaç; ultisi birden çok rakibi havaya kaldırır.
-Xayah|adc|crit_adc|AD|cc|Caitlyn,Draven,Varus,Jhin|Samira,Kalista,Vayne,Lucian|Tüyleri yerde biriktir, 3 ile köklendir; ultisinde hedeflenemezsin.
-Xin Zhao|jg|bruiser|AD|cc,dash|Rammus,Poppy,Jax,Fiddlesticks|Graves,Nidalee,Kindred|Erken oyunda güçlü düellocu; ultisi menzilin dışındaki rakipleri iter.
-Yasuo|mid,top|crit_melee|AD|dash,shield|Malphite,Renekton,Pantheon,Annie,Garen|Lux,Ziggs,Vel'Koz,Brand,Orianna|Rüzgâr Duvarı (2) mermileri keser; minyonların üstünden 3 ile kayarak yaklaş.
-Yone|top,mid|crit_melee|mixed|dash,shield|Renekton,Malphite,Jax,Pantheon,Garen|Kayle,Gnar,Teemo,Jayce|3 ile ruh formunda gir, süre bitince geri dön; ultisi birden çok rakibi kaldırır.
-Yunara|adc|crit_adc|AD|burst|Draven,Samira,Caitlyn,Lucian|Kai'Sa,Jinx,Smolder|Yeni sayılır; ultisiyle güçlenmiş saldırılar yapar. Yama değişikliklerini takip et.
-Yuumi|sup|enchanter|AP|heal,shield|Zyra,Brand,Pyke,Leona,Nautilus|Senna|Takım arkadaşına bağlı kal; rakip ağır yara alırsa ya da nişancına ani hasar yüklerse zorlanırsın.
-Zed|mid|ad_assassin|AD|dash,burst|Lissandra,Galio,Annie,Vex|Lux,Ziggs,Vel'Koz,Viktor,Ryze|Gölgelerle yer değiştir; rakip Zhonya'nın Kumsaati alırsa ulti hasarın boşa gider.
-Zeri|adc|crit_adc|AD|dash|Draven,Caitlyn,Samira,Lucian|Kog'Maw,Jinx,Ashe|Q normal saldırının yerini alır; ultiyle hızlanıp vurarak kaç.
-Ziggs|mid,adc|mage_control|AP|poke|Zed,Fizz,Katarina,Kassadin,Yasuo|Annie,Lissandra,Vex,Galio|Uzaktan dürt ve kule yık; 2 ile düşük canlı kuleleri anında yık.
-Zilean|sup,mid|mage_sup|AP|cc|Pyke,Blitzcrank,Leona,Nautilus|Yuumi,Senna|Ultisi arkadaşını diriltir; iki bomba üst üste gelince sersemletir.
-Zoe|mid|mage_burst|AP|poke,cc,burst|Fizz,Kassadin,Yasuo,Zed|Viktor,Lux,Vel'Koz,Orianna|Uyku Baloncuğu (3) rakibi uyutur; ardından uzaktan Q ile dev hasar vur.
-Zyra|sup|mage_sup|AP|poke,cc|Blitzcrank,Pyke,Rakan,Nautilus|Braum,Janna,Maokai,Yuumi|Tohumları çalılara ek; bitkiler alan kontrolü ve sürekli dürtme sağlar.
-`;
-
-/* Çin sunucusu Challenger+ · 7.3f · 16.11.2026 · ad:KO:SO:YO:anaKoridor */
-const STAT_RAW = `Amumu:57.48:2.71:0.09:jg|Rammus:55.78:5.30:9.53:jg|Nunu & Willump:53.88:1.88:1.24:jg|Skarner:53.73:2.25:0.43:jg|Ekko:53.35:3.02:1.90:jg|Fiddlesticks:53.32:1.88:0.80:jg|Braum:53.21:5.01:1.46:sup|Annie:53.05:2.65:0.15:mid|Smolder:52.94:12.50:8.06:adc|Kog'Maw:52.89:2.76:0.14:adc|Jarvan IV:52.86:7.45:0.46:jg|Janna:52.83:3.06:0.24:sup|Shen:52.78:2.38:0.99:top|Nidalee:52.57:2.31:3.89:jg|Sona:52.47:4.81:0.35:sup|K'Sante:52.45:8.63:18.80:top|Shyvana:52.44:5.71:1.04:jg|Hwei:52.38:5.10:34.67:mid|Aurora:52.23:4.76:5.16:mid|Vladimir:52.21:5.35:2.58:mid|Orianna:52.07:6.51:0.49:mid|Teemo:52.05:4.78:15.84:top|Kindred:52.01:2.08:0.32:jg|Syndra:51.94:6.83:27.54:mid|Lissandra:51.85:4.48:7.95:mid|Brand:51.64:8.62:7.81:mid|Taliyah:51.59:2.97:0.83:mid|Soraka:51.59:5.35:1.48:sup|Ambessa:51.58:2.63:1.51:top|Mordekaiser:51.57:9.98:34.92:top|Nocturne:51.49:5.06:79.55:jg|Galio:51.36:10.55:4.27:mid|Veigar:51.36:7.16:6.47:mid|Hecarim:51.21:1.86:1.74:jg|Zyra:51.15:4.33:26.60:sup|Ashe:51.15:5.62:0.09:adc|Corki:51.15:2.16:0.02:adc|Leona:51.13:9.53:5.77:sup|Gwen:51.09:4.76:5.53:top|Viktor:51.06:6.05:0.48:mid|Xin Zhao:51.01:8.67:1.30:jg|Lillia:50.97:2.60:0.89:jg|Ahri:50.95:5.92:0.19:mid|Yone:50.95:5.10:5.73:top|Twitch:50.95:9.64:5.77:adc|Thresh:50.92:15.36:15.21:sup|Rell:50.82:3.22:1.17:sup|Kassadin:50.77:1.39:0.59:mid|Cho'Gath:50.72:7.25:32.54:top|Zeri:50.72:1.37:0.01:adc|Karma:50.70:5.51:0.44:sup|Ezreal:50.63:11.47:0.29:adc|Ornn:50.62:2.35:0.12:top|Diana:50.59:1.25:0.08:jg|Talon:50.56:3.41:2.70:jg|Pantheon:50.55:7.06:3.74:jg|Malphite:50.53:7.27:38.86:sup|Wukong:50.53:4.65:0.44:jg|Kai'Sa:50.53:22.36:1.70:adc|Zed:50.42:3.97:2.95:mid|Senna:50.41:4.41:3.20:sup|Xayah:50.40:6.09:0.29:adc|Jax:50.38:4.72:0.27:top|Sivir:50.36:6.40:0.10:adc|Jinx:50.32:13.26:0.41:adc|Pyke:50.32:3.52:1.85:sup|Jhin:50.29:12.96:0.42:adc|Norra:50.26:1.01:4.57:mid|Sion:50.23:2.83:0.18:top|Aurelion Sol:50.22:5.28:2.50:mid|Kayn:50.21:6.05:3.86:jg|Varus:50.18:6.56:0.29:adc|Twisted Fate:50.17:7.01:1.03:mid|Kalista:50.09:5.82:7.70:adc|Aatrox:50.08:7.14:6.84:top|Warwick:50.06:1.91:0.46:jg|Sett:50.03:8.24:1.04:top|Evelynn:50.02:2.36:1.10:jg|Gnar:49.97:4.57:0.57:top|Maokai:49.97:5.42:0.49:sup|Lux:49.96:7.05:8.26:sup|Morgana:49.94:6.05:42.32:sup|Olaf:49.94:2.19:1.82:jg|Kennen:49.92:3.13:0.77:top|Nami:49.91:6.21:0.08:sup|Blitzcrank:49.84:6.51:1.27:sup|Samira:49.82:7.46:5.54:adc|Dr. Mundo:49.80:5.20:1.10:top|Riven:49.78:2.09:0.24:top|Nautilus:49.76:12.62:4.28:sup|Vi:49.71:4.73:0.73:jg|Zilean:49.66:1.17:0.82:sup|Ryze:49.58:2.57:0.95:mid|Kha'Zix:49.58:4.37:0.28:jg|Jayce:49.57:4.80:5.91:top|Milio:49.57:5.59:6.06:sup|Camille:49.55:2.88:0.14:top|Darius:49.52:13.20:11.14:top|Alistar:49.49:4.66:0.58:sup|Fiora:49.48:3.68:0.69:top|Vel'Koz:49.42:2.50:0.44:mid|Caitlyn:49.34:15.65:2.25:adc|Volibear:49.16:4.54:3.52:top|Miss Fortune:49.16:8.04:0.86:adc|Rakan:49.15:3.49:0.28:sup|Heimerdinger:49.14:1.40:0.80:mid|Vex:49.12:1.79:0.32:mid|Katarina:49.12:1.45:0.30:mid|Lee Sin:49.11:17.03:12.13:jg|Rumble:49.05:3.22:0.27:top|Ziggs:49.04:5.83:1.58:mid|Renekton:49.04:4.53:0.27:top|Seraphine:48.98:7.28:0.45:sup|Kayle:48.96:1.34:0.10:top|Tristana:48.88:7.69:0.19:adc|Poppy:48.85:1.85:0.24:top|Nasus:48.75:5.13:2.30:top|Yuumi:48.74:11.36:44.32:sup|Urgot:48.66:3.28:1.06:top|Yasuo:48.64:8.97:6.45:mid|Lulu:48.64:12.94:14.65:sup|Fizz:48.62:1.90:1.24:mid|Tryndamere:48.56:5.24:13.27:jg|Lucian:48.51:8.83:0.13:adc|Garen:48.43:11.60:1.71:top|Yunara:48.41:6.45:4.52:adc|Draven:48.32:4.79:0.66:adc|Vayne:48.27:5.65:3.30:adc|Akali:48.20:7.48:2.32:mid|Rengar:47.85:2.08:1.67:jg|Graves:47.04:8.42:0.56:jg|Akshan:47.00:1.30:0.07:mid|Viego:46.91:3.63:1.38:jg|Swain:46.75:2.54:1.39:sup|Master Yi:46.59:8.07:38.32:jg|Mel:45.71:6.38:17.19:mid|Irelia:45.24:1.23:0.59:top|Sylas:44.22:7.81:71.81:mid`;
-
-/* ===== EŞYALAR =====  ingilizceAd|türkçeAd|fiyat|kategori|özellikler|etki */
-const ITEM_RAW = `
-Infinity Edge|Ebedi Kılıç|3400|fiz|+75 Saldırı Gücü · %25 Kritik|Kritik vuruş hasarını %230'a çıkarır. Kritik nişancıların ana itemı.
-Yun Tal Wildarrows|Yun Tal Yabanokları||fiz|+50 Saldırı Gücü · %35 Saldırı Hızı|Her saldırıda kalıcı kritik şansı kazanırsın.
-Phantom Dancer|Hayalet Dansçı||fiz|%25 Kritik · %40 Saldırı Hızı · %7 Hareket Hızı|Saldırdıkça saldırı ve hareket hızı birikir.
-Bloodthirster|Kanasusamış||fiz|+75 Saldırı Gücü · %15 Can Çalma|Fazla iyileşme kalkana dönüşür.
-The Collector|Tahsildar||fiz|+50 Saldırı Gücü · 10 Zırh Delme · %25 Kritik|Canı çok düşen şampiyonu infaz eder.
-Rapid Firecannon|Bombardıman Topu||fiz|%25 Kritik · %40 Saldırı Hızı · %4 Hareket Hızı|Yüklü saldırı daha uzaktan ve daha sert vurur.
-Runaan's Hurricane|Runaan'ın Kasırgası||fiz|%40 Saldırı Hızı · %25 Kritik · %4 Hareket Hızı|Saldırıların iki ek hedefe daha isabet eder.
-Navori Quickblades|Navori Seribıçakları||fiz|%25 Kritik · %40 Saldırı Hızı · %4 Hareket Hızı|Saldırıların yetenek bekleme sürelerini kısaltır.
-Immortal Shieldbow|Ölümsüz Kalkanyay||fiz|+55 Saldırı Gücü · %25 Kritik|Canın düşünce kalkan verir; suikastçılara karşı güvence.
-Galeforce|Rüzgârın Hiddeti|3100|fiz|+50 Saldırı Gücü · %15 Saldırı Hızı · %25 Kritik · %5 Hareket Hızı|Aktif: atılır ve en yakın rakibe mermiler fırlatırsın.
-Stormrazor|Fırtınabiçen||fiz|+50 Saldırı Gücü · %25 Kritik · %20 Saldırı Hızı|Yüklü saldırı ekstra hasar ve hız verir.
-Essence Reaver|Canbiçen||fiz|+40 Saldırı Gücü · %25 Kritik · +20 Yetenek Hızı|Yetenekten sonraki saldırın mana yeniler.
-Mortal Reminder|Fani Hatıratı||fiz|+35 Saldırı Gücü · %30 Zırh Delme · %25 Kritik|Fiziksel hasarın ağır yara uygular. İyileşen rakiplere karşı nişancı itemı.
-Dominik's Regards|Dominik Efendi'nin Hürmetleri||fiz|+35 Saldırı Gücü · %35 Zırh Delme · %25 Kritik|Senden fazla canı olan hedeflere ekstra hasar.
-Blade of the Ruined King|Mahvolmuş Kralın Kılıcı||fiz|+40 Saldırı Gücü · %35 Saldırı Hızı · %12 Can Çalma|Saldırıların hedefin mevcut canına göre hasar verir.
-Kraken Slayer|Kraken Katili||fiz|+45 Saldırı Gücü · %35 Saldırı Hızı · %4 Hareket Hızı|Her üçüncü saldırı ekstra hasar verir.
-Guinsoo's Rageblade|Guinsoo'nun Hiddeti|3000|fiz|+35 Saldırı Gücü · %30 Saldırı Hızı · +30 Yetenek Gücü|Saldırı hızı birikir, isabet etkileri iki kez tetiklenir.
-Wit's End|Aklın Sonunda||fiz|%50 Saldırı Hızı · +45 Büyü Direnci · %20 Etki Direnci|İsabette büyü hasarı; büyücülere karşı.
-Terminus|Son Durak||fiz|+35 Saldırı Gücü · %35 Saldırı Hızı|Saldırıların sırayla dayanıklılık ve delme kazandırır.
-Statikk Shiv|Statik Hançer|2900|fiz|+40 Saldırı Gücü · %30 Saldırı Hızı · +40 Yetenek Gücü · %4 Hareket Hızı|Yüklü saldırı zincirleme şimşek atar.
-Hexoptics C44|Hexgörü C44||fiz|+55 Saldırı Gücü · %25 Kritik|Uzaktaki hedeflere daha çok hasar.
-Fiendhunter Bolts|İblis Avcısı Oku||fiz|%25 Kritik · %45 Saldırı Hızı · %4 Hareket Hızı|Ultinden sonra saldırıların kritik vurur.
-Manamune|Manaveren||fiz|+40 Saldırı Gücü · +500 Mana · +15 Yetenek Hızı|Manayı saldırı gücüne çevirir; dolunca Muramana olur.
-Trinity Force|Üçlü Kuvvet||fiz|+333 Can · +36 Saldırı Gücü · %30 Saldırı Hızı · +15 Yetenek Hızı|Yetenekten sonraki saldırın ekstra hasar verir.
-Serylda's Grudge|Serylda'nın Garezi||fiz|+50 Saldırı Gücü · %35 Zırh Delme · +15 Yetenek Hızı|Yeteneklerin yaralı hedefleri yavaşlatır.
-Black Cleaver|Kara Balta||fiz|+400 Can · +40 Saldırı Gücü · +20 Yetenek Hızı|Fiziksel hasarın rakibin zırhını yığarak düşürür.
-Youmuu's Ghostblade|Youmuu'nun Hayaletkılıcı||fiz|+55 Saldırı Gücü · 15 Zırh Delme · +15 Yetenek Hızı · %4 Hareket Hızı|Savaş dışında ekstra hareket hızı.
-Duskblade of Draktharr|Draktharr'ın Gece Kılıcı||fiz|+55 Saldırı Gücü · 18 Zırh Delme · +10 Yetenek Hızı|İlk vuruşta ani hasar ve yavaşlatma.
-Edge of Night|Gecenin Kıyısı|3000|fiz|+250 Can · +50 Saldırı Gücü · 12 Zırh Delme|Rakibin sana gelen bir sonraki yeteneğini engeller.
-Serpent's Fang|Yılan Dişi||fiz|+50 Saldırı Gücü · +10 Yetenek Hızı|Rakip kalkanlarını azaltır.
-Eclipse|Kararma||fiz|+55 Saldırı Gücü · +20 Yetenek Hızı|Kısa sürede iki vuruşta kalkan ve ekstra hasar. (7.3f'de zayıfladı)
-Sundered Sky|Yarık Gökyüzü||fiz|+350 Can · +40 Saldırı Gücü · +15 Yetenek Hızı|Şampiyona ilk saldırın kritik vurur ve seni iyileştirir.
-Stridebreaker|Hızkesen|3100|fiz|+400 Can · +40 Saldırı Gücü · %15 Saldırı Hızı|Aktif: ileri atılırsın, çevredekileri yavaşlatırsın.
-Goredrinker|Kaniçen|3100|fiz|+400 Can · +45 Saldırı Gücü · +15 Yetenek Hızı · %8 Tam Can Çalma|Aktif: vurduğun her rakip başına iyileşirsin. (7.3f'de güçlendi)
-Chempunk Chainsword|Zaun Zincirkılıcı||fiz|+400 Can · +45 Saldırı Gücü · +15 Yetenek Hızı|Fiziksel hasarın ağır yara uygular. Dövüşçülerin iyileşme kesicisi.
-Experimental Hexplate|Deneysel Hexzırh||fiz|+400 Can · +35 Saldırı Gücü · %20 Saldırı Hızı|Ulti bekleme süresi kısalır, ultiden sonra hızlanırsın.
-Maw of Malmortius|Malmortius'un Ağzı||fiz|+55 Saldırı Gücü · +45 Büyü Direnci · +10 Yetenek Hızı|Canın düşünce büyü hasarına karşı kalkan.
-Mercurial Scimitar|Civa Yatağan|3100|fiz|+45 Saldırı Gücü · +40 Büyü Direnci · %10 Can Çalma|Aktif: üzerindeki tüm kitle kontrolünü temizler.
-Spear of Shojin|Shojin'in Mızrağı||fiz|+450 Can · +40 Saldırı Gücü|Yetenek hasarın artar, bekleme süreleri kısalır.
-Hullbreaker|Omurgakıran||fiz|+400 Can · +50 Saldırı Gücü|Yalnız koridor iterken güçlenirsin.
-Overlord's Bloodmail|Savaş Beyinin Kanzırhı|3200|fiz|+450 Can · +30 Saldırı Gücü|Ekstra canın ve eksik canın kadar saldırı gücü kazanırsın.
-Titanic Hydra|Haşmetli Hydra|3000|fiz|+450 Can · +40 Saldırı Gücü|Saldırıların arkadaki rakiplere de vurur.
-Death's Dance|Ölümün Dansı|3300|fiz|+50 Saldırı Gücü · +45 Zırh · +15 Yetenek Hızı|Aldığın hasarın bir kısmını zamana yayar.
-Sterak's Gage|Sterak'ın Güvencesi|3200|fiz|+400 Can · %20 Etki Direnci|Canın düşünce büyük kalkan.
-Guardian Angel|Koruyucu Melek|3200|fiz|+45 Saldırı Gücü · +40 Zırh|Öldürücü hasar alınca dirilirsin (180 sn bekleme).
-Luden's Echo|Luden'in Feryadı|2800|buy|+100 Yetenek Gücü · +500 Mana · +10 Yetenek Hızı|Sonraki yeteneğin ekstra büyü hasarı verir. (7.3f'de güçlendi)
-Blackfire Torch|Siyahateş Meşalesi|2800|buy|+80 Yetenek Gücü · +500 Mana · +20 Yetenek Hızı|Yakar; yanan her rakip başına yetenek gücü kazanırsın. Çoğu büyücünün ilk itemı.
-Malignance|Habaset|2700|buy|+90 Yetenek Gücü · +500 Mana · +15 Yetenek Hızı|Ulti bekleme süresi kısalır, ulti yeri yakar.
-Stormsurge|Yıldırım Asası|2800|buy|+90 Yetenek Gücü · 15 Büyü Delme · %6 Hareket Hızı|Hızlı kombodan sonra ani patlama hasarı.
-Rabadon's Deathcap|Rabadon'un Şapkası|3400|buy|+130 Yetenek Gücü|Toplam yetenek gücünü %30 artırır.
-Void Staff|Hiçlik Değneği|3000|buy|+95 Yetenek Gücü · %40 Büyü Delme|Büyü direnci yığan rakiplere karşı.
-Cryptbloom|Makber Çiçeği|3000|buy|+75 Yetenek Gücü · %30 Büyü Delme · +20 Yetenek Hızı|Skor alınca çevreyi iyileştiren dalga.
-Liandry's Torment|Liandry'nin Eziyeti|3000|buy|+300 Can · +60 Yetenek Gücü|Uzun savaşta büyüyen yanma hasarı; tanklara karşı iyi. (7.3f'de zayıfladı)
-Bloodletter's Curse|Kandöken'in Laneti|2900|buy|+350 Can · +65 Yetenek Gücü · +15 Yetenek Hızı|Rakibin büyü direncini yığarak düşürür.
-Riftmaker|Vadiyaran|3100|buy|+350 Can · +70 Yetenek Gücü · +15 Yetenek Hızı|Savaş uzadıkça hasarın artar ve iyileşirsin.
-Rylai's Crystal Scepter|Rylai'nin Kristal Asası|2700|buy|+350 Can · +65 Yetenek Gücü|Yeteneklerin rakibi yavaşlatır.
-Rod of Ages|Asırlık Sopa|2600|buy|+350 Can · +50 Yetenek Gücü · +400 Mana|Zamanla büyüyen özellikler. (7.3f'de ucuzladı)
-Lich Bane|Lich Boğan|2800|buy|+100 Yetenek Gücü · +10 Yetenek Hızı · %6 Hareket Hızı|Yetenekten sonraki saldırın büyü hasarı patlatır. (7.3f'de güçlendi)
-Hextech Rocketbelt|Hextech Füzekemer|2650|buy|+300 Can · +70 Yetenek Gücü · +20 Yetenek Hızı|Aktif: atılır ve önüne mermi fırlatırsın. (7.3f'de güçlendi)
-Nashor's Tooth|Nashor'un Dişi|2900|buy|%50 Saldırı Hızı · +80 Yetenek Gücü · +15 Yetenek Hızı|Saldırıların ekstra büyü hasarı verir.
-Archangel's Staff|Başmelek Asası|3000|buy|+60 Yetenek Gücü · +500 Mana · +25 Yetenek Hızı|Manayı yetenek gücüne çevirir; dolunca Seraph'ın Şefkati olur.
-Cosmic Drive|Kozmik Hızlandırıcı|3000|buy|+300 Can · +70 Yetenek Gücü · +25 Yetenek Hızı · %4 Hareket Hızı|Hasar verince hareket hızı kazanırsın.
-Dusk and Dawn|Gündüz ve Gece|3100|buy|+300 Can · %20 Saldırı Hızı · +60 Yetenek Gücü · +20 Yetenek Hızı|Yetenekten sonraki saldırın hasar verir ve iyileştirir.
-Infinity Orb|Ebedi Küre|3100|buy|+110 Yetenek Gücü · 15 Büyü Delme|Canı düşük rakiplere kritik büyü hasarı.
-Morellonomicon|Morellonomikon|2550|buy|+300 Can · +75 Yetenek Gücü · +15 Yetenek Hızı|Büyü hasarın ağır yara uygular. Büyücülerin iyileşme kesicisi. (7.3f'de ucuzladı)
-Oceanid's Trident|Okyanus Zıpkını|2600|buy|+200 Can · +80 Yetenek Gücü · +10 Yetenek Hızı|Rakip kalkanlarını azaltır.
-Horizon Focus|Ufukgetiren|2700|buy|+80 Yetenek Gücü · +25 Yetenek Hızı|İşaretlediğin hedefe ekstra hasar ve görüş.
-Banshee's Veil|Banshee'nin Duvağı|3000|buy|+105 Yetenek Gücü · +40 Büyü Direnci|Rakibin bir yeteneğini engeller.
-Verdant Barrier|Yeşil Bariyer|1600|buy|+40 Yetenek Gücü · +25 Büyü Direnci|Büyü kalkanı; Banshee'nin Duvağı'nın ara parçası.
-Zhonya's Hourglass|Zhonya'nın Kumsaati|3300|buy|+110 Yetenek Gücü · +40 Zırh|Aktif: kısa süre altın heykele dönüp hiç hasar almazsın.
-Seeker's Armguard|Maceracının Pazubendi|1400|buy|+35 Yetenek Gücü · +20 Zırh|Aktif: kısa dokunulmazlık. Zhonya'nın ara parçası.
-Imperial Mandate|İmparatorun Fermanı|2600|buy|+60 Yetenek Gücü · %50 Mana Yenileme · +20 Yetenek Hızı|Kontrol ettiğin rakibe arkadaşların ekstra hasar verir.
-Sunfire Aegis|Günateşi Kalkanı|2900|sav|+350 Can · +40 Zırh · +15 Yetenek Hızı|Savaşta çevreni yakar.
-Heartsteel|Çelikyürek|3000|sav|+700 Can · %150 Can Yenileme · +20 Yetenek Hızı|Şampiyonlara vurdukça kalıcı can kazanırsın.
-Thornmail|Çivili Zırh|2850|sav|+200 Can · +75 Zırh|Hasar yansıtır ve sana vurana ağır yara uygular.
-Randuin's Omen|Randuin'in Alameti|2800|sav|+400 Can · +75 Zırh|Kritik vuruş hasarını azaltır.
-Frozen Heart|Donmuş Yürek|2550|sav|+80 Zırh · +400 Mana · +20 Yetenek Hızı|Yakındaki rakiplerin saldırı hızını düşürür.
-Dead Man's Plate|Ölü Adamın Zırhı|2800|sav|+350 Can · +70 Zırh · %4 Hareket Hızı|Hızlanır, sonraki saldırınla ezici vuruş yaparsın.
-Force of Nature|Doğanın Kudreti|2800|sav|+400 Can · +60 Büyü Direnci · %5 Hareket Hızı|Büyü hasarı aldıkça büyü direncin artar.
-Kaenic Rookern|Kutluyas Rukern|2800|sav|+350 Can · %100 Can Yenileme · +85 Büyü Direnci|Savaş dışındayken büyü kalkanı birikir.
-Abyssal Mask|Cehennem Maskesi|2400|sav|+350 Can · +45 Büyü Direnci · +10 Yetenek Hızı|Yakındaki rakipler daha çok büyü hasarı alır.
-Gargoyle Stoneplate|Gargoyl Taşzırhı|2900|sav|+200 Can · +45 Zırh · +45 Büyü Direnci · +10 Yetenek Hızı|Aktif: büyük kalkan.
-Warmog's Armor|Warmog'un Zırhı|2850|sav|+700 Can · %100 Can Yenileme · +20 Yetenek Hızı|Savaş dışında hızla can yenilersin.
-Unending Despair|Sonsuz Çaresizlik|3000|sav|+300 Can · +40 Zırh · +40 Büyü Direnci · +10 Yetenek Hızı|Savaşta düzenli çevre hasarı verip iyileşirsin.
-Iceborn Gauntlet|Buzdoğan Eldiven|3000|sav|+300 Can · +50 Zırh · +250 Mana · +30 Yetenek Hızı|Yetenekten sonraki saldırın yavaşlatan alan bırakır.
-Amaranth's Twinguard|Amaranth'ın İkizsiperi|3200|sav|+300 Can · +50 Zırh · +50 Büyü Direnci|Savaşta kaldıkça dayanıklılığın artar.
-Mantle of the Twelfth Hour|Mucizevi Merhamet Örtüsü|2550|sav|+600 Can · +20 Yetenek Hızı|Canın düşünce kalkan ve hız.
-Hollow Radiance|Donuk Işıltı|2800|sav|+400 Can · +40 Büyü Direnci · +15 Yetenek Hızı|Çevrene büyü hasarı veren aura.
-Dawnshroud|Şafakperdesi|2700|sav|+250 Can · +50 Zırh · +30 Büyü Direnci|Kontrol ettiğin rakibi açığa çıkarır ve yaralar.
-Quicksilver Sash|Civalı Kuşak|1100|sav|+30 Büyü Direnci|Aktif: kitle kontrolünü temizler.
-Black Mist Scythe|Kara Sis Tırpanı|0|des|+10 Yetenek Hızı|Destek başlangıç itemı: altın kazandırır, sonra güçlenir. (7.3f'de altını düştü)
-Bulwark of the Mountain|Dağın Siperi|0|des|+175 Can · +10 Yetenek Hızı|Tank destek başlangıç itemı. (7.3f'de altını düştü)
-Locket of the Iron Solari|Demir Solari'nin Broşu|2500|des|+300 Can · +30 Zırh · +30 Büyü Direnci · +10 Yetenek Hızı|Aktif: çevrendeki takıma kalkan.
-Zeke's Convergence|Zeke'nin Ahengi|2400|des|+300 Can · +25 Zırh · +25 Büyü Direnci · +10 Yetenek Hızı|Ultinden sonra yavaşlatan fırtına.
-Knight's Vow|Şövalyenin Adağı|2450|des|+200 Can · +40 Zırh · +10 Yetenek Hızı|Bağladığın arkadaşının aldığı hasarın bir kısmını sen alırsın.
-Radiant Virtue|Erdem Işığı|2650|des|+300 Can · +30 Zırh · +30 Büyü Direnci · +10 Yetenek Hızı|Ultinden sonra takımını iyileştiren aura.
-Yordle Trap|Yordle Tuzağı|2400|des|+200 Can · +20 Zırh · +20 Büyü Direnci · +15 Yetenek Hızı|Kitle kontrolü uyguladıktan sonra güçlenirsin.
-Ardent Censer|Kızgın Buhurdanlık|2400|des|+50 Yetenek Gücü · %50 Mana Yenileme · %8 İyileştirme ve Kalkan Gücü · %4 Hareket Hızı|İyileştirdiğin arkadaşın saldırı hızı kazanır.
-Staff of Flowing Waters|Akan Su Asası|2400|des|+50 Yetenek Gücü · %50 Mana Yenileme · +10 Yetenek Hızı · %8 İyileştirme ve Kalkan Gücü|İyileştirdiğin arkadaşın yetenek gücü kazanır.
-Redemption|Kefaret|2450|des|+40 Yetenek Gücü · %50 Mana Yenileme · +10 Yetenek Hızı · %8 İyileştirme ve Kalkan Gücü|Aktif: alanı iyileştirir; ölüyken de kullanılır.
-Mikael's Blessing|Mikael'in Lütfu|2500|des|+300 Can · +15 Yetenek Hızı · %6 İyileştirme ve Kalkan Gücü|Aktif: arkadaşının kitle kontrolünü temizler.
-Echoes of Helia|Helia'nın Yankıları|2400|des|+200 Can · +40 Yetenek Gücü · %50 Mana Yenileme · +20 Yetenek Hızı|Verdiğin hasarı arkadaşlarına iyileşme olarak aktarır.
-Shurelya's Battlesong|Shurelya'nın Savaş Şarkısı|2600|des|+35 Yetenek Gücü · +20 Yetenek Hızı · %5 Hareket Hızı|Aktif: takımına hareket hızı.
-Whispering Circlet|Fısıldayan Taç|2400|des|+200 Can · +500 Mana · %50 Mana Yenileme|Dolunca Ezgi Diyademi olur, en düşük canlı arkadaşı iyileştirir.
-Berserker's Greaves|Savaşçı Çizmeleri|1200|bot|%30 Saldırı Hızı|10. dakikadan sonra Bakır-Çinko Çizmeler'e yükselir: %50 saldırı hızı, can çalma, vurunca hızlanma.
-Boots of Mana|Mana Çizmesi|1200|bot|+25 Yetenek Gücü · %75 Mana Yenileme|10. dakikadan sonra Sahir Pabuçları'na yükselir: +40 yetenek gücü, büyü delme.
-Mercury's Treads|Merkür'ün Adımları|1200|bot|+25 Büyü Direnci · %15 Etki Direnci · +150 Can|10. dakikadan sonra Zincirli Eziciler'e yükselir: +35 büyü direnci, %30 etki direnci, büyü kalkanı.
-Plated Steelcaps|Çelik Kaplamalı Çizme|1200|bot|+25 Zırh|Normal saldırı hasarını %6 azaltır. 10. dakikadan sonra Zırhlı Atılım'a yükselir.
-Gluttonous Greaves|Açgözlü Çizmeleri|1000|bot|+12 Saldırı Gücü ya da +20 Yetenek Gücü|Skorlarla büyüyen tam can çalma. 10. dakikadan sonra Ölümsüz Adımlar'a yükselir.
-Boots of Dynamism|Dinamiklik Çizmesi|1200|bot|+15 Saldırı Gücü · 10 Zırh Delme|10. dakikadan sonra Zırhkıran Çizme'ye yükselir: +25 saldırı gücü, daha çok zırh delme.
-Ionian Boots of Lucidity|Ionia Çizmeleri|1000|bot|Yetenek Hızı|10. dakikadan sonra Kızıl Ionia Çizmeleri'ne yükselir: +25 yetenek hızı, sihirdar büyüsü hızı.
-`;
-
-/* ===== ARKETİPLER ===== */
-const ARCH = {
-  crit_adc:{lbl:"Kritik nişancı",rune:"Ölümcül Tempo",boots:"Berserker's Greaves",core:["Yun Tal Wildarrows","Infinity Edge","Phantom Dancer"],late:["Bloodthirster","Guardian Angel","Mortal Reminder"]},
-  onhit_adc:{lbl:"İsabet nişancısı",rune:"Ölümcül Tempo",boots:"Berserker's Greaves",core:["Blade of the Ruined King","Guinsoo's Rageblade","Kraken Slayer"],late:["Wit's End","Terminus","Guardian Angel"]},
-  lethal_adc:{lbl:"Uzun menzilli nişancı",rune:"Ayağı Çabuk",boots:"Boots of Dynamism",core:["The Collector","Infinity Edge","Rapid Firecannon"],late:["Mortal Reminder","Guardian Angel","Bloodthirster"]},
-  caster_adc:{lbl:"Yetenekli nişancı",rune:"Yenilmez",boots:"Ionian Boots of Lucidity",core:["Manamune","Trinity Force","Serylda's Grudge"],late:["Black Cleaver","Navori Quickblades","Guardian Angel"]},
-  ad_assassin:{lbl:"Fiziksel suikastçı",rune:"Elektrik Ver",boots:"Boots of Dynamism",core:["Youmuu's Ghostblade","Duskblade of Draktharr","Serylda's Grudge"],late:["Edge of Night","The Collector","Guardian Angel"]},
-  bruiser:{lbl:"Dövüşçü",rune:"Yenilmez",boots:"Plated Steelcaps",core:["Black Cleaver","Sterak's Gage","Death's Dance"],late:["Guardian Angel","Spear of Shojin","Force of Nature"]},
-  juggernaut:{lbl:"Ağır dövüşçü",rune:"Yenilmez",boots:"Plated Steelcaps",core:["Sundered Sky","Sterak's Gage","Dead Man's Plate"],late:["Force of Nature","Randuin's Omen","Death's Dance"]},
-  skirmisher:{lbl:"Düellocu",rune:"Yenilmez",boots:"Plated Steelcaps",core:["Trinity Force","Blade of the Ruined King","Sterak's Gage"],late:["Death's Dance","Guardian Angel","Wit's End"]},
-  crit_melee:{lbl:"Kritik yakın dövüşçü",rune:"Ölümcül Tempo",boots:"Berserker's Greaves",core:["Infinity Edge","Navori Quickblades","Immortal Shieldbow"],late:["Death's Dance","Guardian Angel","Bloodthirster"]},
-  tank:{lbl:"Tank",rune:"Hortlağın Pençesi",boots:"Plated Steelcaps",core:["Sunfire Aegis","Heartsteel","Force of Nature"],late:["Randuin's Omen","Thornmail","Kaenic Rookern","Gargoyle Stoneplate"]},
-  tank_jg:{lbl:"Tank ormancı",rune:"Hortlağın Pençesi",boots:"Plated Steelcaps",core:["Sunfire Aegis","Dead Man's Plate","Force of Nature"],late:["Thornmail","Randuin's Omen","Gargoyle Stoneplate"]},
-  ap_tank:{lbl:"Büyü tankı",rune:"Hortlağın Pençesi",boots:"Mercury's Treads",core:["Hextech Rocketbelt","Riftmaker","Force of Nature"],late:["Zhonya's Hourglass","Abyssal Mask","Kaenic Rookern"]},
-  mage_burst:{lbl:"Ani hasar büyücüsü",rune:"Elektrik Ver",boots:"Boots of Mana",core:["Luden's Echo","Stormsurge","Rabadon's Deathcap"],late:["Void Staff","Zhonya's Hourglass","Banshee's Veil"]},
-  mage_control:{lbl:"Kontrol büyücüsü",rune:"Sihirli Yıldız",boots:"Boots of Mana",core:["Blackfire Torch","Malignance","Rabadon's Deathcap"],late:["Void Staff","Zhonya's Hourglass","Cryptbloom"]},
-  mage_battle:{lbl:"Savaş büyücüsü",rune:"Sürat Coşkusu",boots:"Mercury's Treads",core:["Riftmaker","Liandry's Torment","Rabadon's Deathcap"],late:["Zhonya's Hourglass","Void Staff","Bloodletter's Curse"]},
-  ap_assassin:{lbl:"Büyü suikastçısı",rune:"Elektrik Ver",boots:"Boots of Mana",core:["Hextech Rocketbelt","Lich Bane","Rabadon's Deathcap"],late:["Zhonya's Hourglass","Void Staff","Banshee's Veil"]},
-  ap_onhit:{lbl:"Saldırı odaklı büyücü",rune:"Ölümcül Tempo",boots:"Berserker's Greaves",core:["Nashor's Tooth","Guinsoo's Rageblade","Rabadon's Deathcap"],late:["Void Staff","Zhonya's Hourglass","Wit's End"]},
-  enchanter:{lbl:"Koruyucu destek",rune:"Aery",boots:"Ionian Boots of Lucidity",start:"Black Mist Scythe",core:["Ardent Censer","Staff of Flowing Waters","Redemption"],late:["Mikael's Blessing","Echoes of Helia","Locket of the Iron Solari"]},
-  tank_sup:{lbl:"Tank destek",rune:"Muhafız",boots:"Mercury's Treads",start:"Bulwark of the Mountain",core:["Locket of the Iron Solari","Zeke's Convergence","Knight's Vow"],late:["Radiant Virtue","Abyssal Mask","Dawnshroud","Gargoyle Stoneplate"]},
-  mage_sup:{lbl:"Büyücü destek",rune:"Sihirli Yıldız",boots:"Boots of Mana",start:"Black Mist Scythe",core:["Imperial Mandate","Liandry's Torment","Horizon Focus"],late:["Zhonya's Hourglass","Rylai's Crystal Scepter","Morellonomicon"]},
-};
-const OVERRIDE = {
-  "Darius":["Stridebreaker","Sterak's Gage","Dead Man's Plate"],"Lucian":["Essence Reaver","Navori Quickblades","Infinity Edge"],"Smolder":["Essence Reaver","Navori Quickblades","Infinity Edge"],
-  "Vayne":["Blade of the Ruined King","Guinsoo's Rageblade","Wit's End"],"Teemo":["Liandry's Torment","Nashor's Tooth","Rabadon's Deathcap"],"Gwen":["Riftmaker","Nashor's Tooth","Rabadon's Deathcap"],
-  "Kai'Sa":["Yun Tal Wildarrows","Guinsoo's Rageblade","Nashor's Tooth"],"Pyke":["Youmuu's Ghostblade","Edge of Night","Serylda's Grudge"],"Senna":["Youmuu's Ghostblade","The Collector","Serpent's Fang"],
-  "Rammus":["Thornmail","Sunfire Aegis","Force of Nature"],"Graves":["Youmuu's Ghostblade","The Collector","Serylda's Grudge"],"Viego":["Blade of the Ruined King","Kraken Slayer","Sterak's Gage"],
-  "Master Yi":["Blade of the Ruined King","Guinsoo's Rageblade","Wit's End"],"Kayle":["Nashor's Tooth","Guinsoo's Rageblade","Rabadon's Deathcap"],"Vladimir":["Riftmaker","Rod of Ages","Rabadon's Deathcap"],
-  "Swain":["Liandry's Torment","Rylai's Crystal Scepter","Riftmaker"],"Lillia":["Liandry's Torment","Riftmaker","Rylai's Crystal Scepter"],"Rumble":["Liandry's Torment","Riftmaker","Rylai's Crystal Scepter"],
-  "Kog'Maw":["Blade of the Ruined King","Guinsoo's Rageblade","Wit's End"],"Twitch":["Yun Tal Wildarrows","Infinity Edge","Runaan's Hurricane"],"Malphite":["Sunfire Aegis","Frozen Heart","Thornmail"],
-  "Amumu":["Sunfire Aegis","Liandry's Torment","Force of Nature"],"Nunu & Willump":["Sunfire Aegis","Liandry's Torment","Force of Nature"],"Singed":["Rod of Ages","Riftmaker","Force of Nature"],
-  "Nilah":["Yun Tal Wildarrows","Infinity Edge","Bloodthirster"],"Zoe":["Luden's Echo","Stormsurge","Rabadon's Deathcap"],
-};
-const SPELLS = {top:"Sıçra + Tutuştur",jg:"Çarp + Sıçra",mid:"Sıçra + Tutuştur",adc:"Sıçra + Şifa",sup:"Sıçra + Bitkinlik"};
-const ROLE = {top:"Baron",jg:"Orman",mid:"Orta",adc:"Ejderha",sup:"Destek"};
-const ROLE_LONG = {top:"Baron koridoru",jg:"Orman",mid:"Orta koridor",adc:"Ejderha koridoru",sup:"Destek"};
-const DMG = {AD:"Fiziksel hasar",AP:"Büyü hasarı",mixed:"Karma hasar"};
-const CAT = {fiz:"Fiziksel",buy:"Büyü",sav:"Savunma",des:"Destek",bot:"Çizmeler"};
-const CLS_TR = {"NİŞANCI":"Nişancı","SUİKASTÇI":"Suikastçı","BÜYÜCÜ":"Büyücü","DÖVÜŞÇÜ":"Dövüşçü","TANK":"Tank","DESTEK":"Destek"};
-
-/* ===== AYRIŞTIRMA ===== */
-const key = s => (s||"").toLocaleLowerCase("tr").replace(/ı/g,"i").replace(/ş/g,"s").replace(/ğ/g,"g").replace(/ü/g,"u").replace(/ö/g,"o").replace(/ç/g,"c").replace(/[^a-z0-9]/g,"");
-const slugOf = n => n.toLowerCase().replace(/&/g,"and").replace(/['.]/g,"").trim().replace(/\s+/g,"-");
-const CH = {}, LIST = [], BYSLUG = {};
-CHAMP_RAW.trim().split("\n").forEach(line=>{
-  const [name,roles,arch,dmg,tags,counters,good,tip] = line.split("|");
-  const c = {name,roles:roles.split(","),arch,dmg,tags:tags?tags.split(","):[],counters:counters?counters.split(","):[],good:good?good.split(","):[],tip};
-  c.slug = slugOf(name); c.prof = P[c.slug] || null;
-  c.disp = name==="Nunu & Willump" ? "Nunu ve Willump" : name;
-  CH[key(name)] = c; BYSLUG[c.slug] = c; LIST.push(c);
-});
-STAT_RAW.split("|").forEach(s=>{const [n,wr,pr,br,mr]=s.split(":");const c=CH[key(n)];if(c){c.wr=+wr;c.pr=+pr;c.br=+br;c.main=mr;}});
-LIST.forEach(c=>{
-  if(!c.main) c.main=c.roles[0];
-  if(!c.roles.includes(c.main)) c.roles.unshift(c.main);
-  c.tier = c.wr==null ? "?" : c.wr>=52.5?"S":c.wr>=51?"A":c.wr>=49.5?"B":c.wr>=48?"C":"D";
-});
-LIST.sort((a,b)=>a.disp.localeCompare(b.disp,"tr"));
-const IT = {}, ILIST = [];
-ITEM_RAW.trim().split("\n").forEach(l=>{const [en,tr,cost,cat,st,fx]=l.split("|");const i={en,tr,cost,cat,st,fx};IT[en]=i;ILIST.push(i);});
-const iname = en => IT[en] ? IT[en].tr : en;
-
-/* Eşleşme tahtası: MU[koridor][şampiyon] = [[rakip, puan, rakibinKO, rakibinSO]]; puan>0 => rakip bu şampiyona karşı avantajlı */
-const MU = window.WR_MU || {top:{},jg:{},mid:{},adc:{},sup:{}};
-const RWR = {};
-Object.keys(MU).forEach(r=>{RWR[r]={};Object.values(MU[r]).forEach(rows=>rows.forEach(x=>{if(x[2]!=null)RWR[r][x[0]]=[x[2],x[3]]}))});
-const roleWR = (c,r) => (RWR[r]&&RWR[r][c.slug]) ? RWR[r][c.slug][0] : null;
-const boardRoles = c => Object.keys(ROLE).filter(r=>MU[r]&&MU[r][c.slug]);
-/* me, en karşısında: >0 me avantajlı */
-function edge(me,en,role){
-  const a=MU[role]&&MU[role][en.slug]; if(a){const x=a.find(r=>r[0]===me.slug); if(x) return x[1];}
-  const b=MU[role]&&MU[role][me.slug]; if(b){const x=b.find(r=>r[0]===en.slug); if(x) return -x[1];}
-  return null;
-}
-const EDGE_TXT = e => e>=2?["good","Sert kontra"]:e===1?["good","Avantajlı"]:e===0?["even","Dengeli"]:e===-1?["bad","Dezavantajlı"]:["bad","Kaçın"];
-const sgn = e => e>0?"+"+e:e<0?"−"+(-e):"±0";
-function findChamp(v){const k=key(v);if(!k)return null;return CH[k]||LIST.find(c=>key(c.disp).startsWith(k)||key(c.name).startsWith(k))||null}
-
-/* ===== UI YARDIMCILARI ===== */
-const $ = s=>document.querySelector(s);
-const esc = s=>String(s==null?"":s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
-const pct = v => v==null ? "–" : "%"+v.toFixed(1).replace(".",",");
-function por(c,cls){
-  const img = c.prof && c.prof.p ? `<img src="${c.prof.p}" alt="" loading="lazy">` : `<span class="ini">${esc(c.disp.slice(0,2))}</span>`;
-  return `<span class="por${cls?" "+cls:""}">${img}</span>`;
-}
-const tierB = c => `<span class="tier" data-t="${c.tier}" title="Kademe ${c.tier}">${c.tier}</span>`;
-const roleB = r => `<span class="role" data-r="${r}">${ROLE[r]}</span>`;
-function itm(en,n){const i=IT[en];return `<button type="button" class="itm" data-item="${esc(en)}" title="${i?esc(i.st+" — "+i.fx):""}">${n?`<span class="n">${n}</span>`:""}${esc(iname(en))}</button>`}
-const champBtnAttrs = c => `data-go="s-${c.slug}"`;
-
-/* Şampiyon seçici */
-const ov = $("#ov"); let pickerCb=null, pickerRole="all";
-function openPicker(title,cb,role){
-  pickerCb=cb; pickerRole=role||"all";
-  ov.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
-    <div class="sheet-head"><h3>${esc(title)}</h3><button class="btn" type="button" data-close>Kapat</button></div>
-    <div class="toolbar"><div class="seg" id="pk-roles">${[["all","Tümü"],...Object.entries(ROLE)].map(([k,v])=>`<button type="button" data-r="${k}" aria-pressed="${k===pickerRole}">${v}</button>`).join("")}</div>
-    <input id="pk-q" type="search" placeholder="İsimle ara" aria-label="Şampiyon ara"></div>
-    <div class="pgrid" id="pk-grid"></div></div>`;
-  ov.hidden=false; drawPicker(); setTimeout(()=>{const q=$("#pk-q");if(q)q.focus()},30);
-  $("#pk-q").addEventListener("input",drawPicker);
-  $("#pk-roles").addEventListener("click",e=>{const b=e.target.closest("[data-r]");if(!b)return;pickerRole=b.dataset.r;[...$("#pk-roles").children].forEach(x=>x.setAttribute("aria-pressed",x===b));drawPicker()});
-}
-function drawPicker(){
-  const q=key($("#pk-q").value);
-  const rows=LIST.filter(c=>(pickerRole==="all"||c.roles.includes(pickerRole))&&(!q||key(c.disp).includes(q)||key(c.name).includes(q)));
-  $("#pk-grid").innerHTML = rows.map(c=>`<button class="pbtn" type="button" data-pick="${esc(c.name)}">${por(c)}<span>${esc(c.disp)}</span></button>`).join("")||'<div class="empty">Bulunamadı.</div>';
-}
-ov.addEventListener("click",e=>{
-  if(e.target===ov||e.target.closest("[data-close]")){ov.hidden=true;return}
-  const p=e.target.closest("[data-pick]"); if(p){ov.hidden=true; pickerCb&&pickerCb(CH[key(p.dataset.pick)]);}
-});
-ov.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="pk-q"){const f=ov.querySelector("[data-pick]");if(f)f.click()}});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!ov.hidden)ov.hidden=true});
-
-function slotHTML(c,ph){
-  return c ? `${por(c,"sm")}<span style="min-width:0"><span class="nm">${esc(c.disp)}</span><span class="sub">${c.roles.map(r=>ROLE[r]).join(" · ")} · değiştir</span></span>`
-           : `<span class="por sm"><span class="ini">+</span></span><span><span class="nm">${esc(ph)}</span><span class="sub">Seçmek için dokun</span></span>`;
-}
-
-/* Genel tıklama: profile git, item göster */
-document.addEventListener("click",e=>{
-  const g=e.target.closest("main [data-go]"); if(g){location.hash=g.dataset.go;return}
-  const it=e.target.closest("main [data-item]"); if(it){showItem(it.dataset.item)}
-});
-function showItem(en){
-  const i=IT[en]; if(!i) return;
-  ov.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(i.tr)}" style="width:min(460px,100%)">
-    <div class="sheet-head"><h3>${esc(i.tr)}</h3><button class="btn" type="button" data-close>Kapat</button></div>
-    <div class="muted small">${esc(CAT[i.cat])} · İngilizce adı: ${esc(i.en)}${i.cost?` · ${i.cost} altın`:""}</div>
-    <div style="color:var(--teal)">${esc(i.st)}</div><div>${esc(i.fx)}</div></div>`;
-  ov.hidden=false; ov.querySelector("[data-close]").focus();
-}
-
-function buildHTML(c){
-  const a=ARCH[c.arch], core=OVERRIDE[c.name]||a.core;
-  return `<div class="build">
-    ${a.start?`<div class="brow"><span class="l">Başlangıç</span><div class="items">${itm(a.start)}</div></div>`:""}
-    <div class="brow"><span class="l">Çekirdek</span><div class="items">${core.map((n,i)=>itm(n,i+1)).join('<span class="arrow">›</span>')}</div></div>
-    <div class="brow"><span class="l">Çizme</span><div class="items">${itm(a.boots)}</div></div>
-    <div class="brow"><span class="l">Geç oyun</span><div class="items">${a.late.map(n=>itm(n)).join("")}</div></div>
-    <div class="brow"><span class="l">Ana rün</span><div class="items"><span class="chip" style="color:var(--fg)">${esc(a.rune)}</span></div></div>
-    <div class="brow"><span class="l">Büyüler</span><div class="items"><span class="chip" style="color:var(--fg)">${esc(SPELLS[c.main])}</span></div></div>
-  </div>`;
-}
-/* e: satırdaki şampiyonun bakış açısından puan (>0 iyi) */
-function pickRow(c,e,note,role){
-  const T=EDGE_TXT(e); const w=role?roleWR(c,role):null;
-  return `<button class="pick" type="button" ${champBtnAttrs(c)}>${por(c,"sm")}<span style="min-width:0"><span class="nm">${esc(c.disp)}</span> <span class="tag ${T[0]}">${T[1]} ${sgn(e)}</span><br><span class="why">${note||c.roles.map(r=>ROLE[r]).join(" · ")}</span></span><span class="rt">${tierB(c)}<br>${w!=null?`${pct(w)} <span title="Bu şampiyonun bu koridordaki genel kazanma oranı">koridorda</span>`:pct(c.wr)}</span></button>`;
-}
-
-/* ===== ANA SAYFA ===== */
-function renderHome(){
-  const top5 = [...LIST].filter(c=>c.wr).sort((a,b)=>b.wr-a.wr).slice(0,5);
-  $("#heroFaces").innerHTML = top5.map(c=>`<button class="facebtn" style="width:auto" type="button" ${champBtnAttrs(c)} aria-label="${esc(c.disp)}">${por(c)}<span>${esc(c.disp)}</span></button>`).join("");
-  $("#roleBest").innerHTML = Object.keys(ROLE).map(r=>{
-    const best=LIST.filter(c=>c.main===r&&c.wr).sort((a,b)=>b.wr-a.wr).slice(0,4);
-    return `<div class="rb">${roleB(r)}<div class="faces">${best.map(c=>`<button class="facebtn" type="button" ${champBtnAttrs(c)}>${por(c,"sm")}<span>${esc(c.disp)}</span></button>`).join("")}</div></div>`;
-  }).join("");
-}
-
-/* ===== KONTRA ===== */
-let kEnemy=null, kRole="auto";
-function renderKontra(){
-  $("#k-slot").innerHTML=`<button class="slot${kEnemy?" filled":""}" type="button" id="k-pick" style="max-width:340px">${slotHTML(kEnemy,"Rakip şampiyonu seç")}</button>`;
-  const av=kEnemy?boardRoles(kEnemy):Object.keys(ROLE);
-  if(kRole!=="auto"&&kRole!=="all"&&!av.includes(kRole)) kRole="auto";
-  const autoR=kEnemy?(av.includes(kEnemy.main)?kEnemy.main:av[0]):null;
-  const roles=[["auto",autoR?`Rakibinle aynı (${ROLE[autoR]})`:"Rakibinle aynı"],...Object.entries(ROLE).filter(([k])=>av.includes(k)),["all","Hepsi"]];
-  $("#k-roles").innerHTML=roles.map(([k,v])=>`<button type="button" data-r="${k}" aria-pressed="${k===kRole}">${v}</button>`).join("");
-  const out=$("#k-out");
-  if(!kEnemy){out.innerHTML='<div class="empty">Başlamak için yukarıdan rakip şampiyonu seç.</div>';return}
-  const avail=boardRoles(kEnemy);
-  let role = kRole==="auto" ? (avail.includes(kEnemy.main)?kEnemy.main:avail[0]) : kRole;
-  // Satırları topla: [şampiyon, puan (seçen için), koridor]
-  let rows=[];
-  const roleList = role==="all" ? avail : [role];
-  roleList.forEach(r=>(MU[r][kEnemy.slug]||[]).forEach(([s,e])=>{const c=BYSLUG[s]; if(c) rows.push({c,e,r})}));
-  if(role==="all"){const m=new Map();rows.forEach(x=>{const p=m.get(x.c.slug);if(!p||Math.abs(x.e)>Math.abs(p.e))m.set(x.c.slug,x)});rows=[...m.values()]}
-  const byWr=(a,b)=>(roleWR(b.c,b.r)||b.c.wr||0)-(roleWR(a.c,a.r)||a.c.wr||0);
-  const good=rows.filter(x=>x.e>0).sort((a,b)=>b.e-a.e||byWr(a,b));
-  const even=rows.filter(x=>x.e===0).sort(byWr);
-  const bad=rows.filter(x=>x.e<0).sort((a,b)=>a.e-b.e||byWr(b,a));
-  const meta=[];
-  const best=good[0];
-  if(!rows.length){out.innerHTML=`<div class="empty">${esc(kEnemy.disp)} için ${role==="all"?"":ROLE_LONG[role].toLocaleLowerCase("tr")+" "}eşleşme verisi yok. ${avail.length?`Veri olan koridorlar: ${avail.map(r=>ROLE[r]).join(", ")}.`:""}</div>`;return}
-  out.innerHTML=`
-  ${best?`<div class="callout"><b>Kısa cevap:</b> ${esc(kEnemy.disp)} karşısında ${role==="all"?"":ROLE_LONG[role].toLocaleLowerCase("tr")+" için "}en iyi seçim <b>${esc(best.c.disp)}</b>${good[1]?`, alternatif olarak <b>${esc(good[1].c.disp)}</b>`:""}${good[2]?` ya da <b>${esc(good[2].c.disp)}</b>`:""}.</div>`:""}
-  <div class="grid2">
-    <div class="card">
-      <div class="row" style="gap:14px">${por(kEnemy)}<div><h2 style="margin:0">${esc(kEnemy.disp)}</h2><div class="row" style="gap:6px;margin-top:4px">${tierB(kEnemy)}${kEnemy.roles.map(roleB).join("")}<span class="chip ${kEnemy.dmg.toLowerCase()}">${DMG[kEnemy.dmg]}</span></div></div></div>
-      <h2 style="margin-top:16px">Ona karşı nasıl oynanır</h2>${howToBeat(kEnemy)}
-      <div class="row" style="margin-top:12px"><a class="btn" href="#s-${kEnemy.slug}" style="text-decoration:none">${esc(kEnemy.disp)} profilini aç</a></div>
-    </div>
-    <div class="card">
-      <h2>Sana önerilenler <small>${role==="all"?"tüm koridorlar":ROLE_LONG[role]} · ${good.length} seçenek</small></h2>
-      <div class="list">${good.map(x=>pickRow(x.c,x.e,`${esc(kEnemy.disp)} karşısında ${x.e>=2?"çok":""} avantajlı${role==="all"?" · "+ROLE[x.r]:""}`,x.r)).join("")||'<div class="empty">Bu koridorda avantajlı eşleşme yok. Dengeli seçeneklere bak.</div>'}</div>
-      ${even.length?`<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">Dengeli eşleşmeler (${even.length}) <span class="muted small">— kim iyi oynarsa kazanır</span></summary><div class="list" style="margin-top:8px">${even.map(x=>pickRow(x.c,0,`Eşit eşleşme${role==="all"?" · "+ROLE[x.r]:""}`,x.r)).join("")}</div></details>`:""}
-      <h2 style="margin-top:18px">Bunları seçme <small>${esc(kEnemy.disp)} bunlara karşı üstün</small></h2>
-      <div class="list">${bad.map(x=>pickRow(x.c,x.e,`${esc(kEnemy.disp)} karşısında zorlanır${role==="all"?" · "+ROLE[x.r]:""}`,x.r)).join("")||'<div class="empty">Bu koridorda dezavantajlı eşleşme yok.</div>'}</div>
-      <p class="muted small" style="margin:14px 0 0">Puan, WildRiftCore'un 7.3f eşleşme tahtasından gelir (Çin sunucusu, Master+). +3 en büyük avantaj, −3 en büyük dezavantaj. Sağdaki yüzde, o şampiyonun bu koridordaki genel kazanma oranıdır; iki şampiyonun birbirine karşı oranı değildir.</p>
-    </div>
-  </div>`;
-}
-$("#k-slot").addEventListener("click",()=>openPicker("Rakip şampiyon",c=>{kEnemy=c;renderKontra()}));
-$("#k-roles").addEventListener("click",e=>{const b=e.target.closest("[data-r]");if(!b)return;kRole=b.dataset.r;renderKontra()});
-
-/* "Nasıl yenilir" metni */
-function howToBeat(c){
-  const tips=[];
-  const br=boardRoles(c), r0=br.includes(c.main)?c.main:br[0];
-  const cs=r0?(MU[r0][c.slug]||[]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>BYSLUG[x[0]]).filter(Boolean).map(x=>x.disp):[];
-  if(cs.length) tips.push(`${ROLE_LONG[r0]} için en sert kontraları: <b>${esc(cs.join(", "))}</b>.`);
-  if(c.tags.includes("heal")) tips.push(`Kendini iyileştirir. Erkenden ağır yara al: nişancıysan ${iname("Mortal Reminder")}, büyücüysen ${iname("Morellonomicon")}, dövüşçüysen ${iname("Chempunk Chainsword")}, tanksan ${iname("Thornmail")}.`);
-  if(c.tags.includes("shield")) tips.push(`Kalkan kullanır. ${iname("Serpent's Fang")} ya da ${iname("Oceanid's Trident")} kalkanını küçültür.`);
-  if(c.tags.includes("dash")) tips.push("Atılma yetenekleri var. Atılmayı harcamasını bekle, sonra sabitleme yeteneğini kullan.");
-  if(c.tags.includes("stealth")) tips.push("Görünmez olabilir. Kontrol totemi taşı, çalılara dikkat et.");
-  if(c.tags.includes("poke")) tips.push("Uzaktan dürtür. Minyonların arkasında dur, can yenileme al ve yakına girdiğinde üstüne çık.");
-  if(c.tags.includes("burst")) tips.push(`Ani hasarla öldürür. ${iname("Zhonya's Hourglass")}, ${iname("Guardian Angel")} ya da ${iname("Edge of Night")} hayat kurtarır.`);
-  if(c.tags.includes("engage")||c.tags.includes("cc")) tips.push(`Kitle kontrolü güçlü. ${iname("Mercury's Treads")} etki direnci verir; aynı anda birden çok kişi toplu durmayın.`);
-  if(c.tags.includes("tank")||/tank/.test(c.arch)) tips.push(`Dayanıklı. Yüzde hasar ve delme al: ${iname("Blade of the Ruined King")}, ${iname("Void Staff")}, ${iname("Black Cleaver")}.`);
-  if(c.tags.includes("true")) tips.push("Gerçek hasar verir; zırh ve büyü direnci onu tam durdurmaz, uzun dövüşten kaçın.");
-  if(c.wr!=null&&c.wr<49) tips.push(`Bu yamada zayıf (${pct(c.wr)} kazanma oranı).`);
-  return `<ul class="howto" style="margin:0;padding-left:18px">${tips.map(t=>`<li>${t}</li>`).join("")}</ul>`;
-}
-
-/* ===== ITEM REHBERİ ===== */
-const CLASS_OF={crit_adc:"mm",onhit_adc:"mm",lethal_adc:"mm",caster_adc:"mm",ad_assassin:"as",bruiser:"fi",juggernaut:"fi",skirmisher:"fi",crit_melee:"fi",tank:"ta",tank_jg:"ta",tank_sup:"ta",ap_tank:"ta",mage_burst:"ma",mage_control:"ma",mage_battle:"ma",ap_assassin:"ma",ap_onhit:"ma",mage_sup:"ma",enchanter:"en"};
-const POOL={
-  heal:{mm:[["Mortal Reminder","fiziksel hasarın ağır yara uygular"]],ma:[["Morellonomicon","büyü hasarın iyileşmeyi keser"]],fi:[["Chempunk Chainsword","dövüşçü özellikleriyle birlikte ağır yara"]],as:[["Chempunk Chainsword","kombondan sonra rakip iyileşemez"]],ta:[["Thornmail","sana vuran ağır yara yer"]],en:[["Echoes of Helia","uzun savaşta takımını ayakta tut; ağır yarayı nişancına bırak"]]},
-  shield:{mm:[["Serpent's Fang","rakip kalkanlarını küçültür"]],as:[["Serpent's Fang","kalkanlı hedefi tek komboda indirirsin"]],fi:[["Serpent's Fang","kalkan yığan rakiplere karşı"]],ma:[["Oceanid's Trident","büyü hasarınla kalkanları küçültür"]]},
-  ap:{mm:[["Wit's End","büyü direnci ve saldırı hızı birlikte"],["Maw of Malmortius","büyü patlamasına karşı kalkan"]],ma:[["Banshee's Veil","bir yeteneği engeller, büyü direnci verir"]],fi:[["Maw of Malmortius","büyü patlamasına karşı kalkan"],["Force of Nature","uzun savaşta büyü direnci yığar"]],as:[["Maw of Malmortius","büyü patlamasına karşı kalkan"],["Edge of Night","bir yeteneği engeller"]],ta:[["Force of Nature","büyü hasarı aldıkça büyü direnci artar"],["Kaenic Rookern","yüksek büyü direnci ve büyü kalkanı"]],en:[["Mikael's Blessing","arkadaşına gelen kontrolü temizlersin"]]},
-  ad:{mm:[["Guardian Angel","üstüne dalınırsa ikinci can"]],ma:[["Zhonya's Hourglass","zırh ve dokunulmazlık"]],fi:[["Death's Dance","fiziksel ani hasarı zamana yayar"]],as:[["Death's Dance","fiziksel ani hasarı zamana yayar"],["Guardian Angel","daldıktan sonra ikinci şans"]],ta:[["Randuin's Omen","yüksek zırh, kritik hasarı azaltır"],["Thornmail","yüksek zırh ve hasar yansıtma"]],en:[["Locket of the Iron Solari","takıma kalkan, dalışı karşılar"]]},
-  aa:{ta:[["Frozen Heart","rakiplerin saldırı hızını düşürür"],["Randuin's Omen","kritik hasarı azaltır"]],fi:[["Randuin's Omen","kritik nişancılara karşı"]],ma:[["Zhonya's Hourglass","normal saldırıyla dalanlara karşı zaman kazandırır"]],mm:[["Immortal Shieldbow","düellolarda kalkan"]],as:[["Death's Dance","uzun düelloda hasarı yayar"]],en:[["Knight's Vow","nişancına gelen hasarı paylaşırsın"]]},
-  cc:{mm:[["Mercurial Scimitar","aktifiyle kontrolü temizler"]],ma:[["Quicksilver Sash","ucuz kontrol temizleme"]],fi:[["Sterak's Gage","etki direnci ve büyük kalkan"]],as:[["Mercurial Scimitar","aktifiyle kontrolden kurtul"]],ta:[["Gargoyle Stoneplate","kontrol altında bile ayakta kalırsın"]],en:[["Mikael's Blessing","arkadaşının kontrolünü temizler"]]},
-  burst:{mm:[["Immortal Shieldbow","suikastçı patlamasına karşı kalkan"],["Guardian Angel","odaklanırsan dirilirsin"]],ma:[["Zhonya's Hourglass","suikastçının kombosunu boşa çıkarır"]],fi:[["Sterak's Gage","ani hasarı emen kalkan"]],as:[["Edge of Night","ilk yeteneği engeller"]],ta:[["Gargoyle Stoneplate","aktif kalkan ani hasarı emer"]],en:[["Locket of the Iron Solari","takıma alan kalkanı"]]},
-  tank:{mm:[["Dominik's Regards","canı yüksek hedeflere ekstra hasar ve zırh delme"],["Blade of the Ruined King","mevcut can yüzdesi hasarı"]],ma:[["Void Staff","%40 büyü delme"],["Liandry's Torment","uzun savaşta büyüyen yanma"]],fi:[["Black Cleaver","zırhı yığarak düşürür"]],as:[["Serylda's Grudge","yüzde zırh delme ve yavaşlatma"]],ta:[["Abyssal Mask","takımının büyü hasarını artırır"]],en:[["Staff of Flowing Waters","taşıyıcılarının hasarını güçlendirir"]]},
-};
-const THREAT={heal:["İyileşme","iyileşen şampiyon"],shield:["Kalkan","kalkan veren şampiyon"],ap:["Büyü hasarı ağırlıklı",""],ad:["Fiziksel hasar ağırlıklı",""],aa:["Normal saldırıyla vuranlar","sürekli saldırıyla hasar veren"],cc:["Yoğun kitle kontrolü","kontrol yeteneği olan"],burst:["Ani hasar / suikastçı","suikastçı ya da ani hasarcı"],tank:["Tanklar","dayanıklı şampiyon"]};
-function analyse(en){
-  const p={ad:0,ap:0,heal:[],shield:[],cc:[],tank:[],burst:[],aa:[]};
-  en.forEach(c=>{
-    if(c.dmg==="AD")p.ad++;else if(c.dmg==="AP")p.ap++;else{p.ad+=.5;p.ap+=.5}
-    if(c.tags.includes("heal"))p.heal.push(c);
-    if(c.tags.includes("shield")||c.arch==="enchanter")p.shield.push(c);
-    if(c.tags.includes("cc"))p.cc.push(c);
-    if(c.tags.includes("tank")||/tank/.test(c.arch))p.tank.push(c);
-    if(/assassin/.test(c.arch)||c.tags.includes("burst"))p.burst.push(c);
-    if(/crit_adc|onhit_adc|crit_melee|lethal_adc|ap_onhit/.test(c.arch))p.aa.push(c);
-  });
-  const t=[], n=en.length||1, add=(k,s,who)=>t.push({k,s,who});
-  if(p.heal.length) add("heal",p.heal.length>=2?2:1,p.heal);
-  if(p.shield.length>=2) add("shield",p.shield.length>=3?2:1,p.shield);
-  if(p.ap/n>=.5&&p.ap>=2) add("ap",p.ap>=3.5?2:1,[]);
-  if(p.ad/n>=.5&&p.ad>=2) add("ad",p.ad>=3.5?2:1,[]);
-  if(p.aa.length>=2) add("aa",p.aa.length>=3?2:1,p.aa);
-  if(p.cc.length>=3) add("cc",p.cc.length>=4?2:1,p.cc);
-  if(p.burst.length>=2) add("burst",p.burst.length>=3?2:1,p.burst);
-  if(p.tank.length>=2) add("tank",p.tank.length>=3?2:1,p.tank);
-  t.sort((a,b)=>b.s-a.s); p.threats=t; return p;
-}
-let iMe=null, iEn=[null,null,null,null,null];
-const EN_PH=["Rakip Baron","Rakip Orman","Rakip Orta","Rakip Ejderha","Rakip Destek"], EN_R=["top","jg","mid","adc","sup"];
-function renderItem(){
-  $("#i-me").innerHTML=`<button class="slot${iMe?" filled":""}" type="button" data-slot="me">${slotHTML(iMe,"Şampiyonunu seç")}</button>`;
-  $("#i-enemies").innerHTML=iEn.map((c,i)=>`<button class="slot${c?" filled":""}" type="button" data-slot="${i}">${slotHTML(c,EN_PH[i])}</button>`).join("");
-  const out=$("#i-out"), en=iEn.filter(Boolean);
-  if(!iMe){out.innerHTML='<div class="empty">Önce kendi şampiyonunu seç. Rakipleri ekledikçe öneriler güncellenir.</div>';return}
-  const cls=CLASS_OF[iMe.arch], a=ARCH[iMe.arch], core=OVERRIDE[iMe.name]||a.core, p=analyse(en);
-  const recs=new Map();
-  p.threats.forEach(t=>(POOL[t.k][cls]||[]).forEach(([n,why],i)=>{
-    const cur=recs.get(n), sc=t.s*10-i;
-    if(cur){cur.sc+=sc;cur.why.push(why);cur.from.push(THREAT[t.k][0])} else recs.set(n,{n,sc,why:[why],from:[THREAT[t.k][0]]});
-  }));
-  const sit=[...recs.values()].filter(r=>!core.includes(r.n)).sort((x,y)=>y.sc-x.sc);
-  let boots=a.boots, bootWhy="Bu şampiyon tipinin standart çizmesi.";
-  if(cls!=="mm"&&cls!=="en"){ if((p.ap>=3||p.cc.length>=3)&&p.ap>=p.ad){boots="Mercury's Treads";bootWhy="Rakipte büyü hasarı ve kitle kontrolü fazla."} else if(p.ad>=3&&p.aa.length>=2){boots="Plated Steelcaps";bootWhy="Rakipte normal saldırıyla vuran birden çok şampiyon var."} }
-  // Sıralı yol
-  const path=[];
-  if(a.start) path.push({n:a.start,why:"Destek başlangıç itemı; görevleri tamamlayınca güçlenir.",k:"core"});
-  path.push({n:core[0],why:"İlk çekirdek item; gücünün çoğu buradan gelir.",k:"core"});
-  path.push({n:boots,why:bootWhy,k:boots!==a.boots?"sit":"core"});
-  path.push({n:core[1],why:"İkinci çekirdek item.",k:"core"});
-  const s1=sit[0], s2=sit[1];
-  if(s1&&s1.sc>=20){path.push({n:s1.n,why:`${[...new Set(s1.from)].join(" + ")}: ${[...new Set(s1.why)].join("; ")}.`,k:"sit"});path.push({n:core[2],why:"Üçüncü çekirdek item.",k:"core"})}
-  else{path.push({n:core[2],why:"Üçüncü çekirdek item.",k:"core"}); if(s1)path.push({n:s1.n,why:`${[...new Set(s1.from)].join(" + ")}: ${[...new Set(s1.why)].join("; ")}.`,k:"sit"})}
-  if(s2) path.push({n:s2.n,why:`${[...new Set(s2.from)].join(" + ")}: ${[...new Set(s2.why)].join("; ")}.`,k:"sit"});
-  for(const l of a.late){ if(path.length>=(a.start?7:6))break; if(!path.some(x=>x.n===l)) path.push({n:l,why:"Geç oyun tamamlayıcısı.",k:"core"}); }
-  const tot=p.ad+p.ap||1, adP=Math.round(p.ad/tot*100);
-  out.innerHTML=`<div class="grid2">
-    <div class="card"><h2>Bu maç için item sıran <small>${esc(iMe.disp)} · ${esc(a.lbl)}</small></h2>
-      <div class="path">${path.map((s,i)=>{const it=IT[s.n];return `<div class="pstep${s.k==="sit"?" sit":""}"><span class="no">${i+1}</span><span style="min-width:0"><button type="button" class="itm" data-item="${esc(s.n)}" style="padding:0;border:0;background:none;font-weight:600;font-size:15px">${esc(iname(s.n))}</button>${s.k==="sit"?' <span class="badge">BU MAÇA ÖZEL</span>':""}<br><span class="why">${esc(s.why)}</span></span><span class="cost">${it&&it.cost?it.cost+" altın":""}</span></div>`}).join("")}</div>
-      <p class="muted small" style="margin:12px 0 0">Turkuaz kutular rakip takım yüzünden eklendi. Itemın adına dokununca özelliklerini görürsün. Ana rün: <b>${esc(a.rune)}</b> · Büyüler: <b>${esc(SPELLS[iMe.main])}</b></p>
-    </div>
-    <div class="card"><h2>Rakip takım neyle tehdit ediyor <small>${en.length}/5 şampiyon</small></h2>
-      ${en.length?`<div class="dmgbar" role="img" aria-label="Fiziksel %${adP}, büyü %${100-adP}"><i style="width:${adP}%;background:var(--ad)"></i><i style="width:${100-adP}%;background:var(--ap)"></i></div>
-      <div class="legend"><span style="color:var(--ad)">Fiziksel %${adP}</span><span style="color:var(--ap)">Büyü %${100-adP}</span></div>
-      <div class="list" style="margin-top:14px">${p.threats.map(t=>`<div class="threat"><span class="lv" data-s="${t.s}">${t.s===2?"YÜKSEK":"ORTA"}</span><span><b>${THREAT[t.k][0]}</b><span>${t.who.length?`${t.who.length} ${THREAT[t.k][1]}: ${esc(t.who.map(c=>c.disp).join(", "))}`:(t.k==="ap"?"Büyü direnci (BD) değerli.":"Zırh değerli.")}</span></span></div>`).join("")||'<div class="empty">Belirgin bir tehdit yok; çekirdek build yeterli.</div>'}</div>`
-      :'<div class="empty">Rakip takımdan en az bir şampiyon seç.</div>'}
-    </div></div>`;
-}
-document.getElementById("v-item").addEventListener("click",e=>{
-  const s=e.target.closest("[data-slot]"); if(!s) return;
-  const k=s.dataset.slot;
-  if(k==="me") openPicker("Senin şampiyonun",c=>{iMe=c;renderItem()});
-  else openPicker(EN_PH[+k],c=>{iEn[+k]=c;renderItem()},EN_R[+k]);
-});
-$("#i-sample").addEventListener("click",()=>{iMe=CH[key("Jinx")];iEn=["Darius","Lee Sin","Syndra","Kai'Sa","Leona"].map(n=>CH[key(n)]);renderItem()});
-$("#i-clear").addEventListener("click",()=>{iMe=null;iEn=[null,null,null,null,null];renderItem()});
-
-/* ===== ŞAMPİYONLAR ===== */
-let cRole="all";
-$("#c-roles").innerHTML=[["all","Tümü"],...Object.entries(ROLE)].map(([k,v])=>`<button type="button" data-r="${k}" aria-pressed="${k==="all"}">${v}</button>`).join("");
-$("#c-roles").addEventListener("click",e=>{const b=e.target.closest("[data-r]");if(!b)return;cRole=b.dataset.r;[...$("#c-roles").children].forEach(x=>x.setAttribute("aria-pressed",x===b));renderGrid()});
-$("#c-q").addEventListener("input",renderGrid);
-function renderGrid(){
-  const q=key($("#c-q").value);
-  const rows=LIST.filter(c=>(cRole==="all"||c.roles.includes(cRole))&&(!q||key(c.disp).includes(q)));
-  $("#c-grid").innerHTML=rows.map(c=>`<button class="ccard" type="button" ${champBtnAttrs(c)}>${por(c)}<span class="nm">${esc(c.disp)}</span><span class="bt">${tierB(c)}<small>${pct(c.wr)}</small></span></button>`).join("")||'<div class="empty">Bulunamadı.</div>';
-}
-
-/* ===== PROFİL ===== */
-let pRole=null, pSlug=null;
-function renderProfile(slug){
-  const c=BYSLUG[slug]; const v=$("#v-profil");
-  if(slug!==pSlug){pSlug=slug;pRole=null;}
-  if(!c){v.innerHTML='<div class="empty">Şampiyon bulunamadı. <a href="#sampiyonlar">Listeye dön</a>.</div>';return}
-  const pr=c.prof||{};
-  const br=boardRoles(c); if(!br.includes(pRole)) pRole=br.includes(c.main)?c.main:br[0];
-  const board=pRole?(MU[pRole][c.slug]||[]).map(([s,e])=>({o:BYSLUG[s],e})).filter(x=>x.o):[];
-  const strong=board.filter(x=>x.e<0).sort((a,b)=>a.e-b.e);
-  const weak=board.filter(x=>x.e>0).sort((a,b)=>b.e-a.e);
-  const slotName={"PASİF":"Pasif","1":"1. yetenek","2":"2. yetenek","3":"3. yetenek","ULTİ":"Ulti"};
-  v.innerHTML=`
-  <div class="row"><a href="#sampiyonlar" class="small">← Tüm şampiyonlar</a></div>
-  <div class="card prof-head">
-    ${por(c,"lg")}
-    <div style="min-width:0">
-      <h1>${esc(c.disp)}</h1>${pr.t?`<div class="title">${esc(pr.t)}</div>`:""}
-      <div class="prof-meta">${c.roles.map(roleB).join("")}${(pr.cls||[]).map(x=>`<span class="chip">${esc(CLS_TR[x]||x)}</span>`).join("")}<span class="chip ${c.dmg.toLowerCase()}">${DMG[c.dmg]}</span>${pr.d?`<span class="chip">Zorluk: ${esc(pr.dn)}<span class="diff">${[1,2,3].map(i=>`<i class="${i<=pr.d?"on":""}"></i>`).join("")}</span></span>`:""}</div>
-      <div class="kpis">
-        <div class="kpi"><b>${tierB(c)}</b><span>Kademe</span></div>
-        <div class="kpi"><b>${pct(c.wr)}</b><span>Kazanma oranı</span></div>
-        <div class="kpi"><b>${pct(c.pr)}</b><span>Seçilme oranı</span></div>
-        <div class="kpi"><b>${pct(c.br)}</b><span>Yasaklanma oranı</span></div>
-      </div>
-      ${c.wr==null?'<p class="muted small" style="margin:8px 0 0">Bu şampiyon için bu yamada yeterli dereceli verisi yok.</p>':""}
-    </div>
-  </div>
-  <div class="grid2">
-    <div class="card"><h2>Yetenekler</h2><div class="abil">${(pr.ab||[]).map(a=>`<div class="ab">${a[3]?`<img src="${a[3]}" alt="">`:'<span></span>'}<div><div class="k">${esc(slotName[a[1]]||a[1])}</div><div class="n">${esc(a[0])}</div><p>${esc(a[2])}</p></div></div>`).join("")||'<div class="empty">Yetenek bilgisi yok.</div>'}</div></div>
-    <div style="display:grid;gap:20px;align-content:start">
-      <div class="card"><h2>Önerilen build <small>${esc(ARCH[c.arch].lbl)}</small></h2>${buildHTML(c)}</div>
-      <div class="card"><h2>Nasıl oynanır</h2><p style="margin:0">${esc(c.tip)}</p></div>
-      <div class="card"><h2>Karşısına çıkarsa nasıl yenilir</h2>${howToBeat(c)}</div>
-    </div>
-  </div>
-  ${br.length?`<div class="row"><b>Eşleşmeler:</b><div class="seg" id="pf-roles">${br.map(r=>`<button type="button" data-r="${r}" aria-pressed="${r===pRole}">${ROLE_LONG[r]}</button>`).join("")}</div></div>`:'<div class="empty">Bu şampiyon için eşleşme verisi yok.</div>'}
-  <div class="grid2">
-    <div class="card"><h2>Rahat ettiği rakipler <small>${strong.length}</small></h2><div class="list">${strong.map(x=>pickRow(x.o,x.e,`${esc(c.disp)} bu rakibe karşı üstün`,pRole)).join("")||'<div class="empty">Kayıt yok.</div>'}</div></div>
-    <div class="card"><h2>Zorlandığı rakipler <small>${weak.length}</small></h2><div class="list">${weak.map(x=>pickRow(x.o,x.e,`Bu rakip ${esc(c.disp)} karşısında üstün`,pRole)).join("")||'<div class="empty">Kayıt yok.</div>'}</div></div>
-  </div>
-  <p class="muted small" style="margin:0">Etiketler listedeki şampiyonun gözünden: "Sert kontra +2", o şampiyonun ${esc(c.disp)} karşısında çok avantajlı olduğu anlamına gelir. Kaynak: WildRiftCore 7.3f eşleşme tahtası.</p>
-  <div class="row"><button class="btn gold" type="button" id="pf-k">Buna kontra bul</button><button class="btn" type="button" id="pf-i">Bu şampiyonla item rehberi</button></div>`;
-  $("#pf-k").onclick=()=>{kEnemy=c;kRole="auto";location.hash="kontra"};
-  $("#pf-i").onclick=()=>{iMe=c;location.hash="item"};
-  const pr2=$("#pf-roles"); if(pr2) pr2.onclick=e=>{const b=e.target.closest("[data-r]");if(!b)return;pRole=b.dataset.r;const y=window.scrollY;renderProfile(slug);window.scrollTo(0,y)};
-  document.title = `${c.disp} · Rift Kontra`;
-}
-
-/* ===== KADEME ===== */
-let tRole="top";
-$("#t-roles").innerHTML=Object.entries(ROLE).map(([k,v])=>`<button type="button" data-r="${k}" aria-pressed="${k===tRole}">${v}</button>`).join("");
-$("#t-roles").addEventListener("click",e=>{const b=e.target.closest("[data-r]");if(!b)return;tRole=b.dataset.r;[...$("#t-roles").children].forEach(x=>x.setAttribute("aria-pressed",x===b));renderTier()});
-function renderTier(){
-  const rows=LIST.filter(c=>c.main===tRole&&c.wr!=null).sort((a,b)=>b.wr-a.wr);
-  $("#t-out").innerHTML=["S","A","B","C","D"].map(t=>{const g=rows.filter(c=>c.tier===t);return `<div class="tierrow"><div class="tl" data-t="${t}">${t}</div><div class="faces">${g.map(c=>`<button class="facebtn" type="button" ${champBtnAttrs(c)}>${por(c)}<span>${esc(c.disp)}</span><small>${pct(c.wr)}</small></button>`).join("")||'<span class="muted small" style="line-height:56px">Bu kademede şampiyon yok.</span>'}</div></div>`}).join("")
-   + `<p class="muted small" style="margin:12px 0 0">Bu listede şampiyonlar en çok oynandıkları koridorda gösterilir. Bard, Gragas, Nilah, Singed ve Zoe için bu yamada yeterli veri yok.</p>`;
-}
-
-/* ===== EŞYALAR ===== */
-let eCat="all";
-$("#e-cats").innerHTML=[["all","Tümü"],...Object.entries(CAT)].map(([k,v])=>`<button type="button" data-c="${k}" aria-pressed="${k==="all"}">${v}</button>`).join("");
-$("#e-cats").addEventListener("click",e=>{const b=e.target.closest("[data-c]");if(!b)return;eCat=b.dataset.c;[...$("#e-cats").children].forEach(x=>x.setAttribute("aria-pressed",x===b));renderItems()});
-$("#e-q").addEventListener("input",renderItems);
-function renderItems(){
-  const q=key($("#e-q").value);
-  const rows=ILIST.filter(i=>(eCat==="all"||i.cat===eCat)&&(!q||key(i.tr+" "+i.en+" "+i.st+" "+i.fx).includes(q)));
-  $("#e-grid").innerHTML=rows.map(i=>`<div class="icard" id="it-${key(i.en)}"><div class="top"><span class="nm">${esc(i.tr)}</span><span class="cost">${i.cost?i.cost+" altın":esc(CAT[i.cat])}</span></div><span class="en">${esc(i.en)}</span><span class="st">${esc(i.st)}</span><span class="fx">${esc(i.fx)}</span></div>`).join("")||'<div class="empty">Eşleşen item yok.</div>';
-}
-
-/* ===== YÖNLENDİRME ===== */
-const VIEWS=["ana","kontra","item","sampiyonlar","kademe","esyalar"];
-function route(){
-  const h=(location.hash||"#ana").slice(1);
-  let v=VIEWS.includes(h)?h:"ana";
-  if(h.startsWith("s-")){v="profil";renderProfile(h.slice(2))} else document.title="Rift Kontra";
-  if(v==="kontra")renderKontra(); if(v==="item")renderItem();
-  ["ana","kontra","item","sampiyonlar","profil","kademe","esyalar"].forEach(x=>$("#v-"+x).hidden=x!==v);
-  const nav = v==="profil"?"sampiyonlar":v;
-  document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.getAttribute("href")==="#"+nav)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
-  window.scrollTo(0,0);
-}
-window.addEventListener("hashchange",route);
-
-/* Başlangıç: örnek seçimler */
-kEnemy=CH[key("Darius")];
-iMe=CH[key("Jinx")]; iEn=["Darius","Lee Sin","Syndra","Kai'Sa","Leona"].map(n=>CH[key(n)]);
-renderHome(); renderGrid(); renderTier(); renderItems(); route();
-</script>
+<script src="data/meta.js"></script>
+<script src="data/curated.js"></script>
+<script src="data/items.js"></script>
+<script src="data/icons.js"></script>
+<script src="data/stats.js"></script>
+<script src="data/profiles.js"></script>
+<script src="data/matchups.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

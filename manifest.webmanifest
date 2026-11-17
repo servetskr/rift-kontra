@@ -1,0 +1,12 @@
+{
+  "name": "Rift Kontra",
+  "short_name": "Rift Kontra",
+  "description": "Wild Rift Türkçe kontra ve item rehberi",
+  "lang": "tr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0c131d",
+  "theme_color": "#0c131d",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

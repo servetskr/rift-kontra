@@ -1,0 +1,52 @@
+name: Verileri güncelle
+
+on:
+  schedule:
+    - cron: "23 */6 * * *"   # 6 saatte bir (UTC)
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Profilleri, görselleri ve eşleşmeleri zorla yenile"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: veri-guncelleme
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verileri çek
+        id: run
+        run: node scripts/update.js ${{ inputs.full && '--full' || '' }} || echo "failed=1" >> "$GITHUB_OUTPUT"
+
+      - name: Değişiklik varsa kaydet ve yayınla
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data img
+          if git diff --cached --quiet; then
+            echo "Veri değişmedi."
+          else
+            PATCH=$(node -e 'const w={};new Function("window",require("fs").readFileSync("data/meta.js","utf8"))(w);console.log(w.WR_META.patch)')
+            git commit -m "Veri güncellemesi: yama $PATCH ($(date -u +%F))"
+            git push
+          fi
+
+      - name: Hata bildirimi
+        if: steps.run.outputs.failed == '1'
+        run: |
+          echo "::error::Bazı veri adımları başarısız oldu; eski veriler korundu. Ayrıntılar 'Verileri çek' adımında."
+          exit 1
