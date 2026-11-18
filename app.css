@@ -1,0 +1,194 @@
+/* ================= Rift Kontra ürün düzeni (v3) =================
+ * Ekranlar: Düello (ana) · Şampiyonlar · Eşyalar · Yama
+ * Temel renk ve yazı belirteçleri index.html içindeki :root'tadır.
+ */
+.ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+.btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--fg)}
+.btn.gold{color:var(--gold-ink)}
+.btn.icon{width:40px;height:40px;padding:0;justify-content:center;flex:none}
+.lnk{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:6px 2px;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer}
+.lnk:hover{color:var(--fg)}
+.bar .wrap{flex-wrap:nowrap;gap:14px}
+nav.tabs{margin-left:24px;margin-right:auto}
+nav.tabs a{display:inline-flex;align-items:center;gap:7px}
+.bar .patch{margin-left:auto}
+main{padding-block:22px 48px}
+.view{gap:20px}
+.page-head h1{font-size:clamp(24px,3.4vw,32px)}
+.toolbar input[type=search]{flex:1 1 220px}
+.toolbar.sticky{position:sticky;top:61px;z-index:5;background:var(--bg);padding-block:10px;margin-block:-10px}
+.seg.sm button{padding:5px 10px;font-size:13px}
+.back{font-size:14px;text-decoration:none;font-weight:600;justify-self:start}
+.h3{font-size:15px;margin:16px 0 8px}
+.th{display:flex;align-items:center;gap:10px;font-size:18px;margin:0 0 12px}
+.th small{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500}
+.th .chg{position:static;box-shadow:none}
+.tier.big{min-width:36px;height:32px;font-size:18px;border-radius:8px}
+
+/* ---- Düello alanı ---- */
+.arena{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:14px;align-items:stretch}
+.fighter{position:relative;display:grid;gap:14px;align-content:start;padding:16px;border-radius:16px;background:var(--surface);border:1px solid var(--line);overflow:hidden}
+.fighter::before{content:"";position:absolute;inset:0 0 auto;height:3px}
+.fighter.me::before{background:var(--teal)}
+.fighter.en::before{background:var(--bad)}
+.f-top{display:flex;gap:14px;align-items:center}
+.fighter.en .f-top{flex-direction:row-reverse;text-align:right}
+.f-pick{position:relative;border:0;background:none;padding:0;cursor:pointer;flex:none}
+.por.xl{width:84px;height:84px;border-radius:14px}
+.f-pick:hover .por{border-color:var(--gold)}
+.f-swap{position:absolute;right:-6px;bottom:-6px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--fg);color:var(--bg)}
+.f-swap .ic{width:14px;height:14px}
+.fighter.en .f-swap{right:auto;left:-6px}
+.f-id{display:grid;gap:2px;min-width:0}
+.f-side{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.me .f-side{color:var(--teal)}
+.en .f-side{color:var(--bad)}
+.f-name{font-family:var(--f-display);font-size:24px;line-height:1.1}
+.f-sub{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.fighter.en .f-sub{justify-content:flex-end}
+.f-items{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.slot-i{position:relative;aspect-ratio:1;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);padding:0;cursor:pointer;display:grid;place-items:center;overflow:hidden;color:var(--muted)}
+.slot-i img{width:100%;height:100%;display:block}
+.slot-i.empty{border-style:dashed}
+.slot-i:hover{border-color:var(--gold)}
+.slot-i .chg{width:14px;height:14px;font-size:8px;right:1px;bottom:1px}
+.f-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin:0}
+.f-stats div{background:var(--surface-2);border-radius:8px;padding:6px 4px;text-align:center}
+.f-stats dt{font-size:11px;color:var(--muted)}
+.f-stats dd{margin:0;font-family:var(--f-mono);font-size:14px;font-variant-numeric:tabular-nums}
+.f-acts{display:flex;gap:14px}
+.fighter.en .f-acts{justify-content:flex-end}
+.vs-col{display:grid;gap:12px;justify-items:center;align-content:center}
+.vs{font-family:var(--f-display);font-weight:700;font-size:28px;color:var(--gold);letter-spacing:.06em}
+.lvl{display:grid;grid-template-columns:36px auto 36px;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
+.lvl button{width:36px;height:36px;border-radius:8px;border:0;background:var(--surface-2);cursor:pointer;font-size:18px}
+.lvl span{display:grid;text-align:center;min-width:48px}
+.lvl small{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.lvl b{font-family:var(--f-mono);font-size:20px;line-height:1}
+
+/* ---- Sonuç ---- */
+.result{display:grid;gap:14px}
+.tug{display:flex;height:34px;border-radius:10px;overflow:hidden;background:var(--bad-soft);font-family:var(--f-mono);font-size:14px}
+.tug-me{display:flex;align-items:center;padding-left:12px;background:var(--teal);color:var(--bg);transition:width .5s cubic-bezier(.2,.8,.2,1);min-width:52px}
+.tug-en{flex:1;display:flex;align-items:center;justify-content:flex-end;padding-right:12px;color:var(--bad);min-width:52px}
+@media (prefers-reduced-motion:reduce){.tug-me{transition:none}}
+.verdict{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.vh{font-family:var(--f-display);font-size:26px;font-weight:700}
+.verdict.good .vh{color:var(--teal)}
+.verdict.bad .vh{color:var(--bad)}
+.verdict.even .vh{color:var(--even)}
+.vtag{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--fg)}
+.vtag small{color:var(--muted)}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.mt{display:grid;gap:2px;padding:10px 12px;border-radius:10px;background:var(--surface-2)}
+.mt .ml{font-size:12px;color:var(--muted)}
+.mt b{font-family:var(--f-mono);font-size:20px;font-variant-numeric:tabular-nums}
+.dl{font-family:var(--f-mono);font-size:12px;font-weight:600}
+.good{color:var(--good)}
+.bad{color:var(--bad)}
+.dlog{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:14px}
+.dlog li.old{color:var(--muted);font-size:13px}
+.who{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:5px;margin-right:4px}
+.who.me{background:var(--teal-soft);color:var(--teal)}
+.who.en{background:var(--bad-soft);color:var(--bad)}
+.fight{justify-self:start}
+.arena-bars{display:grid;gap:8px}
+.arena-bars>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;align-items:center;font-size:13px}
+.arena-bars i{display:block;height:12px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.arena-bars i b{display:block;height:100%;width:100%;background:var(--teal)}
+.arena-bars i b.en{background:var(--bad)}
+.ko{margin:2px 0 0;font-size:15px;min-height:1.5em}
+.rec-row,.ctr-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.rec,.ctr{display:grid;justify-items:center;gap:4px;padding:10px 6px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;text-align:center}
+.rec:hover,.ctr:hover{border-color:var(--gold)}
+.rec img{width:48px;height:48px;border-radius:10px}
+.rec .nm,.ctr .nm{font-size:12px;line-height:1.2}
+.gain{font-family:var(--f-mono);font-size:12px;font-weight:600;color:var(--muted)}
+.gain.good{color:var(--good)}
+.gain.bad{color:var(--bad)}
+.ctr .por{width:52px;height:52px}
+.card h2 .ic{color:var(--gold);align-self:center}
+.pstrip{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);text-decoration:none;color:var(--fg);flex-wrap:wrap}
+.pstrip:hover{border-color:var(--gold)}
+.pstrip .faces{display:flex;gap:4px}
+.pstrip .go{margin-left:auto;color:var(--teal);font-weight:600}
+.ip .ipgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px;max-height:60vh;overflow:auto;padding:2px}
+.ipb{position:relative;display:grid;justify-items:center;gap:3px;padding:8px 4px;border-radius:10px;border:1px solid transparent;background:var(--surface-2);cursor:pointer;text-align:center}
+.ipb:hover{border-color:var(--gold)}
+.ipb.on{border-color:var(--teal)}
+.ipb .ib{position:relative;width:44px;height:44px;border-radius:9px;overflow:hidden}
+.ipb .ib img{width:100%;height:100%;display:block}
+.ipb .ib .chg{width:13px;height:13px;font-size:8px}
+.ipb .nm{font-size:11px;line-height:1.2;max-height:2.4em;overflow:hidden}
+
+/* ---- Şampiyonlar ---- */
+.tsec{margin-bottom:18px}
+.cgrid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.ccard{gap:4px;padding:6px;text-align:center;justify-items:center}
+.ccard .por{width:100%;aspect-ratio:1;height:auto}
+.ccard .nm{font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ccard .wr{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+
+/* ---- Profil ---- */
+.prof-head{grid-template-columns:auto minmax(0,1fr) auto auto;gap:18px;padding:16px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.ph-kpi{display:flex;gap:16px;align-items:center}
+.ph-kpi div{display:grid}
+.ph-kpi b{font-family:var(--f-mono);font-size:18px}
+.ph-kpi span{font-size:12px;color:var(--muted)}
+.prof-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+@media (max-width:860px){.prof-head{grid-template-columns:auto minmax(0,1fr)}.ph-kpi,.ph-cta{grid-column:1/-1}}
+.chstrip{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer}
+.chstrip .chg{position:static;box-shadow:none;width:22px;height:22px}
+.chstrip[data-v="buff"]{border-color:color-mix(in srgb,var(--good) 50%,var(--line))}
+.chstrip[data-v="nerf"]{border-color:color-mix(in srgb,var(--bad) 50%,var(--line))}
+.chstrip .go{margin-left:auto;color:var(--teal);font-weight:600;white-space:nowrap}
+.ptabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.ptabs button{border:0;background:none;padding:10px 14px;cursor:pointer;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;flex:none}
+.ptabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--gold)}
+.pick{grid-template-columns:auto minmax(0,1fr) auto auto}
+.good-h{color:var(--good)}
+.bad-h{color:var(--bad)}
+
+/* ---- Eşyalar ---- */
+.jump{display:flex;gap:6px;flex-wrap:wrap}
+.jump a{font-size:13px;font-weight:600;text-decoration:none;color:var(--muted);padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface-2)}
+.jump a:hover{color:var(--fg)}
+.isec{margin-bottom:22px;scroll-margin-top:130px}
+.igrid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:12px 8px}
+.igrid2 .itile{width:auto}
+.stl{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-family:var(--f-mono);font-size:14px;color:var(--teal)}
+.chbox{display:grid;gap:8px;padding:12px;border-radius:10px;background:var(--surface-2)}
+.psec{margin-bottom:22px}
+
+/* ---- Telefon: alt sekme çubuğu ---- */
+.bnav{display:none}
+@media (max-width:760px){
+  nav.tabs{display:none}
+  .bnav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .bnav a{display:grid;justify-items:center;gap:2px;padding:8px 0 7px;font-size:11px;font-weight:600;text-decoration:none;color:var(--muted)}
+  .bnav a .ic{width:22px;height:22px}
+  .bnav a[aria-current="page"]{color:var(--gold)}
+  body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+  .toolbar.sticky{top:57px}
+  .arena{grid-template-columns:minmax(0,1fr)}
+  .vs-col{grid-template-columns:auto auto auto;justify-content:center;align-items:center}
+  .fighter.en .f-top{flex-direction:row;text-align:left}
+  .fighter.en .f-sub,.fighter.en .f-acts{justify-content:flex-start}
+  .fighter.en .f-swap{left:auto;right:-6px}
+  .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .f-stats dt{font-size:10px}
+  .bar .patch{display:none}
+}
+.por{display:inline-block;vertical-align:middle}
+.f-pick{display:block;line-height:0}
+@media (max-width:760px){
+  .fighter{padding:12px;gap:10px}
+  .por.xl{width:60px;height:60px;border-radius:12px}
+  .f-name{font-size:20px}
+  .f-stats{display:none}
+  .f-acts{gap:10px}
+  .vs-col{gap:8px}
+  .vs{font-size:22px}
+  .arena{gap:10px}
+}
+.ipb.on{opacity:.55;cursor:default}

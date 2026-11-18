@@ -2,11 +2,10 @@
 
 Wild Rift için Türkçe kontra ve item rehberi: **https://servetskr.github.io/rift-kontra/**
 
-- **Kontra Seç:** Rakip şampiyona karşı koridor koridor avantajlı seçimler (paylaşılabilir link: `#kontra-darius`)
-- **Item Rehberi:** Rakip takıma göre sıralı item yolu
-- **Şampiyonlar:** Tüm şampiyonların Türkçe profili, yetenekleri, koridor bazında istatistikleri
-- **Kademe Listesi:** Koridor koridor S'den D'ye güç sıralaması
-- **Eşyalar:** Oyundaki Türkçe adları ve simgeleriyle itemlar
+- **Düello (ana ekran):** İki şampiyon, seviye ve itemlar seç; güç dengesi, indirme süreleri, hasar geçişi ve etkili can anında hesaplanır. Bir itemı değiştirince farkı gösterir, en etkili itemları ve en iyi kontraları önerir.
+- **Şampiyonlar:** Kademe (S→D, koridora göre) ya da A–Z; profilde Build · Yetenekler · Eşleşmeler · Oynanış sekmeleri
+- **Eşyalar:** Kategoriye göre Wild Rift simgeleri, dokununca sayılar ve etki
+- **Yama:** Güçlenen / zayıflayan / dengelenen şampiyon ve itemlar, yetenek bazında eski → yeni değerler
 - Telefona "Ana ekrana ekle" ile uygulama gibi kurulur, çevrimdışı da açılır.
 
 ## Otomatik güncelleme
@@ -22,6 +21,7 @@ Wild Rift için Türkçe kontra ve item rehberi: **https://servetskr.github.io/r
 | Şampiyon buildleri (koridor başına 3 varyant, bot, rün, durumsal eşyalar) | Eşleşmelerle birlikte | wildriftcore.com (CN sunucu verisi) |
 | Wild Rift oyun içi simgeleri (şampiyon, eşya, rün) | Eksik/değişmiş olanlar | wildriftcore.com |
 | Yamada değişen şampiyon ve eşyalar: hangi yetenek, eski → yeni değer, güçlendirme / zayıflatma / dengeleme işareti | Her çalışmada | Resmi Türkçe yama notları (`scripts/notes.js`) |
+| Wild Rift taban değerleri ve item sayıları (düello için) | Günde bir veya yeni yamada | LoL Wiki, CC BY-SA 4.0 |
 | Eşya simgesi yedeği | Wild Rift simgesi bulunamayanlar | Riot Data Dragon |
 
 Her adımın sağlamlık kontrolü var (eksik/yarım veri, ani düşüş, tutarsız eşleşmeler). Kontrolü geçemeyen veri yazılmaz, eski veri korunur ve iş akışı hata verir (GitHub e-posta ile bildirir). Yeni çıkan şampiyonlar otomatik eklenir; elle yazılmış ipucu gelene kadar resmi sınıfına göre tahmini build gösterilir.

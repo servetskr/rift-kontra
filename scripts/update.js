@@ -24,11 +24,11 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const problems = [];
 
 /* ---------- yardımcılar ---------- */
-async function get(url, { binary = false, tries = 4, okMissing = false } = {}) {
+async function get(url, { binary = false, tries = 4, okMissing = false, ua = UA } = {}) {
   let wait = 3000;
   for (let t = 1; t <= tries; t++) {
     try {
-      const r = await fetch(url, { headers: { "User-Agent": UA, "Accept-Language": "tr,en;q=0.8" } });
+      const r = await fetch(url, { headers: { "User-Agent": ua, "Accept-Language": "tr,en;q=0.8" } });
       if (r.status === 404 && okMissing) return null;
       if (r.status === 429 || r.status >= 500) throw new Error("HTTP " + r.status);
       if (!r.ok) throw new Error("HTTP " + r.status);
@@ -277,6 +277,42 @@ async function updateItemIcons(itemEn, prev) {
   return icons;
 }
 
+/* ---------- 6. Wild Rift taban değerleri ve eşya sayıları (LoL Wiki, CC BY-SA) ---------- */
+const { parseLua } = require("./lua.js");
+async function wikiModule(title) {
+  const j = JSON.parse(await get(`https://wiki.leagueoflegends.com/en-us/api.php?action=query&prop=revisions&rvprop=content&rvslots=main&format=json&titles=${encodeURIComponent(title)}`, { ua: "RiftKontraUpdater/1.0 (+https://github.com/servetskr/rift-kontra)" }));
+  const p = Object.values(j.query.pages)[0];
+  if (!p.revisions) throw new Error("wiki: " + title + " bulunamadı");
+  return parseLua(p.revisions[0].slots.main["*"]);
+}
+const WIKI_MENU = { physical: "fiz", magical: "buy", defense: "sav", support: "des" };
+async function updateWiki(slugMap) {
+  const C = await wikiModule("Module:ChampionDataWR/data");
+  const I = await wikiModule("Module:WRItemData/data");
+  const champ = {};
+  for (const name in C) {
+    const st = C[name].stats; const slug = slugMap[canon(name)]; if (!st || !slug) continue;
+    champ[slug] = {
+      hp: st.hp_base, hpL: st.hp_lvl, ar: st.arm_base, arL: st.arm_lvl, mr: st.mr_base, mrL: st.mr_lvl,
+      ad: st.dam_base, adL: st.dam_lvl, as: st.as_base, asR: st.as_ratio || st.as_base, asL: st.as_lvl || 0,
+      rng: st.range, ms: st.ms, t: C[name].adaptivetype === "Magic" ? "M" : "P",
+      dmg: C[name].damage || 2, cls: (C[name].herotype || [])[0] || "",
+    };
+  }
+  const item = {};
+  for (const name in I) {
+    const it = I[name]; if (!it || typeof it !== "object" || !it.stats) continue;
+    const m = Object.keys(it.menu || {}).filter(k => it.menu[k] === true).map(k => WIKI_MENU[k]).filter(Boolean);
+    const boot = Array.isArray(it.type) && it.type.includes("Boots");
+    item[kebab(name)] = { n: name, s: it.stats, m: boot ? ["bot"] : m, t: it.tier || 0, c: it.buy || 0 };
+  }
+  const nc = Object.keys(champ).length, ni = Object.keys(item).length;
+  if (nc < 120 || ni < 120) throw new Error(`Wiki verisi eksik (${nc} şampiyon, ${ni} eşya)`);
+  if (!champ.yasuo || !(champ.yasuo.hp > 400)) throw new Error("Wiki verisi bozuk görünüyor (Yasuo)");
+  log("wiki:", nc, "şampiyon taban değeri,", ni, "eşya");
+  return { champ, item };
+}
+
 /* ---------- ana akış ---------- */
 (async () => {
   fs.mkdirSync(DATA, { recursive: true });
@@ -329,6 +365,13 @@ async function updateItemIcons(itemEn, prev) {
       if (e instanceof Blocked) log("ATLANDI:", e.message, "— eşleşmeler yerel çalıştırmayla güncellenir (scripts/yerel-guncelle.cmd)");
       else { failed = true; problems.push(e.message); }
     }
+  }
+
+  // 3b. taban değerler + eşya sayıları: günde bir ya da yeni yamada
+  const wikiAge = prevMeta.wikiAt ? (now - new Date(prevMeta.wikiAt)) / 36e5 : 99;
+  if (patchChanged || wikiAge > 20 || args.has("--full") || !fs.existsSync(path.join(DATA, "wr.js"))) {
+    try { writeGlobal("wr.js", "WR_DATA", await updateWiki(slugMap), "Wild Rift taban değerleri ve eşya sayıları, kaynak: wiki.leagueoflegends.com (CC BY-SA 4.0)"); prevMeta.wikiAt = now.toISOString(); }
+    catch (e) { problems.push("wiki: " + e.message); }
   }
 
   // 4. yama notları

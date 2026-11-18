@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Rift Kontra · Wild Rift Türkçe kontra ve item rehberi</title>
+<title>Rift Kontra · Wild Rift düello ve kontra</title>
 <meta name="description" content="Wild Rift için Türkçe kontra seçici, rakibe göre item rehberi, şampiyon profilleri ve kademe listesi. Her yamada otomatik güncellenir.">
 <meta property="og:title" content="Rift Kontra">
 <meta property="og:description" content="Wild Rift Türkçe kontra ve item rehberi. Her yamada otomatik güncellenir.">
@@ -326,117 +326,74 @@ footer p{margin:0 0 6px;max-width:90ch}
 .ico-md{width:36px;height:36px;border-radius:6px;flex:none}
 .ico-lg{width:48px;height:48px;border-radius:8px;flex:none}
 </style>
+<link rel="stylesheet" href="app.css">
 </head>
 <body>
 
 <header class="bar"><div class="wrap">
-  <a class="brand" href="#ana" aria-label="Ana sayfa">
+  <a class="brand" href="#ana" aria-label="Rift Kontra ana sayfa">
     <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><path d="M14 2 25 8v12L14 26 3 20V8z" fill="none" stroke="var(--gold)" stroke-width="2"/><path d="M9 18l5-9 5 9" fill="none" stroke="var(--teal)" stroke-width="2.2" stroke-linejoin="round"/></svg>
     <b>Rift <span>Kontra</span></b><span class="wr">WILD RIFT</span>
   </a>
-  <span class="patch">Yama 7.3f</span>
-  <nav class="tabs" aria-label="Bölümler">
-    <a href="#ana">Ana Sayfa</a>
-    <a href="#kontra">Kontra Seç</a>
-    <a href="#item">Item Rehberi</a>
-    <a href="#sampiyonlar">Şampiyonlar</a>
-    <a href="#kademe">Kademe Listesi</a>
-    <a href="#esyalar">Eşyalar</a>
-  </nav>
+  <nav class="tabs" aria-label="Bölümler"><a href="#ana"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3 15 13M3 5l2-2M13 15l-2 2 6 6 2-2zM19 3 9 13M21 5l-2-2M11 15l2 2-6 6-2-2z"/></svg>Düello</a><a href="#sampiyonlar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c.5-3.5 3-5.5 6-5.5s5.5 2 6 5.5"/><path d="M16 5a3 3 0 0 1 0 6M18 14.5c1.8.7 3 2.6 3 5"/></svg>Şampiyonlar</a><a href="#esyalar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>Eşyalar</a><a href="#yama"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h11v13a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-1h11v1a3 3 0 0 0 3 3"/><path d="M7 4a2 2 0 0 0-2 2v10M10 8h5M10 12h5"/></svg>Yama</a></nav>
+  <span class="patch">Yama</span>
+  <button class="btn icon" type="button" id="hSearch" aria-label="Şampiyon ara"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg></button>
 </div></header>
 
 <main class="wrap">
 
-<!-- ANA SAYFA -->
+<!-- DÜELLO: tek amaç — iki şampiyonu ve itemlarını karşılaştır, değişiklikleri anında gör -->
 <section class="view" id="v-ana">
-  <div class="hero">
-    <div>
-      <div class="eyebrow">Wild Rift · Yama <span class="js-patch">7.3f</span></div>
-      <h1>Rakibini gör, <em>doğru şampiyonu</em> ve <em>doğru itemi</em> seç.</h1>
-      <div class="row" style="margin-top:16px"><button class="btn gold" type="button" id="homeSearch">Şampiyon ara</button><span class="muted small" id="freshness"></span></div>
+  <div class="arena">
+    <div class="fighter me" id="f-me"></div>
+    <div class="vs-col">
+      <span class="vs">VS</span>
+      <div class="lvl" aria-label="Seviye"><button type="button" data-lvl="-1" aria-label="Seviye azalt">−</button><span><small>Seviye</small><b id="d-lvl">11</b></span><button type="button" data-lvl="1" aria-label="Seviye artır">+</button></div>
+      <button type="button" class="btn icon" id="d-swap" aria-label="Tarafları değiştir" title="Tarafları değiştir"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg></button>
     </div>
-    <div class="hero-faces" id="heroFaces"></div>
+    <div class="fighter en" id="f-en"></div>
   </div>
-  <div class="quick">
-    <a href="#kontra"><span class="qi">⚔️</span><b>Kontra Seç</b></a>
-    <a href="#item"><span class="qi">🛒</span><b>Item Rehberi</b></a>
-    <a href="#sampiyonlar"><span class="qi">👤</span><b>Şampiyonlar</b></a>
-    <a href="#kademe"><span class="qi">🏆</span><b>Kademe Listesi</b></a>
+  <div class="card result" id="d-result" aria-live="polite"></div>
+  <div class="grid2">
+    <div class="card" id="d-recs"></div>
+    <div class="card" id="d-counters"></div>
   </div>
-  <div class="card"><h2>Yama <span class="js-patch">7.3f</span>'de neler değişti</h2><div id="patchNotes"></div></div>
-  <div class="card"><h2>Bu yamanın güçlüleri</h2><div class="rolebest" id="roleBest"></div></div>
-  <details class="card gl"><summary><h2 style="display:inline">Sitede geçen terimler</h2></summary>
-    <dl class="gloss">
-      <dt>Kontra</dt><dd>Bir şampiyona karşı koridorda avantajlı olan şampiyon.</dd>
-      <dt>KO / SO / YO</dt><dd>Kazanma oranı, seçilme oranı, yasaklanma oranı. Çin sunucusu Challenger ve üstü dereceli maçlar.</dd>
-      <dt>Kademe</dt><dd>Okul notu gibi: S çok güçlü, A güçlü, B dengeli, C biraz zayıf, D zayıf. Kazanma oranından hesaplanır.</dd>
-      <dt>Eşleşme puanı</dt><dd>+3 ile −3 arası. +2 "sert kontra" demek: o şampiyon rakibine karşı koridorda çok avantajlı.</dd>
-      <dt>Kitle kontrolü</dt><dd>Sersemletme, havaya kaldırma, kök salma, yavaşlatma gibi rakibi kontrol eden etkiler.</dd>
-      <dt>Ağır yara</dt><dd>Rakibin iyileşmesini azaltan etki. Fani Hatıratı, Morellonomikon, Zaun Zincirkılıcı, Çivili Zırh verir.</dd>
-      <dt>Dürtme</dt><dd>Uzaktan, risksiz hasar vererek rakibin canını eritmek.</dd>
-      <dt>Çekirdek item</dt><dd>Şampiyonun neredeyse her maçta aldığı ilk üç ana item.</dd>
-      <dt>Durumsal item</dt><dd>Rakip takıma göre çekirdeğin arasına eklediğin item.</dd>
-    </dl>
-  </details>
+  <div id="d-patch"></div>
 </section>
 
-<!-- KONTRA -->
-<section class="view" id="v-kontra" hidden>
-  <div class="page-head"><div class="eyebrow">Şampiyon seçiminde</div><h1>Kontra Seç</h1><p>Rakibi seç, ona karşı avantajlı şampiyonları gör.</p></div>
-  <div class="card steps">
-    <div class="step"><span class="step-n">1</span><div><div class="step-t">Rakip şampiyonu seç</div><div id="k-slot"></div></div></div>
-    <div class="step"><span class="step-n">2</span><div><div class="step-t">Hangi koridorda oynayacaksın?</div><div class="seg" id="k-roles"></div></div></div>
-  </div>
-  <div id="k-out"></div>
-</section>
-
-<!-- ITEM -->
-<section class="view" id="v-item" hidden>
-  <div class="page-head"><div class="eyebrow">Maç başlayınca</div><h1>Item Rehberi</h1><p>Şampiyonunu ve rakipleri seç, maça özel item sıranı al.</p></div>
-  <div class="card steps">
-    <div class="step"><span class="step-n">1</span><div><div class="step-t">Senin şampiyonun</div><div id="i-me" style="max-width:320px"></div></div></div>
-    <div class="step"><span class="step-n">2</span><div><div class="step-t">Rakip takım <span class="muted small">(bildiğin kadarını seç)</span></div><div class="slots5" id="i-enemies"></div></div></div>
-    <div class="row" style="padding-left:46px"><button class="btn" id="i-sample" type="button">Örnek maçı yükle</button><button class="btn" id="i-clear" type="button">Temizle</button></div>
-  </div>
-  <div id="i-out"></div>
-</section>
-
-<!-- ŞAMPİYONLAR -->
+<!-- ŞAMPİYONLAR: bul ve karşılaştır; "Kademe" sıralaması kademe listesidir -->
 <section class="view" id="v-sampiyonlar" hidden>
-  <div class="page-head"><div class="eyebrow">Öğrenmek için</div><h1>Şampiyonlar</h1></div>
-  <div class="toolbar"><div class="seg" id="c-roles"></div><div class="seg" id="c-sort" aria-label="Sıralama"><button type="button" data-s="az" aria-pressed="true">A–Z</button><button type="button" data-s="tier" aria-pressed="false">Kademe S→D</button></div><input id="c-q" type="search" placeholder="Şampiyon ara" aria-label="Şampiyon ara"></div>
-  <div class="cgrid" id="c-grid"></div>
+  <div class="page-head"><h1>Şampiyonlar</h1></div>
+  <div class="toolbar sticky">
+    <input id="c-q" type="search" placeholder="Şampiyon ara" aria-label="Şampiyon ara">
+    <div class="seg" id="c-roles"></div>
+    <div class="seg" id="c-sort" aria-label="Sıralama"><button type="button" data-s="tier">Kademe S→D</button><button type="button" data-s="az">A–Z</button></div>
+  </div>
+  <div id="c-grid"></div>
 </section>
 
-<!-- PROFİL -->
 <section class="view" id="v-profil" hidden></section>
 
-<!-- KADEME -->
-<section class="view" id="v-kademe" hidden>
-  <div class="page-head"><div class="eyebrow">Yama <span class="js-patch">7.3f</span></div><h1>Kademe Listesi</h1><p>S en güçlü, D en zayıf. Portrenin altındaki sayı kazanma oranı.</p></div>
-  <details class="card gl"><summary>S, A, B, C, D ne demek?</summary><dl class="gloss">
-    <dt><span class="tier" data-t="S">S</span></dt><dd><b>Çok güçlü</b> · maçların %52,5'inden fazlasını kazanıyor. Bu yamanın en iyileri, sık yasaklanırlar.</dd>
-    <dt><span class="tier" data-t="A">A</span></dt><dd><b>Güçlü</b> · %51–52,5. Rahatça seçilebilir.</dd>
-    <dt><span class="tier" data-t="B">B</span></dt><dd><b>Dengeli</b> · %49,5–51. Normal; iyi oynarsan kazandırır.</dd>
-    <dt><span class="tier" data-t="C">C</span></dt><dd><b>Biraz zayıf</b> · %48–49,5. İyi bildiğin şampiyonsa sorun değil.</dd>
-    <dt><span class="tier" data-t="D">D</span></dt><dd><b>Zayıf</b> · %48'in altı. Bu yamada geride; yeni çıkan ya da zayıflatılan şampiyonlar burada olur.</dd>
-  </dl><p class="muted small" style="margin:10px 0 0">Kademe genel güçtür. Rakibine göre seçim yapıyorsan Kontra Seç sayfası daha doğru sonuç verir.</p></details>
-  <div class="toolbar"><div class="seg" id="t-roles"></div><div class="seg" id="t-sort" aria-label="Kademe içi sıralama"><button type="button" data-s="wr" aria-pressed="true">Kazanma oranı</button><button type="button" data-s="az" aria-pressed="false">A–Z</button></div></div>
-  <div class="card" id="t-out"></div>
+<!-- EŞYALAR: kategoriye göre simgeler, ayrıntı dokununca -->
+<section class="view" id="v-esyalar" hidden>
+  <div class="page-head"><h1>Eşyalar</h1></div>
+  <div class="toolbar sticky"><input id="e-q" type="search" placeholder="Item ya da özellik ara (örn. kalkan)" aria-label="Item ara"><nav class="jump" id="e-cats" aria-label="Kategoriler"></nav></div>
+  <div id="e-out"></div>
 </section>
 
-<!-- EŞYALAR -->
-<section class="view" id="v-esyalar" hidden>
-  <div class="page-head"><div class="eyebrow">Yama 7.2 sonrası</div><h1>Eşyalar</h1><p>Oyundaki Türkçe adlarıyla. Simgeye dokun, ayrıntı açılsın.</p></div>
-  <div class="toolbar"><div class="seg" id="e-cats"></div><input id="e-q" type="search" placeholder="Item veya özellik ara (örn. kalkan)" aria-label="Item ara"></div>
-  <div class="igrid" id="e-grid"></div>
+<!-- YAMA: bu yamada ne değişti -->
+<section class="view" id="v-yama" hidden>
+  <div class="page-head"><h1>Yama <span id="y-patch"></span></h1><p>Güçlenen, zayıflayan ve dengelenen şampiyonlar ile itemlar.</p></div>
+  <div id="y-out"></div>
 </section>
 </main>
 
+<nav class="bnav" aria-label="Bölümler"><a href="#ana"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3 15 13M3 5l2-2M13 15l-2 2 6 6 2-2zM19 3 9 13M21 5l-2-2M11 15l2 2-6 6-2-2z"/></svg><span>Düello</span></a><a href="#sampiyonlar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c.5-3.5 3-5.5 6-5.5s5.5 2 6 5.5"/><path d="M16 5a3 3 0 0 1 0 6M18 14.5c1.8.7 3 2.6 3 5"/></svg><span>Şampiyonlar</span></a><a href="#esyalar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg><span>Eşyalar</span></a><a href="#yama"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h11v13a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-1h11v1a3 3 0 0 0 3 3"/><path d="M7 4a2 2 0 0 0-2 2v10M10 8h5M10 12h5"/></svg><span>Yama</span></a></nav>
+
 <footer><div class="wrap">
-  <p>Kaynaklar: resmi Wild Rift Türkçe sitesi ve yama notları · riftpatchnotes.com (oranlar, CN Challenger+) · wildriftcore.com (eşleşme, build ve oyun içi simgeler, CN sunucusu).</p>
   <p id="footFresh"></p>
-  <p>Bu site hayran yapımıdır; Riot Games ile bağlantılı değildir. Wild Rift ve ilgili görseller Riot Games'e aittir. Kaynak kodu: <a href="https://github.com/servetskr/rift-kontra" target="_blank" rel="noopener">GitHub</a>.</p>
+  <p>Kaynaklar: resmi Wild Rift Türkçe sitesi ve yama notları · riftpatchnotes.com (oranlar, CN Challenger+) · wildriftcore.com (eşleşme, build, simgeler) · LoL Wiki (taban değerler ve item sayıları, CC BY-SA 4.0). Düello sonuçları tahminidir.</p>
+  <p>Hayran yapımıdır; Riot Games ile bağlantılı değildir. <a href="https://github.com/servetskr/rift-kontra" target="_blank" rel="noopener">GitHub</a></p>
 </div></footer>
 
 <div class="overlay" id="ov" hidden></div>
@@ -449,6 +406,7 @@ footer p{margin:0 0 6px;max-width:90ch}
 <script src="data/profiles.js"></script>
 <script src="data/matchups.js"></script>
 <script src="data/builds.js"></script>
+<script src="data/wr.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
