@@ -104,7 +104,40 @@ function parseAbilities(html) {
     out[slot] = { n: name, cd, d };
     if (sh) out[slot].sh = sh;
     if (cc) out[slot].cc = cc;
+    const hl = healOf(body), bf = buffOf(body, text);
+    if (hl) out[slot].hl = hl;
+    if (bf) out[slot].bf = bf;
   }
   return out;
+}
+/* Kendini iyileştirme: "Heal" / "Self Heal" / "Heal Amount" satırı, düz değer (+ oranlar). Yüzde değerler (hasarın %'si) alınmaz. */
+function healOf(body) {
+  for (const m of body.matchAll(/<dt>([\s\S]*?)<\/dt>\s*<dd>([\s\S]*?)<\/dd>/g)) {
+    const label = txt(m[1]).replace(/:$/, ""), val = txt(m[2]);
+    if (!/^(heal|self heal|heal amount|total heal)$/i.test(label)) continue;
+    if (/%/.test(val.split("(")[0]) && !/%\s*(bonus\s+)?(AD|AP)\b/.test(val.split("(")[0])) continue;
+    if (/missing health|target/i.test(val)) continue;
+    const bl = baseList(val); if (!bl) continue;
+    return [bl.b, { ...ratios(val), ...bl.extra }];
+  }
+  return null;
+}
+/* Kısa süreli güçlenme: saldırı hızı, saldırı gücü, zırh, hasar azaltma. Süre metinde "for X seconds" olarak yazıyorsa alınır. */
+const BUFF = [[/^bonus attack speed$/i, "as", /attack speed/i], [/^bonus attack damage$/i, "ad", /attack damage/i],
+  [/^bonus armor$/i, "ar", /armor/i], [/^damage reduction$/i, "dr", /damage reduction|reduced damage/i]];
+function buffOf(body, text) {
+  const st = {}; let dur = 0;
+  for (const m of body.matchAll(/<dt>([\s\S]*?)<\/dt>\s*<dd>([\s\S]*?)<\/dd>/g)) {
+    const label = txt(m[1]).replace(/:$/, ""), val = txt(m[2]);
+    const b = BUFF.find(x => x[0].test(label)); if (!b || st[b[1]] || /per 100|based on|target/i.test(val)) continue;
+    const head = val.split("(")[0]; if (/%/.test(head) !== (b[1] === "as" || b[1] === "dr")) continue;   // AS ve hasar azaltma yüzde, diğerleri düz
+    const v = nums(head); if (!v.length) continue;
+    const sent = text.split(/(?<=\.)\s+/).find(s => b[2].test(s) && /for (?:the next )?(\d+(?:\.\d+)?) seconds/i.test(s))
+      || text.split(/(?<=\.)\s+/).find(s => b[2].test(s) && /(?:for|next) (\d+(?:\.\d+)?) seconds/i.test(s));
+    const d = sent && Number((sent.match(/(?:for|next) (?:the next )?(\d+(?:\.\d+)?) seconds/i) || [])[1]);
+    if (!(d > 0 && d <= 15)) continue;
+    st[b[1]] = v.length > 1 ? v : v[0]; dur = Math.max(dur, d);
+  }
+  return Object.keys(st).length ? { st, dur } : null;
 }
 module.exports = { parseAbilities };

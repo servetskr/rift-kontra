@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Rift Kontra · VALORANT düello hesaplayıcı</title>
-<meta name="description" content="VALORANT için Türkçe 1v1 düello hesaplayıcı: silah, kalkan, mesafe ve nişana göre kim kazanır? Ajanlar, silah değerleri, haritalar ve yama notları. Her yamada otomatik güncellenir.">
+<title>Rift Kontra · VALORANT eşleşme rehberi</title>
+<meta name="description" content="VALORANT için Türkçe ajan eşleşme rehberi: iki ajanın yetenekleri birbirini nasıl etkiler, arkadaşınla hangi ikiliyi seçmelisin, birlikte kazanma oranları. Ajanlar, silahlar, haritalar ve yama notları. Her yamada otomatik güncellenir.">
 <meta property="og:title" content="Rift Kontra · VALORANT">
-<meta property="og:description" content="VALORANT Türkçe düello hesaplayıcı, ajan ve silah rehberi. Her yamada otomatik güncellenir.">
+<meta property="og:description" content="VALORANT Türkçe yetenek eşleşmeleri, ikili seçimi, ajan ve silah rehberi. Her yamada otomatik güncellenir.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0c131d">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -105,22 +105,22 @@ input::placeholder{color:var(--muted)}
 
 <main class="wrap">
 
-<!-- DÜELLO: tek amaç — iki oyuncunun 1v1 çatışmasını karşılaştır, değişikliği anında gör -->
+<!-- EŞLEŞME: tek amaç — iki ajanın yetenekleri nasıl etkileşir (VS) ya da arkadaşınla hangi ikili (Duo) -->
 <section class="view" id="v-ana">
+  <div class="seg mode" id="h-mode" role="group" aria-label="Mod">
+    <button type="button" data-hm="vs"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l6 6M19 5l-6 6M5 19l4-4M19 19l-4-4"/></svg>VS</button>
+    <button type="button" data-hm="duo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c.5-3.5 3-5.5 6-5.5s5.5 2 6 5.5"/><path d="M16 5a3 3 0 0 1 0 6M18 14.5c1.8.7 3 2.6 3 5"/></svg>Duo</button>
+  </div>
   <div class="arena">
     <div class="fighter me" id="f-me"></div>
     <div class="vs-col">
-      <span class="vs">VS</span>
-      <div class="dist" id="d-dist" role="group" aria-label="Mesafe"></div>
-      <button type="button" class="btn icon" id="d-swap" aria-label="Tarafları değiştir" title="Tarafları değiştir"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg></button>
+      <span class="vs" id="h-vs">VS</span>
+      <button type="button" class="btn icon" id="h-swap" aria-label="Tarafları değiştir" title="Tarafları değiştir"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg></button>
     </div>
     <div class="fighter en" id="f-en"></div>
   </div>
-  <div class="card result" id="d-result" aria-live="polite"></div>
-  <div class="grid2">
-    <div class="card" id="d-recs"></div>
-    <div class="card" id="d-range"></div>
-  </div>
+  <div class="seg sm scrollx" id="h-map" aria-label="Harita" hidden></div>
+  <div id="h-out" class="view" aria-live="polite"></div>
   <div id="d-patch"></div>
 </section>
 
@@ -158,7 +158,7 @@ input::placeholder{color:var(--muted)}
 
 <footer><div class="wrap">
   <p id="footFresh"></p>
-  <p>Kaynaklar: valorant-api.com (Türkçe ajan, silah ve harita verisi) · playvalorant.com resmi Türkçe yama notları · blitz.gg (Rekabetçi oranlar). Düello sonuçları basitleştirilmiş bir simülasyonun tahminidir.</p>
+  <p>Kaynaklar: valorant-api.com (Türkçe ajan, silah ve harita verisi) · playvalorant.com resmi Türkçe yama notları · blitz.gg (Rekabetçi oranlar) · vstats.gg (ikili oranları) · VALORANT Wiki (yetenek etkileşimleri). Uyum puanı bir tahmindir; birlikte kazanma oranı ölçülmüş veridir.</p>
   <p>Hayran yapımıdır; Riot Games ile bağlantılı değildir. <a href="https://github.com/servetskr/rift-kontra" target="_blank" rel="noopener">GitHub</a></p>
 </div></footer>
 
@@ -168,6 +168,8 @@ input::placeholder{color:var(--muted)}
 <script src="data/game.js"></script>
 <script src="data/stats.js"></script>
 <script src="data/notes.js"></script>
+<script src="data/duos.js"></script>
+<script src="data/interactions.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

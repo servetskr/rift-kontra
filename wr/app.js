@@ -300,11 +300,13 @@ function buildCard(c){
  *  Taban değerler, item sayıları ve yetenek hasarları Wild Rift'e özgü (LoL Wiki).
  *  0. saniyede iki taraf da yetenek kombosunu atar; sonra normal saldırılar ve
  *  bekleme süresi dolan yetenekler devam eder. Kalkanlar hasarı emer; sert kitle kontrolü
- *  hedefin saldırısını ve yeteneklerini durdurur (etki direnci kısaltır). İyileştirme yetenekleri,
- *  menzil ve kaçma hesaba katılmaz.
+ *  hedefin saldırısını ve yeteneklerini durdurur (etki direnci kısaltır).
+ *  Şampiyon pasifleri, yeteneklerin özel etkileri, item pasifleri/aktifleri ve ana rün
+ *  data/mechanics.js'teki etki listelerinden okunur (MECH). Menzil ve kaçma hesaba katılmaz.
  * =================================================================== */
 const WD = window.WR_DATA || {champ:{}, item:{}};
 const AB = window.WR_ABIL || {};
+const MX = window.WR_MECH || {champ:{}, item:{}, rune:{}, fix:{}};
 const STAT_TR = {hp:"Can",ad:"Saldırı Gücü",ap:"Yetenek Gücü",armor:"Zırh",mr:"Büyü Direnci",as:"Saldırı Hızı",crit:"Kritik",ah:"Yetenek Hızı",
   armpenflat:"Zırh Delme",armpen:"Zırh Delme",mpenflat:"Büyü Delme",mpen:"Büyü Delme",lifesteal:"Can Çalma",omnivamp:"Tam Can Çalma",ms:"Hareket Hızı",
   msflat:"Hareket Hızı",mana:"Mana",mp5:"Mana Yenileme",hp5:"Can Yenileme",hsp:"İyileştirme ve Kalkan Gücü",tenacity:"Etki Direnci"};
@@ -312,88 +314,331 @@ const PCT_STATS = new Set(["as","crit","armpen","mpen","lifesteal","omnivamp","m
 const itemData = en => { const k=kb(en); return WD.item[k] || WD.item[Object.keys(ITEM_ALIAS).find(w=>ITEM_ALIAS[w]===k)||""] || null; };
 const itemStats = en => (itemData(en)||{}).s || {};
 const fmtStat = (k,v) => `${PCT_STATS.has(k)?"%":"+"}${String(v).replace(".",",")} ${STAT_TR[k]||k}`;
+/* Seviyeye göre yetenek kademesi (Wild Rift: temel yetenekler 4, ulti 3 kademe) */
+const abRank = (slot,L) => slot==="4" ? (L>=13?3:L>=9?2:L>=5?1:0) : Math.max(1,Math.min(4,Math.ceil(L/3.25)));
+const atRank = (v,rank) => Array.isArray(v) ? v[Math.min(v.length,rank)-1] : (v||0);
+const isMelee = slug => ((WD.champ[slug]||{}).rng||125) < 300;
+const itemKeys = f => [...new Set(f.items.filter(Boolean).map(en=>{ const k=kb(en); return MX.item[k]?k:(ITEM_ALIAS[k]&&MX.item[ITEM_ALIAS[k]]?ITEM_ALIAS[k]:k); }))];
+/* Seçili buildin ana rünü (oyuncu verisi yoksa yok) */
+const keystoneOf = f => { if(f.rune!==undefined) return f.rune; const b=BUILDS[f.c.slug]; if(!b) return null; const r=b.r[f.c.main]||Object.values(b.r)[0]; return r&&r.runes ? r.runes[0] : null; };
 function fstats(f){
-  const b=WD.champ[f.c.slug]; if(!b) return null;
+  const b=WD.champ[f.c.slug]; if(!b||!(b.hp>0)) return null;
   const L=f.lvl-1;
-  const s={hp:b.hp+b.hpL*L, ar:b.ar+b.arL*L, mr:b.mr+b.mrL*L, ad:b.ad+b.adL*L, bad:0, bhp:0, ap:0, asB:b.asL*L, crit:0, leth:0, arpen:0, mpenF:0, mpen:0, ls:0, ov:0, ah:0, lvl:f.lvl, critMul:1.75};
+  const s={hp:b.hp+b.hpL*L, ar:b.ar+b.arL*L, mr:b.mr+b.mrL*L, ad:b.ad+b.adL*L, bad:0, bhp:0, bar:0, bmr:0, ap:0, asB:b.asL*L, crit:0, leth:0, arpen:0, mpenF:0, mpen:0, ls:0, ov:0, ah:0, hsp:0, lvl:f.lvl, critMul:1.75, fx:[]};
+  s.adBase=s.ad;
   for(const en of f.items){ if(!en) continue; const x=itemStats(en);
-    s.hp+=x.hp||0; s.bhp+=x.hp||0; s.ar+=x.armor||0; s.mr+=x.mr||0; s.ad+=x.ad||0; s.bad+=x.ad||0; s.ap+=x.ap||0; s.asB+=x.as||0; s.crit+=x.crit||0;
-    s.leth+=x.armpenflat||0; s.arpen+=x.armpen||0; s.mpenF+=x.mpenflat||0; s.mpen+=x.mpen||0; s.ls+=x.lifesteal||0; s.ov+=x.omnivamp||0; s.ah+=x.ah||0; s.ten=(s.ten||0)+(x.tenacity||0);
-    if(kb(en)==="infinity-edge") s.critMul+=0.3; }
-  s.as=Math.min(2.5, b.as + b.asR*s.asB/100); s.crit=Math.min(100,s.crit)/100;
+    s.hp+=x.hp||0; s.bhp+=x.hp||0; s.ar+=x.armor||0; s.bar+=x.armor||0; s.mr+=x.mr||0; s.bmr+=x.mr||0; s.ad+=x.ad||0; s.bad+=x.ad||0; s.ap+=x.ap||0; s.asB+=x.as||0; s.crit+=x.crit||0;
+    s.leth+=x.armpenflat||0; s.arpen+=x.armpen||0; s.mpenF+=x.mpenflat||0; s.mpen+=x.mpen||0; s.ls+=x.lifesteal||0; s.ov+=x.omnivamp||0; s.ah+=x.ah||0; s.hsp+=x.hsp||0; s.ten=(s.ten||0)+(x.tenacity||0); }
+  s.crit/=100;
+  /* Kalıcı değer etkileri: önce itemlar, sonra şampiyon pasifi (Yasuo kritiği ikiye katlar) */
+  const c={lvl:f.lvl, melee:isMelee(f.c.slug), rk:slot=>abRank(slot,f.lvl)};
+  const statFx = [...itemKeys(f).flatMap(k=>(MX.item[k]||[]).map(e=>[e,iname(itemOf(k))])), ...(MX.champ[f.c.slug]||[]).map(e=>[e,""])];
+  for(const [e,src] of statFx) if(e&&e.k==="stat"){ e.f(s,c); s.fx.push(src?src+": "+e.name:e.name); }
+  s.as=Math.min(2.5, b.as + b.asR*s.asB/100); s.crit=Math.min(1,s.crit);
   s.arpen=Math.min(60,s.arpen); s.mpen=Math.min(60,s.mpen);
   return s;
 }
 const mulOf = (a,d,type) => type==="T" ? 1 : type==="M" ? 100/(100+Math.max(0, d.mr*(1-a.mpen/100)-a.mpenF)) : 100/(100+Math.max(0, d.ar*(1-a.arpen/100)-a.leth));
-/* Seviyeye göre yetenek kademesi (Wild Rift: temel yetenekler 4, ulti 3 kademe) */
-const abRank = (slot,L) => slot==="4" ? (L>=13?3:L>=9?2:L>=5?1:0) : Math.max(1,Math.min(4,Math.ceil(L/3.25)));
-const atRank = (v,rank) => Array.isArray(v) ? v[Math.min(v.length,rank)-1] : (v||0);
 function abilities(slug,a,d){
-  const A=AB[slug]||{}, base=WD.champ[slug], out=[];
+  const A=AB[slug]||{}, base=WD.champ[slug], out=[], FX=MX.fix[slug]||{}, ME=MX.champ[slug]||[];
   const val=(b,r,rank)=> (b.lvl ? b.lvl[0]+(b.lvl[1]-b.lvl[0])*(a.lvl-1)/14 : atRank(b.r,rank))
     + atRank(r.ap,rank)/100*a.ap + atRank(r.ad,rank)/100*a.ad + atRank(r.bad,rank)/100*a.bad
     + atRank(r.thp,rank)/100*d.hp + atRank(r.mhp,rank)/100*a.hp + atRank(r.bhp,rank)/100*a.bhp;
   for(const slot of ["1","2","3","4"]){
-    const x=A[slot]; if(!x) continue;
+    const x={...(A[slot]||{}), ...(FX[slot]||{})}; if(!A[slot]&&!FX[slot]) continue;
     const rank=abRank(slot,a.lvl); if(!rank) continue;
+    /* bu yuvaya bağlı mekanikler (kaçınma, ölümsüzlük, iyileşme…) */
+    const mine=ME.filter(e=>e&&(e.slot===slot||e.on==="cast:"+slot));
     let raw=0, type=base.t==="M"?"M":"P";
     if(x.d&&x.d.length){ const [b,t,r,ps]=x.d[0]; raw=val(b,r,rank)*(ps?3:1); type=t||type; }
+    if(x.dv) type=x.t||type;
+    if(x.hl&&!mine.some(e=>e.heal)) mine.push({on:"cast:"+slot, heal:()=>val(x.hl[0],x.hl[1],rank), name:(x.n||"")});
     const sh = x.sh ? {amt:val(x.sh[0],x.sh[1],rank), dur:x.sh[2]||2.5} : null;
     const cc = x.cc ? {k:x.cc[0], dur:x.cc[1]} : null;
-    if(raw<=0&&!sh&&!(cc&&cc.k!=="root")) continue;
+    const dg = ME.find(e=>e&&(e.k==="dodge"||e.k==="invuln")&&e.slot===slot);
+    const u = ME.find(e=>e&&(e.k==="undying"||e.k==="revive")&&e.slot===slot);
+    let use = x.use || (u?"never":null) || (dg&&(dg.use||(dg.react?"react":null))) || (mine.find(e=>e.use)||{}).use || null;
+    if(raw<=0&&!x.dv&&!sh&&!(cc&&cc.k!=="root")&&!mine.length&&!x.keep&&!x.bf) continue;
     const cd = Math.max(2, x.cd?atRank(x.cd,rank):8) * 100/(100+a.ah);
-    out.push({slot, raw:Math.max(0,raw), type, cd, mul:mulOf(a,d,type), sh, cc});
+    out.push({slot, raw:Math.max(0,raw), dv:x.dv||null, over:x.over||0, type, cd, mul:mulOf(a,d,type), sh, cc, use, lockAA:x.lockAA||0, bf:mine.some(e=>e.buff)||!x.bf?null:{st:Object.fromEntries(Object.entries(x.bf.st).map(([k,v])=>[k,atRank(v,rank)])),dur:x.bf.dur},
+      dodge: dg ? {aaOnly:!!dg.aaOnly, inv:dg.k==="invuln", dur:dg.dur, lock:dg.lock||0, dr:dg.dr||0, parry:!!dg.ccBack, name:dg.name} : null});
   }
   return out;
 }
 /* Yetenek verisi olmayan şampiyonlar için ortalama yetenek hasarı */
 const AB_FALLBACK = (a,c) => [{slot:"x", raw:((8+5.5*a.lvl)*(0.6+0.25*(c.dmg||2)) + 0.3*a.bad + 0.35*a.ap)*4, type:c.t==="M"?"M":"P", cd:4, sh:null, cc:null}];
+
+/* Etkileri olay adlarına göre dizinler. Kaynak etiketi sonuç ekranındaki "Hesaba katılanlar" listesine gider. */
+function mechOf(f){
+  const L=[]; const push=(e,label)=>{ if(e&&e.k!=="stat") L.push({...e, label}); };
+  (MX.champ[f.c.slug]||[]).forEach(e=>push(e,e&&e.name));
+  const grp=new Set();
+  for(const k of itemKeys(f)) for(const e of (MX.item[k]||[])){
+    const g = e.grp || (e.k==="lifeline"?"lifeline":null); if(g){ if(grp.has(g)) continue; grp.add(g); }
+    push(e, iname(itemOf(k))+(e.name?" — "+e.name:"")); }
+  const ks=keystoneOf(f); if(ks&&MX.rune[ks]) MX.rune[ks].forEach(e=>push(e,runeTR(ks)+(e.name&&e.name!==runeTR(ks)?" — "+e.name:"")));
+  L.forEach((e,i)=>e.i=i);
+  return L;
+}
+const fval = (v,c) => typeof v==="function" ? v(c) : (v||0);
+
 function fightSim(me,en){
   const sm=fstats(me), se=fstats(en); if(!sm||!se) return null;
-  const mk=(f,s,o)=>{ const c=WD.champ[f.c.slug];
-    let abs=abilities(f.c.slug,s,o); const real=abs.some(x=>x.raw>0);
-    if(!real) abs=abs.concat(AB_FALLBACK(s,c).map(x=>({...x,mul:mulOf(s,o,x.type)})));
-    const inn=(AB[f.c.slug]||{}).i;
-    const shields = inn&&inn.sh ? [{amt: (inn.sh[1].mhp||0)/100*s.hp + (inn.sh[1].bhp||0)/100*s.bhp + atRank(inn.sh[0].r||[0],1), until:inn.sh[2]||99}] : [];
-    return {s, hp:s.hp, max:s.hp, abs, real, cds:abs.map(()=>0), ccReady:abs.map(()=>0), aaT:0, aaInt:1/s.as,
-      aaHit: s.ad*(1+s.crit*(s.critMul-1))*mulOf(s,o,"P"), dAA:0, dAB:0, absorbed:0, stunUntil:0, silUntil:0, ccDealt:0, shields}; };
-  const A=mk(me,sm,se), B=mk(en,se,sm);
   const dt=0.05, T=30, tl=[[0,1,1]]; let t=0, step=0;
-  /* X saldırır, Y hedeftir */
-  const act = (X,Y) => { let ab=0, aa=0;
-    const stunned = t < X.stunUntil, silenced = stunned || t < X.silUntil;
-    X.abs.forEach((x,i)=>{
-      if(X.cds[i]<=0 && !silenced){
-        ab+=x.raw*x.mul; X.cds[i]=x.cd;
-        if(x.sh) X.shields.push({amt:x.sh.amt, until:t+x.sh.dur});
-        if(x.cc && t>=X.ccReady[i] && x.cc.k!=="root"){             // aynı yetenekle en fazla 6 sn'de bir KK
-          const dur = x.cc.dur * (1 - Math.min(0.6,(Y.s.ten||0)/100));
-          if(x.cc.k==="hard") Y.stunUntil=Math.max(Y.stunUntil,t+dur); else Y.silUntil=Math.max(Y.silUntil,t+dur);
-          X.ccDealt+=dur; X.ccReady[i]=t+Math.max(6,x.cd);
-        }
-      }
-      X.cds[i]-=dt; });
-    if(X.aaT<=0 && !stunned){ aa=X.aaHit; X.aaT=X.aaInt; } X.aaT-=dt;
-    X.dAA+=aa; X.dAB+=ab; return {aa, tot:aa+ab}; };
-  /* Hasar önce kalkanlardan düşer */
-  const hit = (Y,dmg) => { Y.shields=Y.shields.filter(s=>s.until>t&&s.amt>0);
-    for(const s of Y.shields){ if(dmg<=0) break; const take=Math.min(s.amt,dmg); s.amt-=take; dmg-=take; Y.absorbed+=take; }
-    Y.hp-=dmg; };
-  while(t<T && A.hp>0 && B.hp>0){
-    const ha=act(A,B), hb=act(B,A);
-    hit(B,ha.tot); hit(A,hb.tot);
-    if(A.hp>0) A.hp=Math.min(A.max, A.hp + ha.aa*A.s.ls/100 + ha.tot*A.s.ov/100);
-    if(B.hp>0) B.hp=Math.min(B.max, B.hp + hb.aa*B.s.ls/100 + hb.tot*B.s.ov/100);
+  const mk=(f,s,o)=>{ const c=WD.champ[f.c.slug];
+    let abs=abilities(f.c.slug,s,o); const real=abs.some(x=>x.raw>0||x.dv);
+    if(!real) abs=abs.concat(AB_FALLBACK(s,c).map(x=>({...x,mul:mulOf(s,o,x.type)})));
+    const M=mechOf(f), X={f, s, base:c, slug:f.c.slug, melee:isMelee(f.c.slug), hp:s.hp, max:s.hp, abs, real, M,
+      cds:abs.map(()=>0), ccReady:abs.map(()=>0), aaT:0, aaN:0, dAA:0, dAB:0, absorbed:0, healed:0, stunUntil:0, silUntil:0, ccUntil:0, ccDealt:0,
+      shields:[], buffs:[], hots:[], dots:{}, bleeds:{}, pend:[], delayQ:[], ramps:M.filter(e=>e.k==="ramp").map(e=>({e,n:0,until:0})),
+      cnt:{}, ecd:{}, used:{}, flags:{}, charges:{}, fx:{}, inv:0, untarg:0, aaDodge:0, lock:0, aaLock:0, gwV:0, gwUntil:0, shRed:0, shRedUntil:0,
+      shred:{}, gcd:0, dead:false, deadAt:-1, dealt:0, takenPre:0, grit:0, gritT:0, lastHit:-9, burst:[], burstReady:0, flowReady:true, reviveAt:0, zombieAt:0};
+    const K=k=>M.filter(e=>e.k===k);
+    Object.assign(X,{dyn:K("dyn"), vamp:K("vamp"), amp:K("amp"), vuln:K("vuln"), dr:K("dr"), gw:K("gw"), shredFx:K("shred"), reflect:K("reflect"),
+      aura:K("aura"), regen:K("regen"), timed:K("timed"), enemyFx:K("enemy"), aamul:K("aamul"), shieldred:K("shieldred"),
+      lifeline:K("lifeline")[0]||null, revive:K("revive")[0]||null, zombie:K("zombie")[0]||null, undying:K("undying")[0]||null, stasis:K("stasis")[0]||null,
+      exec:K("exec")[0]||null, delay:K("delay")[0]||null, sshield:K("sshield")[0]||null, qss:K("qss")[0]||null, flow:K("flow")[0]||null,
+      gritFx:K("grit")[0]||null, burstFx:K("burst")[0]||null, bleedFx:K("bleed")});
+    X.llReady=0; X.revReady=true; X.stReady=0; X.ssReady=0; X.qssReady=0;
+    X.trig={}; M.filter(e=>e.on&&!e.k).forEach(e=>{ const ev=e.on.split(":")[0]; (X.trig[ev]=X.trig[ev]||[]).push(e); if(e.startCd!=null) X.ecd[e.i]=e.startCd; });
+    return X; };
+  const A=mk(me,sm,se), B=mk(en,se,sm);
+  const ctx=(X,Y)=>({s:X.s, o:Y.s, me:X, en:Y, lvl:X.s.lvl, melee:X.melee, rk:slot=>abRank(slot,X.s.lvl), get L(){return X.L}, get t(){return t}});
+  for(const [X,Y] of [[A,B],[B,A]]){ X.c=ctx(X,Y); X.Y=Y;
+    X.stk=id=>{ const r=X.ramps.find(r=>r.e.id===id); if(r) return r.until>t?r.n:0; const b=X.bleeds[id]; return b&&b.until>t?b.n:0; };
+    X.has=id=>X.buffs.some(b=>b.id===id&&b.until>t);
+    X.shTotal=()=>X.shields.reduce((a,s)=>a+(s.until>t?s.amt:0),0);
+    X.tag=(label,n)=>{ if(label) X.fx[label]=(X.fx[label]||0)+(n===undefined?1:n); }; }
+  /* canlı değerler: buff, yük, dinamik pasifler */
+  const live=(X,Y)=>{ const s=X.s, b=X.base;
+    const L={ad:s.ad, ap:s.ap, asB:s.asB, crit:s.crit, ar:s.ar, mr:s.mr, ls:s.ls/100, ov:s.ov/100, pv:0, dr:0, amp:0, abAmp:0, ten:s.ten||0, arpen:s.arpen, mpen:s.mpen, healAmp:(s.healAmp||0)/100, regen:0, asMul:1};
+    const add=(k,v)=>{ switch(k){
+      case "as": L.asB+=v; break; case "ad": L.ad+=v; break; case "adPct": L.ad+=s.ad*v/100; break; case "ar": L.ar+=v; break; case "mr": L.mr+=v; break;
+      case "arPct": L.ar+=s.ar*v/100; break; case "mrPct": L.mr+=s.mr*v/100; break; case "ov": L.ov+=v/100; break; case "dr": L.dr+=v; break; case "ten": L.ten+=v; break;
+      case "healAmp": L.healAmp+=v/100; break; case "regen": L.regen+=v; break; case "arpen": L.arpen+=v; break; case "mpen": L.mpen+=v; break; case "abAmp": L.abAmp+=v/100; break;
+      case "asMul": L.asMul*=v; break; case "adapt": if(b.t==="M") L.ap+=v*1.6; else L.ad+=v; break; } };
+    for(const bf of X.buffs) if(bf.until>t) for(const k in bf.st) add(k,bf.st[k]);
+    for(const r of X.ramps) if(r.n>0&&r.until>t&&r.e.st) for(const k in r.e.st) add(k,fval(r.e.st[k],X.c)*r.n);
+    for(const e of Y.enemyFx) for(const k in e.st) add(k,e.st[k]);
+    X.L=L; for(const e of X.dyn) e.f(L,X.c);
+    L.arpen=Math.min(60,L.arpen); L.mpen=Math.min(60,L.mpen); L.crit=Math.min(1,L.crit); L.asBonus=L.asB;
+    L.as=Math.min(2.5, b.as+b.asR*L.asB/100)*L.asMul;
+    return L; };
+  A.L=live(A,B); B.L=live(B,A);
+  const shredOf=(Y,k)=>{ const r=Y.shred[k]; return r&&r.until>t ? r.v : 0; };
+  const resist=(X,Y,type)=>{ if(type==="T") return 1; const L=X.L, D=Y.L;
+    if(type==="M"){ const mr=D.mr*(1-Math.min(.9,shredOf(Y,"mr")))-shredOf(Y,"mrF"); return 100/(100+Math.max(0, mr*(1-L.mpen/100)-X.s.mpenF)); }
+    const ar=D.ar*(1-Math.min(.9,shredOf(Y,"ar"))); return 100/(100+Math.max(0, ar*(1-L.arpen/100)-X.s.leth)); };
+  const addShield=(X,amt,dur,o={})=>{ if(!(amt>0)||X.dead) return; amt*=1+(X.s.hsp||0)/100; if(t<X.shRedUntil) amt*=1-X.shRed;
+    X.shields.push({amt, until:t+(dur||2.5), decay:o.decay?amt/(dur||2.5):0, only:o.only||null}); };
+  const heal=(X,amt,over)=>{ if(!(amt>0)||X.dead||t<X.reviveAt) return 0;
+    amt*=(1-(t<X.gwUntil?X.gwV:0))*(1+X.L.healAmp); const h=Math.min(Math.max(0,X.max-X.hp),amt); X.hp+=h; X.healed+=h;
+    if(over&&amt>h) addShield(X,Math.min(over.cap||1e9,amt-h),over.dur||6); return h; };
+  const addBuff=(X,b,label)=>{ if(!b) return; const stv={}; for(const k in b.st) stv[k]=fval(b.st[k],X.c);
+    const dur=fval(b.dur,X.c)||1;
+    if(b.id&&!b.stack){ const old=X.buffs.find(x=>x.id===b.id&&x.until>t); if(old){ old.until=t+dur; return; } }
+    if(b.stack&&X.buffs.filter(x=>x.id===b.id&&x.until>t).length>=b.stack){ const o=X.buffs.find(x=>x.id===b.id&&x.until>t); o.until=t+dur; return; }
+    if(stv.hpB){ X.max+=stv.hpB; X.hp+=stv.hpB; }
+    X.buffs.push({id:b.id||null, st:stv, until:t+dur, hits:b.hits||0}); };
+  const applyDot=(X,Y,d,key)=>{ const tot=fval(d.v,X.c), dur=d.dur||3; if(!(tot>0)) return; Y.dots[key]={from:X, t:d.t||"M", dps:tot/dur, until:t+dur}; };
+  const applyCC=(X,Y,cc)=>{ if(!cc||Y.dead) return; let [k,dur]=cc;
+    if(t<Y.inv||t<Y.untarg){ if(Y.parry&&t<Y.inv){ Y.parry=false; Y.tag("Karşılık sersemletmesi"); applyCC(Y,X,["hard",1.5]); } return; }
+    if(Y.has("ccimm")) return;
+    dur*=1-Math.min(.6,(Y.L.ten||0)/100);
+    if(k==="hard"&&Y.qss&&t>=Y.qssReady&&dur>=.5){ Y.qssReady=t+Y.qss.cd; Y.tag(Y.qss.label); return; }
+    if(k==="hard") Y.stunUntil=Math.max(Y.stunUntil,t+dur); else Y.silUntil=Math.max(Y.silUntil,t+dur);
+    X.ccDealt+=dur; Y.ccUntil=Math.max(Y.ccUntil,t+dur); fire(X,Y,"cc"); };
+  /* Ölümcül hasar: Ölümsüz Öfke, zombi, diriliş */
+  const lethal=(Y,X)=>{
+    if(t<Y.undyUntil){ Y.hp=Math.max(Y.hp,Y.undyMin); return; }
+    const U=Y.undying; if(U){ const i=Y.abs.findIndex(a=>a.slot===U.slot); if(i>=0&&Y.cds[i]<=0){
+      Y.cds[i]=Y.abs[i].cd; Y.undyUntil=t+U.dur; Y.undyMin=fval(U.min,Y.c); Y.hp=Math.max(Y.hp,Y.undyMin);
+      const r=Y.ramps.find(r=>r.e.id==="fury"); if(r&&U.fury){ r.n=Math.min(r.e.max,r.n+fval(U.fury,Y.c)); r.until=t+99; }
+      Y.tag(U.label); return; } }
+    if(Y.zombie&&!Y.zombieAt){ Y.zombieAt=t+Y.zombie.dur; Y.inv=Y.lock=t+Y.zombie.dur; Y.hp=0.001; Y.tag(Y.zombie.label); return; }
+    const R=Y.revive; if(R&&Y.revReady){ const i=R.slot?Y.abs.findIndex(a=>a.slot===R.slot):-1;
+      if(!R.slot||(i>=0&&Y.cds[i]<=0)){ if(i>=0) Y.cds[i]=Y.abs[i].cd; if(!R.slot) Y.revReady=false;
+        Y.reviveAt=t+R.dur; Y.reviveHP=fval(R.hp,Y.c); Y.inv=Y.lock=t+R.dur; Y.hp=0.001; Y.dots={}; Y.tag(R.label); return; } }
+    Y.dead=true; Y.deadAt=t; };
+  /* Hasar: dokunulmazlık → direnç → güçlendirme/azaltma → erteleme → can simidi → kalkan → can */
+  const deal=(X,Y,amt,type,src,o={})=>{
+    if(!(amt>0)||Y.dead) return 0;
+    if(t<Y.inv) return null;
+    if(src!=="dot"&&src!=="aura"&&src!=="dd"&&t<Y.untarg) return null;
+    if(src==="aa"&&t<Y.aaDodge) return null;
+    if(type==="A") type=X.base.t==="M"||X.s.ap>X.s.bad?"M":"P";
+    if(src==="ab"&&Y.sshield&&t>=Y.ssReady){ Y.ssReady=t+Y.sshield.cd; Y.tag(Y.sshield.label); return null; }
+    let d=amt;
+    if(src!=="dd"){
+      Y.takenPre+=amt; d*=resist(X,Y,type);
+      let amp=X.L.amp+(src==="ab"?X.L.abAmp:0);
+      for(const e of X.amp) if(!e.src||e.src===src) amp+=fval(e.v,X.c);
+      for(const e of X.vuln) if(e.t===type){ if(e.asTrue) { if(!o.noVuln) deal(X,Y,amt*e.v,"T","fx",{noVuln:1}); } else amp+=e.v; }
+      d*=1+amp;
+      let dr=Y.L.dr; for(const e of Y.dr){ if(e.src==="aa"&&(src==="aa"||src==="oh")) dr+=e.v; if(e.src==="crit"&&o.critShare) d*=1-e.v/100*o.critShare; }
+      d*=1-Math.min(90,dr)/100;
+      if(Y.delay&&type!=="T"){ const p=fval(Y.delay.v,Y.c)*d; Y.delayQ.push({from:X, left:p, rate:p/Y.delay.dur}); d-=p; Y.tag(Y.delay.label,0); }
+    }
+    const before=Y.hp+Y.shTotal();
+    if(Y.flow&&Y.flowReady&&src!=="dd"){ Y.flowReady=false; addShield(Y,fval(Y.flow.sh,Y.c),Y.flow.dur); Y.tag(Y.flow.label); }
+    const LL=Y.lifeline; if(LL&&t>=Y.llReady&&(!LL.only||LL.only===type)&&before-d<LL.th*Y.max){ Y.llReady=t+LL.cd;
+      if(LL.sh) addShield(Y,fval(LL.sh,Y.c),LL.dur,{decay:LL.decay}); if(LL.heal) Y.hots.push({rate:fval(LL.heal,Y.c)/(LL.hot||5), until:t+(LL.hot||5)});
+      if(LL.buff) addBuff(Y,LL.buff); Y.tag(LL.label); }
+    if(src!=="dd") fire(Y,X,"taken",{type});
+    Y.shields=Y.shields.filter(s=>s.until>t&&s.amt>0.5);
+    let rem=d;
+    for(const sh of Y.shields){ if(rem<=0) break; if(sh.only&&sh.only!==type) continue; const take=Math.min(sh.amt,rem); sh.amt-=take; rem-=take; Y.absorbed+=take; }
+    Y.hp-=rem; Y.lastHit=t;
+    if(Y.gritFx&&rem>0){ Y.grit=Math.min(Y.gritFx.cap*Y.max,Y.grit+rem); Y.gritT=t; }
+    if(src!=="dd"){ X.dealt+=d; if(src==="aa"||src==="oh") X.dAA+=d; else X.dAB+=d; }
+    if(src!=="dd"&&d>0){
+      const L=X.L; let v=d*L.ov; if(src==="aa"||src==="oh") v+=d*L.ls; if(type==="P") v+=d*L.pv;
+      let ovs=null;
+      for(const e of X.vamp){ if(e.src==="any"||(e.src==="ab"&&src==="ab")||(e.src==="P"&&type==="P")||(e.src==="crit"&&o.critShare)) { const a=fval(e.v,X.c)*d*(e.src==="crit"?o.critShare:1); v+=a; if(a>0) X.tag(e.label,0); }
+        if(e.over) ovs={cap:e.cap?fval(e.cap,X.c):0, dur:6, label:e.label}; }
+      if(v>0) heal(X,v,ovs);
+      for(const e of X.gw) if(e.t==="any"||e.t===type){ Y.gwV=Math.max(t<Y.gwUntil?Y.gwV:0,e.v); Y.gwUntil=t+3; }
+      for(const e of X.shredFx) if((!e.t||e.t===type)&&(!e.src||e.src==="any"||e.src===src||(e.src==="ab"&&src==="fx"))){ const r=Y.shred[e.st]||(Y.shred[e.st]={v:0,until:0,n:0});
+        if(r.until<t) r.n=0; r.n=Math.min(e.max,r.n+1); r.v=r.n*e.per; r.until=t+e.dur; }
+      for(const e of X.shieldred){ if(t>=Y.shRedUntil){ const red=fval(e.v,X.c); Y.shields.forEach(s=>s.amt*=1-red); Y.shRed=red; } Y.shRedUntil=t+3; }
+      if(X.burstFx){ X.burst.push([t,d]); X.burst=X.burst.filter(b=>b[0]>t-X.burstFx.win); const e=X.burstFx;
+        if(t>=X.burstReady&&X.burst.reduce((a,b)=>a+b[1],0)>=e.pct*Y.max){ X.burstReady=t+e.cd; X.pend.push({at:t+e.delay, f:()=>{ deal(X,Y,fval(e.v,X.c),e.t,"fx"); X.tag(e.label); }}); } }
+    }
+    if(t<Y.undyUntil) Y.hp=Math.max(Y.hp,Y.undyMin);
+    if(Y.hp<=0) lethal(Y,X);
+    else if(X.exec&&Y.hp<X.exec.th*Y.max&&!(t<Y.undyUntil)){ Y.hp=0; X.tag(X.exec.label); lethal(Y,X); }
+    if(!Y.dead&&Y.stasis&&t>=Y.stReady&&Y.hp>0&&Y.hp<Y.stasis.th*Y.max){ Y.stReady=t+Y.stasis.cd; Y.inv=Y.lock=t+Y.stasis.dur; Y.tag(Y.stasis.label); }
+    return d; };
+  /* Tetikleyiciler: "aa", "cast", "hit", "abhit", "taken", "start", "low", "tick", "cc", "bleed5", "abtaken" */
+  const fire=(X,Y,ev,info={})=>{
+    for(const r of X.ramps){ const e=r.e; if(e.on!==ev&&!(e.refresh===ev&&r.n>0)) continue;
+      if(e.on!==ev){ r.until=t+e.dur; continue; }
+      if(e.cd&&t<(X.ecd[e.i]||0)) continue; if(e.cd) X.ecd[e.i]=t+e.cd;
+      if(r.until<t) r.n=0; r.n=Math.min(e.max,r.n+(e.per?fval(e.per,X.c):1)); r.until=t+e.dur; X.tag(e.label,0); }
+    if(ev==="hit"||(ev==="aa"&&X.bleedFx.some(e=>e.on==="aa"))) for(const e of X.bleedFx) if(e.on===ev||(e.on==="hit"&&ev==="hit")){
+      const b=Y.bleeds[e.id]||(Y.bleeds[e.id]={n:0,until:0,from:X,e}); if(b.until<t) b.n=0;
+      b.n = X.has("noxMight") ? e.max : Math.min(e.max,b.n+1); b.until=t+e.dur; b.per=fval(e.v,X.c);
+      X.tag(e.label,0); if(b.n>=e.max) fire(X,Y,"bleed5"); }
+    const L=X.trig[ev]; if(!L) return;
+    for(const e of L){
+      if(e.on.includes(":")&&e.on.split(":")[1]!==info.slot) continue;
+      if(e.first&&X.used[e.i]) continue;
+      if(e.need&&!e.need(X.c)) continue;
+      if(e.after){ if(!X.flags[e.after+"#"+e.i]) continue; }
+      if(e.on==="low"&&X.hp>=e.th*X.max) continue;
+      if(e.only&&ev==="taken"&&info.type!==e.only) continue;
+      let charged=false;
+      if(e.cd&&t<(X.ecd[e.i]||0)){ if(e.charge&&X.charges[e.charge]>0){ X.charges[e.charge]--; charged=true; } else continue; }
+      if(e.every){ X.cnt[e.i]=(X.cnt[e.i]||0)+1; if(!(e.firstToo&&X.cnt[e.i]===1)&&X.cnt[e.i]%e.every!==0) continue; }
+      if(e.skip){ X.cnt["s"+e.i]=(X.cnt["s"+e.i]||0)+1; if(X.cnt["s"+e.i]<=e.skip) continue; }
+      X.used[e.i]=true; if(e.cd&&!charged) X.ecd[e.i]=t+fval(e.cd,X.c); if(e.after) X.flags[e.after+"#"+e.i]=false;
+      if(e.consume){ const r=X.ramps.find(r=>r.e.id===e.consume); if(r) r.n=e.consume==="runic"?Math.max(0,r.n-1):0; }
+      let dmg=0;
+      if(e.t&&e.v){ let a=fval(e.v,X.c); if(e.crit) a*=1+X.L.crit*(X.s.critMul-1);
+        if(e.delay) X.pend.push({at:t+e.delay, f:()=>deal(X,Y,a,e.t,"fx")}); else dmg=deal(X,Y,a,e.t,ev==="aa"?"oh":"fx")||0; }
+      if(e.healPct&&dmg>0){ let h=dmg*fval(e.healPct,X.c); if(e.healCap) h=Math.min(h,fval(e.healCap,X.c)); heal(X,h); }
+      if(e.healOfLast&&info.dmg>0) heal(X,info.dmg*fval(e.healOfLast,X.c));
+      if(e.healOfThis&&dmg>0) heal(X,dmg*e.healOfThis);
+      if(e.heal){ const h=fval(e.heal,X.c); if(e.hot) X.hots.push({rate:h/e.hot, from:t+(e.delay||0), until:t+(e.delay||0)+e.hot}); else if(e.delay) X.pend.push({at:t+e.delay,f:()=>heal(X,h)}); else heal(X,h); }
+      if(e.sh) addShield(X,fval(e.sh,X.c),e.dur,{decay:e.decay,only:e.shOnly||e.only});
+      if(e.buff) addBuff(X,e.buff);
+      if(e.dot) applyDot(X,Y,e.dot,(X===A?"a":"b")+e.i);
+      if(e.cc) applyCC(X,Y,fval(e.cc,X.c));
+      if(e.shred){ const k=e.shred.st; Y.shred[k]={v:Math.max(shredOf(Y,k),e.shred.v),until:t+e.shred.dur,n:1}; }
+      if(e.lock) X.lock=Math.max(X.lock,t+e.lock);
+      if(e.inv) X.inv=Math.max(X.inv,t+e.inv);
+      if(e.charges) X.charges[e.charges.id]=(X.charges[e.charges.id]||0)+e.charges.n;
+      if(e.cdr) X.abs.forEach((a,k)=>{ if(a.slot!=="4") X.cds[k]*=1-e.cdr; });
+      if(e.onhitAgain&&!info.again) onhits(X,Y,{again:true});
+      X.tag(e.label, e.t||e.heal||e.sh||e.cc||e.dot?1:0);
+    } };
+  /* Saldırı başı tekrar uygulanan isabet etkileri (Çifte Vuruş, Hayalet Vuruş) */
+  const onhits=(X,Y,info)=>{ for(const e of (X.trig.aa||[])) if(e.t&&e.v&&!e.every&&!e.cd&&!e.first&&!e.after&&!e.need){ let a=fval(e.v,X.c); deal(X,Y,a,e.t,"oh"); } };
+  const targetable=Y=>!(t<Y.inv||t<Y.untarg);
+  const rawOf=(X,x)=>x.dv?x.dv(X.c):x.raw;
+  const canAct=X=>!(X.dead&&X.deadAt!==t)&&t>=X.lock&&t>=X.stunUntil&&!(t<X.reviveAt)&&!X.zombieAt;
+  /* Kombo sırayla atılır: en fazla 0,25 sn'de bir yetenek */
+  const plan=(X,Y)=>{ const out=[]; if(!canAct(X)||t<X.silUntil||t<X.gcd) return out; const tg=targetable(Y);
+    X.abs.forEach((x,i)=>{ if(out.length||X.cds[i]>0||x.use==="never"||x.use==="react") return;
+      if(x.use&&x.use.startsWith("low:")){ if(X.hp<+x.use.slice(4)*X.max&&!Y.dead) out.push(i); return; }
+      if(x.use==="exec"){ if(tg&&(rawOf(X,x)*resist(X,Y,x.type)>=Y.hp+Y.shTotal()||Y.hp<.12*Y.max)) out.push(i); return; }
+      if(x.use==="grit"){ if(X.grit>=.25*X.max||X.hp<.3*X.max) out.push(i); return; }
+      if(!tg&&(x.raw>0||x.dv||x.cc)) return;
+      out.push(i); });
+    return out; };
+  const react=(X,Y,yPlan)=>{ if(!canAct(X)||t<X.silUntil) return [];
+    /* tepki: sert kitle kontrolüne ya da canının %15'inden fazlasını alacak yeteneğe karşı, ya da can azken */
+    const threat=yPlan.some(i=>{ const y=Y.abs[i]; return (y.cc&&y.cc.k==="hard"&&t>=Y.ccReady[i])||rawOf(Y,y)*resist(Y,X,y.type)>=.15*X.max; })||(X.hp<.3*X.max&&t-X.lastHit<.5);
+    if(!threat) return [];
+    const i=X.abs.findIndex((x,k)=>x.use==="react"&&X.cds[k]<=0); return i>=0?[i]:[]; };
+  const cast=(X,Y,i)=>{ if(X.dead&&X.deadAt!==t) return; const x=X.abs[i]; X.cds[i]=x.cd; X.gcd=t+.25;
+    (X.trig.aa||[]).concat(X.trig.hit||[]).forEach(e=>{ if(e.after==="cast"||e.after==="cast:"+x.slot) X.flags[e.after+"#"+e.i]=true; });
+    if(x.dodge){ const g=x.dodge; if(g.aaOnly) X.aaDodge=t+g.dur; else X.untarg=t+g.dur; if(g.inv) X.inv=t+g.dur; if(g.parry) X.parry=true;
+      if(g.lock) X.lock=t+g.lock; if(g.dr) addBuff(X,{st:{dr:g.dr},dur:g.dur}); X.tag(g.name); }
+    if(X.flow&&X.flow.rearm==="cast:"+x.slot) X.flowReady=true;
+    let dmg=0, blocked=false; const raw=rawOf(X,x);
+    if(raw>0&&x.over){ if(!targetable(Y)) blocked=true; else { Y.dots["ab"+(X===A?"a":"b")+i]={from:X, t:x.type, dps:raw/x.over, until:t+x.over}; dmg=raw*resist(X,Y,x.type); } }
+    else if(raw>0){ const r=deal(X,Y,raw,x.type,"ab"); if(r===null) blocked=true; else dmg=r; }
+    if(x.slot==="2"&&X.gritFx){ addShield(X,X.grit,3,{decay:true}); X.grit=0; }
+    if(x.sh) addShield(X,x.sh.amt,x.sh.dur);
+    if(x.cc&&!blocked&&t>=X.ccReady[i]&&x.cc.k!=="root"){ applyCC(X,Y,[x.cc.k,x.cc.dur]); X.ccReady[i]=t+Math.max(6,x.cd); }
+    if(x.lockAA) X.aaLock=t+x.lockAA;
+    if(x.bf) addBuff(X,{st:x.bf.st,dur:x.bf.dur});
+    fire(X,Y,"cast",{slot:x.slot,dmg});
+    if(dmg>0){ fire(X,Y,"abhit",{slot:x.slot,dmg}); fire(X,Y,"hit",{slot:x.slot,dmg}); fire(Y,X,"abtaken"); } };
+  const attack=(X,Y)=>{ if(X.aaT>0||!canAct(X)||t<X.aaLock||!targetable(Y)||Y.dead) return;
+    const L=X.L, cm=X.s.ashe?1:1+L.crit*(X.s.critMul-1); let mul=1; for(const e of X.aamul) mul*=fval(e.v,X.c);
+    const d=deal(X,Y,L.ad*cm*mul,"P","aa",{critShare:X.s.ashe?0:L.crit*X.s.critMul/cm});
+    X.aaN++; const sett=X.trig.aa&&X.trig.aa.some(e=>e.fast);
+    X.aaT = sett&&X.aaN%2===1 ? 1/(8*L.as) : 1/L.as;
+    if(d!==null){ fire(X,Y,"aa",{dmg:d}); fire(X,Y,"hit",{dmg:d}); }
+    X.buffs.forEach(b=>{ if(b.hits&&b.until>t&&--b.hits<=0) b.until=t; });
+    if(d===null) return;
+    for(const e of Y.reflect){ deal(Y,X,fval(e.v,Y.c),e.t,"fx"); Y.tag(e.label); }
+    for(const e of Y.gw) if(e.taken){ X.gwV=Math.max(t<X.gwUntil?X.gwV:0,e.v); X.gwUntil=t+3; } };
+  /* Her adımın başında: süreli hasarlar, alanlar, iyileşmeler, ertelenmiş hasar, zamanlı etkiler */
+  const upkeep=(X,Y)=>{
+    if(X.reviveAt&&t>=X.reviveAt){ X.reviveAt=0; X.hp=Math.min(X.max,X.reviveHP); }
+    if(X.zombieAt&&t>=X.zombieAt){ deal(X,Y,fval(X.zombie.v,X.c),X.zombie.t,"fx"); X.zombieAt=0; X.dead=true; X.deadAt=t; X.hp=0; return; }
+    if(X.dead) return;
+    for(const k of Object.keys(X.dots)){ const d=X.dots[k]; if(!d) continue; if(d.until<=t){ delete X.dots[k]; continue; } deal(d.from,X,d.dps*dt,d.t,"dot"); }
+    for(const k in X.bleeds){ const b=X.bleeds[k]; if(b.until<=t||!b.n) continue; deal(b.from,X,b.n*b.per/b.e.dur*dt,b.e.t,"dot"); }
+    for(const q of X.delayQ){ if(q.left<=0) continue; const a=Math.min(q.left,q.rate*dt); q.left-=a; deal(q.from,X,a,"T","dd"); }
+    if(X.delayQ.length>40) X.delayQ=X.delayQ.filter(q=>q.left>0);
+    for(const e of X.aura) if(!e.need||e.need(X.c)){ deal(X,Y,fval(e.v,X.c)*dt,e.t,"aura"); }
+    let rg=X.L.regen; for(const e of X.regen) rg+=fval(e.v,X.c); if(rg>0) heal(X,rg*dt);
+    X.hots=X.hots.filter(h=>h.until>t); for(const h of X.hots) if(!(h.from>t)) heal(X,h.rate*dt);
+    for(const p of X.pend) if(p.at<=t&&!p.done){ p.done=true; p.f(); } if(X.pend.length>20) X.pend=X.pend.filter(p=>!p.done);
+    for(const e of X.timed) if(t>=e.at&&!X.used["tm"+e.i]){ X.used["tm"+e.i]=true; addBuff(X,e.buff); X.tag(e.label); }
+    for(const s of X.shields) if(s.decay) s.amt-=s.decay*dt;
+    if(X.gritFx&&t-X.gritT>4) X.grit*=1-.3*dt;
+    if(X.trig.low) fire(X,Y,"low");
+    if(X.trig.tick&&targetable(Y)) fire(X,Y,"tick"); };
+  fire(A,B,"start"); fire(B,A,"start");
+  /* Eski yöntem: ayrıştırılan doğuştan kalkan (mekanik dosyasında tanımlı değilse) */
+  for(const [X,f] of [[A,me],[B,en]]){ const fx=MX.fix[f.c.slug]||{}; const inn=(AB[f.c.slug]||{}).i;
+    if(inn&&inn.sh&&fx.i!==null) addShield(X,(inn.sh[1].mhp||0)/100*X.s.hp+(inn.sh[1].bhp||0)/100*X.s.bhp+atRank(inn.sh[0].r||[0],1),inn.sh[2]||99); X.tag("Doğuştan kalkan (pasif)",0); }
+  while(t<T && !A.dead && !B.dead){
+    A.L=live(A,B); B.L=live(B,A);
+    upkeep(A,B); upkeep(B,A);
+    if(!A.dead&&!B.dead){
+      const pa=plan(A,B), pb=plan(B,A), ra=react(A,B,pb), rb=react(B,A,pa);
+      ra.forEach(i=>cast(A,B,i)); rb.forEach(i=>cast(B,A,i));
+      pa.forEach(i=>cast(A,B,i)); pb.forEach(i=>cast(B,A,i));
+      attack(A,B); attack(B,A);
+    }
+    for(const X of [A,B]){ for(let i=0;i<X.cds.length;i++) X.cds[i]-=dt; X.aaT-=dt; }
     t+=dt; step++;
     if(step%4===0) tl.push([t, Math.max(0,A.hp/A.max), Math.max(0,B.hp/B.max)]);
   }
   tl.push([t, Math.max(0,A.hp/A.max), Math.max(0,B.hp/B.max)]);
-  // 30 sn'de iki taraf da ayaktaysa kalan canı ortalama hasar hızıyla tahmin et
-  const dps = X => (X.dAA+X.dAB)/Math.max(t,dt);
-  const ttkMe = B.hp<=0 ? t : t + B.hp/Math.max(1,dps(A));
-  const ttkEn = A.hp<=0 ? t : t + A.hp/Math.max(1,dps(B));
+  // 30 sn'de iki taraf da ayaktaysa kalan canı net hasar hızıyla tahmin et (iyileşme düşülür)
+  const net = (X,Y) => Math.max(1,(X.dAA+X.dAB-Y.healed*.5)/Math.max(t,dt));
+  const ttkMe = B.dead ? t : t + Math.max(0,B.hp)/net(A,B);
+  const ttkEn = A.dead ? t : t + Math.max(0,A.hp)/net(B,A);
+  const fxList = X => [...X.s.fx, ...Object.entries(X.fx).filter(([k])=>k).map(([k,n])=>n>1?`${k} ×${n}`:k)];
   return {sm, se, A, B, tl, ttkMe, ttkEn, abShareMe: A.dAB/Math.max(1,A.dAA+A.dAB), realMe:A.real, realEn:B.real,
-    ccMe:A.ccDealt, ccEn:B.ccDealt, shMe:A.absorbed, shEn:B.absorbed};
+    ccMe:A.ccDealt, ccEn:B.ccDealt, shMe:A.absorbed, shEn:B.absorbed, healMe:A.healed, healEn:B.healed, fxMe:fxList(A), fxEn:fxList(B)};
 }
 function simulate(me,en){
   const F=fightSim(me,en); if(!F) return null;
@@ -472,7 +717,9 @@ function fighterHTML(side){
     <div class="f-styles" role="group" aria-label="Build tarzı">${(S=>STYLES.map(([k,l,i])=>(l=k==="adc"&&(WD.champ[c.slug]||{}).rng<300?"Kritik":l,`<button type="button" data-dstyle="${side}:${k}" aria-pressed="${f.style===k}" class="${S[k].real?"real":"exp"}" title="${S[k].real?"Oyuncuların gerçekten oynadığı tarz":"Deneysel: oyuncular bu tarzı nadiren kullanır"}">${ic(i)}${l}${S[k].real?"":"<sup>?</sup>"}</button>`)).join(""))(stylesFor(c))}</div>
     <div class="f-acts"><button type="button" class="lnk" data-dclear="${side}">${ic("reset")}Yuvaları boşalt</button>${AB[c.slug]?"":`<span class="muted small">Yetenek verisi yok, ortalama alınıyor</span>`}</div>`;
 }
-const ccChip=(who,side,cc,sh)=>`<span class="ccc ${side}"><span class="who ${side}">${who}</span>${ic("bolt")}${cc>0?cc.toFixed(1).replace(".",",")+" sn kitle kontrolü":"kitle kontrolü yok"} · ${ic("shield")}${sh>0?n0(sh)+" hasar kalkanla emildi":"kalkan yok"}</span>`;
+const ccChip=(who,side,cc,sh,hl)=>`<span class="ccc ${side}"><span class="who ${side}">${who}</span>${ic("bolt")}${cc>0?cc.toFixed(1).replace(".",",")+" sn kitle kontrolü":"kitle kontrolü yok"} · ${ic("shield")}${sh>0?n0(sh)+" hasar kalkanla emildi":"kalkan yok"} · ${ic("heart")}${hl>=1?n0(hl)+" can iyileşti":"iyileşme yok"}</span>`;
+/* Hesaba katılan pasif, item ve rün etkileri (tetiklenme sayısıyla) */
+const fxRow=(who,side,list)=>list.length?`<li><span class="who ${side}">${who}</span> ${list.map(esc).join(" · ")}</li>`:"";
 function metric(label,val,delta,goodUp,hint){
   const d = delta==null||Math.abs(delta)<0.005 ? "" : `<span class="dl ${(delta>0)===goodUp?"good":"bad"}">${delta>0?"▲":"▼"} %${Math.abs(delta*100).toFixed(0)}</span>`; // ok: değerin yönü, renk: senin için iyi mi
   return `<div class="mt" title="${esc(hint||"")}"><span class="ml">${label}</span><b>${val}</b>${d}</div>`;
@@ -501,9 +748,10 @@ function renderDuel(){
     </div>
     <div class="split" title="Senin verdiğin hasarın kaynağı"><span class="sp-ab" style="width:${Math.round(r.abShareMe*100)}%"></span></div>
     <p class="muted small" style="margin:-6px 0 0">Hasarının <b>%${Math.round(r.abShareMe*100)}</b>'i yeteneklerden, <b>%${100-Math.round(r.abShareMe*100)}</b>'i normal saldırıdan.</p>
-    <div class="ccrow">${ccChip("Sen","me",r.ccMe,r.shMe)}${ccChip("Rakip","en",r.ccEn,r.shEn)}</div>
+    <div class="ccrow">${ccChip("Sen","me",r.ccMe,r.shMe,r.healMe)}${ccChip("Rakip","en",r.ccEn,r.shEn,r.healEn)}</div>
+    ${r.fxMe.length||r.fxEn.length?`<details class="dfx"><summary>Hesaba katılanlar: pasifler, item etkileri, rün</summary><ul>${fxRow("Sen","me",r.fxMe)}${fxRow("Rakip","en",r.fxEn)}</ul></details>`:""}
     ${D.log.length?`<ul class="dlog">${D.log.slice(0,3).map((l,i)=>`<li class="${i?"old":""}">${l}</li>`).join("")}</ul>`:`<p class="muted small" style="margin:0">Bir itemı ya da tarzı değiştir, sonuç anında değişsin.</p>`}
-    <p class="muted small" style="margin:0">${ic("info")} Saniye saniye simülasyon: Wild Rift taban değerleri, item sayıları ve yetenek hasarları. Kalkanlar ve kitle kontrolü dahil; iyileştirme yetenekleri, pasifler ve menzil hesaba katılmaz.</p>
+    <p class="muted small" style="margin:0">${ic("info")} Saniye saniye simülasyon: Wild Rift taban değerleri, item sayıları ve yetenek hasarları. Pasifler, item etkileri, ana rün, iyileşme, kalkan ve kitle kontrolü dahil; menzil ve kaçma hesaba katılmaz.</p>
     <button type="button" class="btn gold fight" id="d-fight">${ic("play")}Dövüştür</button>
     <div class="arena-bars" id="d-bars" hidden>
       <span class="hb-clock" id="hb-t">0 sn</span>

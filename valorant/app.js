@@ -12,7 +12,6 @@ const key = s => (s||"").toLocaleLowerCase("tr").replace(/ı/g,"i").replace(/ş/
 const dec = (v,n=1) => v.toFixed(n).replace(".",",");
 const pct = v => v==null ? "–" : "%"+dec(v);
 const n0 = v => Math.round(v).toLocaleString("tr-TR");
-const median = a => { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y); const m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; };
 const rich = s => esc(s).replace(/\*\*([\s\S]*?)\*\*/g,"<b>$1</b>");
 const fmtDate = iso => { try { return new Date(iso).toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"}); } catch { return iso; } };
 const pref = (k,d) => { try { return localStorage.getItem(k) || d; } catch { return d; } };
@@ -26,22 +25,20 @@ const SV = {
   users:'<circle cx="9" cy="8" r="3.5"/><path d="M3 20c.5-3.5 3-5.5 6-5.5s5.5 2 6 5.5"/><path d="M16 5a3 3 0 0 1 0 6M18 14.5c1.8.7 3 2.6 3 5"/>',
   gun:'<path d="M3 9h15l2-2h1v4h-4l-1 2h-4l-1 2v4H7l1-6H3z"/>',
   scroll:'<path d="M7 4h11v13a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-1h11v1a3 3 0 0 0 3 3"/><path d="M7 4a2 2 0 0 0-2 2v10M10 8h5M10 12h5"/>',
-  shield:'<path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/>',
   target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6"/>',
   bolt:'<path d="M13 3 5 13h6l-1 8 8-10h-6z"/>',
   swap:'<path d="M7 7h12l-3-3M17 17H5l3 3"/>',
   x:'<path d="M6 6l12 12M18 6 6 18"/>',
-  wand:'<path d="m4 20 11-11M14 4v3M19 9h-3M17.5 5.5l-2 2M18 14v2M20 15h-4"/>',
-  play:'<path d="M7 4v16l13-8z"/>',
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
-  ruler:'<path d="M3 16 16 3l5 5L8 21z"/><path d="m7 12 2 2M10 9l2 2M13 6l2 2"/>',
   coin:'<circle cx="12" cy="12" r="8"/><path d="M9 9.5h4.5a1.75 1.75 0 0 1 0 3.5H10a1.75 1.75 0 0 0 0 3.5H15M12 7.5v1.5M12 16.5V18"/>',
   map:'<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/>',
   eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   spark:'<path d="M12 3v5M12 16v5M3 12h5M16 12h5M6 6l3 3M15 15l3 3M18 6l-3 3M9 15l-3 3"/>',
   trophy:'<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8M10 17h4"/>',
-  head:'<circle cx="12" cy="8" r="4"/><path d="M5 21c.8-4 3.6-6 7-6s6.2 2 7 6"/>',
-  reset:'<path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/>',
+  arrow:'<path d="M4 12h15M14 7l5 5-5 5"/>',
+  down:'<path d="M12 4v15M6 13l6 6 6-6"/>',
+  run:'<path d="M13 4.5a1.5 1.5 0 1 0 0 .1M9 20l2.5-5.5L14 17v3M7 12l3-4 4 1 2 3h3"/>',
+  link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
 };
 const ic = (n,cls) => `<svg class="ic${cls?" "+cls:""}" viewBox="0 0 24 24" aria-hidden="true">${SV[n]||""}</svg>`;
 
@@ -55,8 +52,6 @@ const AG = {}, ALIST = [];
 Object.entries(G.agents).forEach(([id,a]) => {
   const s = ST && ST.all && ST.all[id];
   const o = { id, ...a, wr: s?s[0]:null, pr: s?s[1]:null, games: s?s[2]:null };
-  // Düelloda modellenen yetenekler: etiket başına bir yetenek
-  o.duel = {}; a.ab.forEach(x => (x.t||[]).forEach(t => { if(!o.duel[t]) o.duel[t]=x; }));
   AG[id]=o; ALIST.push(o);
 });
 ALIST.sort((a,b)=>a.n.localeCompare(b.n,"tr"));
@@ -92,115 +87,14 @@ function por(a,cls,noMark){
 }
 
 /* ===================================================================
- *  DÜELLO MOTORU — Monte Carlo atış atış simülasyonu
- *  Her deneme: iki taraf da tepki süresinden sonra ateş eder; her mermi için
- *  isabet (silah sapması + nişan hatası + mesafe), vücut bölgesi (kafa/gövde/bacak),
- *  menzile göre hasar ve kalkan emilimi hesaplanır. İlk ölen kaybeder.
- *  Yok sayılanlar: hareket ve sekme, siper, ses, ping/peeker avantajı, ilk mermiden
- *  sonraki geri tepme desenleri (yaklaşık), yetenek hasarları ve iyileştirmeler.
+ *  CEPHANELİK YARDIMCILARI — kalkanlar ve "kaç mermi" (hiç ıskalamadan)
  * =================================================================== */
 const DEG = Math.PI/180;
-const AIM = [
-  {n:"Ortalama", hs:.20, sig:.40, rt:.26},
-  {n:"İyi",      hs:.30, sig:.32, rt:.23},
-  {n:"Çok iyi",  hs:.40, sig:.25, rt:.20},
-];
-AIM.forEach(a => a.href = 1/(1+Math.pow(10*Math.tan(a.sig*DEG)/0.2,2)));
-const DIST = [{n:"0–15 m",a:2,b:15,mid:8},{n:"15–30 m",a:15,b:30,mid:22},{n:"30–50 m",a:30,b:50,mid:40}];
 const ARMOR = [{id:"none",n:"Yok",cap:0,abs:0,cost:0,img:null}];
 [["lightarmor",25,.66],["heavyarmor",50,.66],["plasmaarmor",25,1]].forEach(([id,cap,abs])=>{ const g=G.gear[id]; if(g) ARMOR.push({id,n:g.n,cap:g.cap||cap,abs:g.abs||abs,cost:g.cost,img:g.img,d:g.d}); });
 const ARM = Object.fromEntries(ARMOR.map(a=>[a.id,a]));
-const ABFX = {
-  flash:{n:"Flaş", fx:"Rakip yaklaşık 0,45 sn geç ateş eder (kısmi körlük)."},
-  stun:{n:"Sersemletme", fx:"Rakip ilk 2 sn çok isabetsiz ateş eder."},
-  shield:{n:"Kalkan", fx:"Sana gelen ilk isabet tamamen engellenir."},
-  stim:{n:"Kuvvetli Savaş", fx:"Yaklaşık %10 daha hızlı ateş edersin."},
-};
-const FLASH_DELAY=.45, STUN_TIME=2, STUN_SPREAD=2.5, STIM=1.10, MAXT=6, HIT_CAP=.93, N_MAIN=1600, N_FAST=700;
-
-function rng(seed){ let a=seed>>>0; return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
-const gauss = R => Math.sqrt(-2*Math.log(R()||1e-9))*Math.cos(2*Math.PI*R());
 const dmgAt = (w,d) => w.dr.find(r=>d>=r[0]&&d<r[1]) || w.dr[w.dr.length-1];
-/* Silahın bu mesafede nasıl kullanıldığı: nişan alma, seri/tek atış temposu, sapma büyümesi */
-function gunAt(w,band,stim){
-  const sn = w.cat==="Sniper", shot = w.pel>1;
-  const ads = !!w.ads && (sn || band>0) && !shot;
-  let sp = ads ? w.ads.sp : w.sp; if(!(sp>0)) sp = 0;
-  let fr = (ads && w.ads.fr) ? w.ads.fr : w.fr; if(stim) fr *= STIM;
-  const auto = (["Rifle","SMG","Heavy"].includes(w.cat) && w.fr>=6) || (w.cat==="Sidearm" && w.fr>=9);
-  let burst=Infinity, pause=0, F=1, gr=0;
-  if(auto){
-    F = w.cat==="Heavy"?4 : w.cat==="SMG"?3 : w.cat==="Sidearm"?1 : 2;
-    gr = w.cat==="Heavy"?.12 : w.cat==="SMG"?.22 : w.cat==="Sidearm"?.45 : .30;
-    if(w.cat!=="Heavy"){ if(band===1){burst=4;pause=.28} if(band===2){burst=2;pause=.36} }
-  } else if(!shot && !sn){ // yarı otomatik: uzaklaştıkça oyuncu atışlarını yavaşlatır
-    gr = band===0?.25 : band===1?.12 : .06; if(band===1) fr=Math.min(fr,4.5); if(band===2) fr=Math.min(fr,3.1); }
-  // Nişan alırken büyütme insan hatasını küçültür; saçmalar gövdenin tamamına (daha geniş alana) dağılır
-  return { w, sp, fr, burst, pause, F, gr, shot, pel:shot?w.pel:1, draw: ads?(sn?.12:.05):0, zoomK: ads&&w.ads.zoom>1?1/Math.sqrt(w.ads.zoom):1, R: shot?.40:.30 };
-}
-function mkSide(f,o,band,R){
-  const w=W[f.w], g=gunAt(w,band,f.ab.has("stim")), aim=AIM[f.aim], arm=ARM[f.arm]||ARMOR[0];
-  let t = Math.max(.12, aim.rt + gauss(R)*.035) + g.draw;
-  if(o.ab.has("flash")) t += FLASH_DELAY;
-  if(o.ab.has("stun")) t += .1;
-  return { g, w, aim, t, i:0, inB:0, mag:w.mag, hp:100, sh:arm.cap, abs:arm.abs, cap:arm.cap, block:f.ab.has("shield"), stunUntil:o.ab.has("stun")?STUN_TIME:-1, fired:0 };
-}
-function shoot(S,T,d,t,R,ev,side){
-  const g=S.g; let spread=Math.min(3.5, g.sp + g.gr*Math.max(0,S.i-g.F));
-  if(t<S.stunUntil) spread += STUN_SPREAD;
-  const sig=S.aim.sig*g.zoomK, tot=Math.sqrt(spread*spread+sig*sig)*DEG, x=d*Math.tan(tot);
-  const pHit=HIT_CAP/(1+Math.pow(x/g.R,2));
-  const pHead=Math.min(.9, S.aim.hs*Math.min(1.15,Math.sqrt((1/(1+Math.pow(x/.2,2)))/S.aim.href)));
-  const row=dmgAt(S.w,d); const parts=[]; let dealt=0, blocked=false;
-  for(let p=0;p<g.pel;p++){
-    if(R()>=pHit) continue;
-    const part = R()<pHead ? 0 : (R()<.15 ? 2 : 1);
-    let dmg = row[2+part]; parts.push(part);
-    if(T.block){ T.block=false; blocked=true; continue; }
-    if(T.sh>0){ const a=Math.min(T.sh, dmg*T.abs); T.sh-=a; dmg-=a; }
-    T.hp-=dmg; dealt+=dmg;
-  }
-  S.fired++; S.i++; S.inB++; S.mag--;
-  let dt=1/g.fr;
-  if(S.mag<=0){ dt=S.w.rl; S.mag=S.w.mag; S.i=0; S.inB=0; }
-  else if(S.inB>=g.burst){ dt+=g.pause; S.i=0; S.inB=0; }
-  S.t+=dt;
-  if(ev) ev.push({t, s:side, parts, dealt, blocked});
-}
-/* Tek deneme: 1 = sen kazandın, 0 = rakip, .5 = ikisi birden / kimse */
-function trial(me,en,band,R,passive,ev){
-  const d = DIST[band].a + R()*(DIST[band].b-DIST[band].a);
-  const A=mkSide(me,en,band,R), B=mkSide(en,me,band,R);
-  if(passive==="en") B.t=Infinity; if(passive==="me") A.t=Infinity;
-  while(true){
-    const t=Math.min(A.t,B.t); if(t>MAXT) return {res:.5,t:MAXT,A,B,d};
-    const fa=A.t<=t+1e-9, fb=B.t<=t+1e-9;
-    if(fa) shoot(A,B,d,t,R,ev,"me");
-    if(fb) shoot(B,A,d,t,R,ev,"en");
-    if(ev) { const e=ev[ev.length-1]; e.hp=[Math.max(0,A.hp),A.sh,Math.max(0,B.hp),B.sh]; if(fa&&fb) ev[ev.length-2].hp=e.hp; }
-    if(A.hp<=0||B.hp<=0) return {res: B.hp<=0&&A.hp>0?1 : A.hp<=0&&B.hp>0?0 : .5, t, A, B, d};
-  }
-}
-const cfgKey = (me,en,band) => [me.a,me.w,me.arm,me.aim,[...me.ab].sort(),en.a,en.w,en.arm,en.aim,[...en.ab].sort(),band].join("|");
-const simCache = new Map();
-function winProb(me,en,band,n){
-  const k="w"+n+cfgKey(me,en,band); if(simCache.has(k)) return simCache.get(k);
-  // İki yönlü: (sen→rakip) ve (rakip→sen) sırasıyla yarı yarıya; aynı anda ateşte sıra avantajı kalmaz
-  const h=n>>1; let s=0, R=rng(7331); for(let i=0;i<h;i++) s+=trial(me,en,band,R).res;
-  R=rng(7331); for(let i=0;i<h;i++) s+=1-trial(en,me,band,R).res;
-  const v=s/(2*h); if(simCache.size>4000) simCache.clear(); simCache.set(k,v); return v;
-}
-/* Karşılık gelmeyen ateşte öldürme süresi (tepki dahil), mermi sayısı, ilk mermide öldürme */
-function oneSided(me,en,band,n){
-  const R=rng(4242); const ts=[], bs=[]; let one=0, kills=0;
-  for(let i=0;i<n;i++){ const r=trial(me,en,band,R,"en"); if(r.res===1){ kills++; ts.push(r.t); bs.push(r.A.fired); if(r.A.fired===1) one++; } }
-  return { ttk: median(ts) ?? MAXT, bullets: median(bs) ?? 99, one: one/n, kill: kills/n };
-}
-function simulate(me,en,band){
-  const win=winProb(me,en,band,N_MAIN), a=oneSided(me,en,band,900), b=oneSided(en,me,band,900);
-  return { win, ttkMe:a.ttk, ttkEn:b.ttk, bulMe:a.bullets, bulEn:b.bullets, oneMe:a.one, oneEn:b.one };
-}
-/* Deterministik "kaç mermi": hiç ıskalamadan, verilen bölgeye; pompalılarda beklenen saçma isabeti */
+/* Verilen bölgeye kaç isabet gerekir; pompalılarda beklenen saçma isabeti */
 function stk(wid,part,armId,d){
   const w=W[wid], a=ARM[armId]||ARMOR[0], row=dmgAt(w,d);
   let per=row[2+part]; if(w.pel>1){ const x=d*Math.tan(Math.max(w.sp,0)*DEG); per*=w.pel/(1+Math.pow(x/.40,2)); }
@@ -208,144 +102,164 @@ function stk(wid,part,armId,d){
   for(let k=1;k<=60;k++){ let dm=per; if(sh>0){ const ab=Math.min(sh,dm*a.abs); sh-=ab; dm-=ab; } hp-=dm; if(hp<=0.0001) return k; }
   return null;
 }
+const cr = v => v ? `<span class="cr">${ic("coin")}${n0(v)}</span>` : `<span class="cr">Bedava</span>`;
 
 /* ===================================================================
- *  DÜELLO EKRANI
+ *  ETKİLEŞİM MOTORU — saf fonksiyonlar (DOM yok; node ile test edilir)
+ *  Veri: data/interactions.js (elle hazırlanır) · data/duos.js (vstats.gg, otomatik)
  * =================================================================== */
-const D = { me:null, en:null, band:1, prev:null, log:[], tally:[0,0], budget:0 };
-const fighter = (a,w,arm,aim,ab) => ({ a, w:W[w]?w:"vandal", arm:ARM[arm]?arm:"heavyarmor", aim:aim==null?1:aim, ab:new Set((ab||[]).filter(t=>AG[a]&&AG[a].duel[t])) });
-function dSave(){ try { const o=f=>({a:f.a,w:f.w,arm:f.arm,aim:f.aim,ab:[...f.ab]}); localStorage.setItem("rk-val-duel",JSON.stringify({me:o(D.me),en:o(D.en),band:D.band,budget:D.budget})); } catch {} }
-function dLoad(){
-  try { const s=JSON.parse(localStorage.getItem("rk-val-duel")||"null");
-    if(s&&s.me&&AG[s.me.a]&&s.en&&AG[s.en.a]){ D.me=fighter(s.me.a,s.me.w,s.me.arm,s.me.aim,s.me.ab); D.en=fighter(s.en.a,s.en.w,s.en.arm,s.en.aim,s.en.ab); D.band=[0,1,2].includes(s.band)?s.band:1; D.budget=s.budget||0; return; } } catch {}
-  const first=ALIST[0]&&ALIST[0].id, second=ALIST[1]&&ALIST[1].id;
-  D.me=fighter(AG.jett?"jett":first,"vandal","heavyarmor",1); D.en=fighter(AG.reyna?"reyna":second,W.phantom?"phantom":"vandal","heavyarmor",1);
+const IXD = Object.assign({tags:{},vs:[],sp:[],duo:[],tips:{},roleVs:{},fresh:{}}, window.VAL_IX||{});
+const DUOS = window.VAL_DUOS || null;
+const ABK = ["Q","E","C","X"];
+const abOf = (id,k) => (AG[id] && AG[id].ab.find(x=>x.k===k)) || null;
+const abHas = (id,k,list) => (IXD.tags[id+":"+k]||[]).some(t=>list.includes(t));
+const abWith = (id,list) => ABK.filter(k=>abOf(id,k)&&abHas(id,k,list)).map(k=>abOf(id,k));
+const IXT = {
+  engel:{n:"Kapatır",i:"x"}, kontra:{n:"Zayıflatır",i:"down"}, kacar:{n:"Kaçar",i:"run"}, ifsa:{n:"Gösterir",i:"eye"}, kombo:{n:"Kombo",i:"link"},
+};
+/* me'nin yetenekleri en'e karşı: kural etiketleri + özel çiftler, önem sırasıyla */
+function vsSide(me,en){
+  if(!AG[me]||!AG[en]) return [];
+  const out=[];
+  for(const r of IXD.vs){ const a=abWith(me,r.a), b=abWith(en,r.b); if(a.length&&b.length) out.push({id:r.id,t:r.t,s:r.s,x:r.x,a,b}); }
+  for(const p of IXD.sp){ const [ai,ak]=p.a.split(":"), [bi,bk]=p.b.split(":");
+    if(ai===me&&bi===en&&abOf(me,ak)&&abOf(en,bk)) out.push({id:"sp:"+p.a+">"+p.b,t:p.t,s:p.s,x:p.x,a:[abOf(me,ak)],b:[abOf(en,bk)]}); }
+  return out.sort((x,y)=>y.s-x.s);
 }
-const verdictTxt = s => s>=.62?["Sen kazanırsın","good"]:s>=.54?["Avantaj sende","good"]:s>.46?["Başa baş","even"]:s>.38?["Rakip önde","bad"]:["Rakip kazanır","bad"];
-const secs = t => t>=MAXT?"6+ sn":dec(t,2)+" sn";
-const cr = v => v ? `<span class="cr">${ic("coin")}${n0(v)}</span>` : `<span class="cr">Bedava</span>`;
-const PART = ["Kafa","Gövde","Bacak"];
+function matchup(me,en){
+  const mine=vsSide(me,en), theirs=vsSide(en,me);
+  return { mine, theirs, tips:IXD.tips[en]||[], role:AG[en]?IXD.roleVs[AG[en].r]||"":"",
+    general: mine.length+theirs.length<2, fresh:[me,en].filter((x,i,a)=>IXD.fresh[x]&&a.indexOf(x)===i).map(x=>({id:x,txt:IXD.fresh[x]})) };
+}
+/* İkili kombolar: her kural her iki yönde denenir */
+function duoCombos(a,b){
+  const out=[];
+  if(!AG[a]||!AG[b]||a===b) return out;
+  for(const r of IXD.duo) for(const [x,y] of [[a,b],[b,a]]){
+    const A=abWith(x,r.a); if(!A.length) continue;
+    const B=r.b==="*"?[]:abWith(y,r.b); if(r.b!=="*"&&!B.length) continue;
+    out.push({id:r.id+":"+x,t:"kombo",s:r.s,x:r.x,from:x,to:y,a:A,b:B});
+  }
+  return out.sort((p,q)=>q.s-p.s);
+}
+/* Uyum tahmini (0–100): kombolar (en fazla 50 puan) + rol dengesi. Maç verisi değildir. */
+function synergy(a,b){
+  const combos=duoCombos(a,b);
+  if(!combos.length&&a===b) return {score:0,combos,roleTxt:"",same:true};
+  const ra=AG[a].r, rb=AG[b].r;
+  let role = ra===rb ? -8 : 12; if((ra==="strategist")!==(rb==="strategist")) role+=4;
+  const cs=Math.min(50,combos.reduce((s,c)=>s+c.s,0));
+  return { score:Math.max(5,Math.min(99,Math.round(30+role+cs))), combos, role,
+    roleTxt: ra===rb ? "Aynı rol: görevler çakışır." : (ra==="strategist")!==(rb==="strategist") ? "Farklı roller, biri duman atıyor." : "Farklı roller." };
+}
+/* Ölçülen ikili oranı (vstats.gg). Harita seçiliyse ve o haritada yeterli maç varsa harita verisi. */
+const DUO_MIN = {all:2000, map:800}, DUO_LOW = 3000;
+function pairStat(a,b,map){
+  if(!DUOS||!AG[a]||!AG[b]||a===b) return null;
+  const k=[a,b].sort().join("|");
+  const tries = map&&map!=="all"&&DUOS.map&&DUOS.map[map] ? [["map",DUOS.map[map]],["all",DUOS.all]] : [["all",DUOS.all]];
+  for(const [scope,T] of tries){
+    const p=T&&T.p&&T.p[k]; if(!p||p[1]<DUO_MIN[scope]) continue;
+    const ea=T.ag[a], eb=T.ag[b]; const exp = ea&&eb ? ea[0]+eb[0]-50 : null;
+    return { wr:p[0], m:p[1], exp, diff: exp==null?null:p[0]-exp, scope, map: scope==="map"?map:"all", low:p[1]<DUO_LOW, fellBack: map&&map!=="all"&&scope==="all" };
+  }
+  return null;
+}
+function bestPartners(a,map,n=5){
+  const rows=ALIST.filter(x=>x.id!==a).map(x=>({id:x.id, st:pairStat(a,x.id,map), syn:synergy(a,x.id).score}));
+  const measured=rows.filter(r=>r.st&&(map==="all"||r.st.scope==="map")).sort((x,y)=>y.st.wr-x.st.wr||y.syn-x.syn).slice(0,n);
+  const combo=[...rows].sort((x,y)=>y.syn-x.syn||((y.st&&y.st.wr)||0)-((x.st&&x.st.wr)||0)).slice(0,n);
+  return {measured, combo};
+}
+/* Bu ajana karşı en güçlü yetenek etkileşimine sahip rakipler (profil için) */
+function counterList(id,n=5){
+  return ALIST.filter(x=>x.id!==id).map(x=>({id:x.id, s:vsSide(x.id,id).filter(r=>r.t==="engel"||r.t==="kontra").reduce((s,r)=>s+r.s,0)}))
+    .filter(r=>r.s>0).sort((x,y)=>y.s-x.s||AG[x.id].n.localeCompare(AG[y.id].n,"tr")).slice(0,n);
+}
 
-function fighterHTML(side){
-  const f=D[side], a=AG[f.a], w=W[f.w], o=D[side==="me"?"en":"me"], d=DIST[D.band].mid;
-  const wc=lastChange("wp",f.w);
-  const abs=Object.entries(a.duel);
-  const shot=w.pel>1;
-  return `<div class="f-top">
-      <button type="button" class="f-pick" data-dpick="${side}" aria-label="${side==="me"?"Ajanını":"Rakip ajanı"} değiştir: ${esc(a.n)}">${por(a,"xl")}<span class="f-swap">${ic("swap")}</span></button>
-      <div class="f-id"><span class="f-side">${side==="me"?"Sen":"Rakip"}</span><b class="f-name">${esc(a.n)}</b>${roleChip(a.r)}</div>
+/* ===================================================================
+ *  ANA EKRAN — VS (yetenek etkileşimleri) · Duo (ikili seçim)
+ * =================================================================== */
+const H = { mode:"vs", me:null, en:null, fr:null, map:"all" };
+function hSave(){ try { localStorage.setItem("rk-val-home",JSON.stringify(H)); } catch {} }
+function hLoad(){
+  let s=null; try { s=JSON.parse(localStorage.getItem("rk-val-home")||"null"); } catch {}
+  const ok=id=>AG[id]?id:null, ids=ALIST.map(a=>a.id);
+  H.mode = s&&s.mode==="duo" ? "duo" : "vs";
+  H.me = ok(s&&s.me) || ok("jett") || ids[0];
+  H.en = ok(s&&s.en) || ok("deadlock") || ids[1];
+  H.fr = ok(s&&s.fr) || ok("sova") || ids.find(x=>x!==H.me);
+  if(H.fr===H.me) H.fr=ids.find(x=>x!==H.me);
+  H.map = s&&s.map&&DUOS&&DUOS.map&&DUOS.map[s.map] ? s.map : "all";
+}
+const abIcon = (x,cls) => x ? `<span class="abk${cls?" "+cls:""}" title="${esc(x.n)}">${mk(x.img)}<i>${x.k}</i></span>` : "";
+function pickCard(side,id){
+  const a=AG[id], lbl={me:"Sen",en:"Rakip",fr:"Arkadaşın"}[side];
+  return `<button type="button" class="f-pick" data-hpick="${side}" aria-label="${lbl}: ${esc(a.n)} — değiştir">${por(a,"xl")}<span class="f-swap">${ic("swap")}</span></button>
+    <div class="f-id"><span class="f-side">${lbl}</span><b class="f-name">${esc(a.n)}</b>${roleChip(a.r)}</div>
+    <div class="abrow" aria-label="Yetenekler">${ABK.map(k=>abIcon(abOf(id,k))).join("")}</div>`;
+}
+const abNames = l => l.map(x=>esc(x.n)).join(", ");
+function ixRow(r){
+  const T=IXT[r.t]||IXT.kombo;
+  const right = r.b.length ? `<span class="ix-to">${ic("arrow")}</span><span class="ix-ab">${r.b.map(x=>abIcon(x)).join("")}</span>` : "";
+  return `<li class="ix" data-t="${r.t}"><div class="ix-top"><span class="ix-ab">${r.a.map(x=>abIcon(x)).join("")}</span>${right}<span class="ix-t">${ic(T.i)}${T.n}</span></div>
+    <div class="ix-nm">${abNames(r.a)}${r.b.length?` <span class="muted">›</span> ${abNames(r.b)}`:""}</div><p>${esc(r.x)}</p></li>`;
+}
+function ixList(rows,empty,max=5){
+  if(!rows.length) return `<p class="muted small ix-none">${esc(empty)}</p>`;
+  const head=rows.slice(0,max), rest=rows.slice(max);
+  return `<ul class="ixs">${head.map(ixRow).join("")}</ul>${rest.length?`<details class="more"><summary>${rest.length} etkileşim daha</summary><ul class="ixs">${rest.map(ixRow).join("")}</ul></details>`:""}`;
+}
+function vsHTML(me,en){
+  const M=matchup(me,en), A=AG[me], E=AG[en];
+  const fresh = M.fresh.map(f=>`<p class="fresh">${ic("info")}<span><b>${esc(AG[f.id].n)}</b>: ${esc(f.txt)}</span></p>`).join("");
+  return `${fresh}<div class="grid2">
+    <div class="card side me"><h2>${ic("spark")}Senin elinde <small>${esc(A.n)} › ${esc(E.n)}</small></h2>${ixList(M.mine,"Rakibin yeteneklerine doğrudan bir karşılığın yok.")}</div>
+    <div class="card side en"><h2>${ic("bolt")}Rakibin elinde <small>${esc(E.n)} › ${esc(A.n)}</small></h2>${ixList(M.theirs,"Senin yeteneklerine doğrudan bir karşılığı yok.")}</div>
+  </div>
+  <div class="card"><h2>${ic("target")}Nasıl oynanır <small>${esc(E.n)} karşısında</small></h2>
+    <ul class="tips">${M.tips.map(t=>`<li>${esc(t)}</li>`).join("")}${M.general&&M.role?`<li>${roleChip(E.r)} ${esc(M.role)}</li>`:""}</ul>
+    ${M.general?`<p class="muted small" style="margin:10px 0 0">Bu eşleşmede yetenekler birbirini doğrudan etkilemiyor; yukarıdakiler rol ve ajan için genel öneriler.</p>`:""}</div>
+  <p class="legend muted small">${Object.entries(IXT).filter(([k])=>k!=="kombo").map(([k,v])=>`<span class="ix-t" data-t="${k}">${ic(v.i)}${v.n}</span>`).join("")}<span>Soldaki yetenek sağdakini etkiler. Kaynak: oyun içi açıklamalar ve VALORANT Wiki, yama ${esc(IXD.patch||"")}.</span></p>`;
+}
+const pctTR = v => "%"+dec(v);
+function duoHTML(me,fr,map){
+  if(me===fr) return `<div class="empty">Aynı takımda iki aynı ajan olamaz. Arkadaşın için başka bir ajan seç.</div>`;
+  const S=synergy(me,fr), P=pairStat(me,fr,map), A=AG[me], F=AG[fr];
+  const mapN = m => m==="all"?"tüm haritalar":(G.maps[m]||{}).n||m;
+  const wrBox = P ? `<div class="dwr"><span class="ml">Birlikte kazanma</span><b>${pctTR(P.wr)}</b>
+      ${P.diff!=null?`<span class="dl ${P.diff>=.3?"good":P.diff<=-.3?"bad":""}">${P.diff>=0?"▲ +":"▼ −"}${dec(Math.abs(P.diff))} puan</span>`:""}
+      <span class="muted small">${n0(P.m)} maç · ${esc(mapN(P.map))}${P.low?" · az örnek":""}. Beklenen ${P.exp!=null?pctTR(P.exp):"–"} (ikisinin ayrı ayrı oranından).${P.fellBack?` ${esc(mapN(map))} için yeterli maç yok.`:""}</span></div>`
+    : `<div class="dwr"><span class="ml">Birlikte kazanma</span><b>–</b><span class="muted small">${DUOS?"Bu ikili için yeterli maç verisi yok.":"İkili oran verisi şu an yok."}</span></div>`;
+  const B=bestPartners(me,map);
+  const chip=(r,val)=>`<button type="button" class="pchip${r.id===fr?" on":""}" data-hfr="${r.id}">${por(AG[r.id],"sm",true)}<span class="n">${esc(AG[r.id].n)}</span><span class="v">${val}</span></button>`;
+  return `<div class="grid2">
+    <div class="card duo-sum"><h2>${ic("link")}${esc(A.n)} + ${esc(F.n)}</h2>
+      <div class="dsc"><div class="ring" style="--v:${S.score}"><b>${S.score}</b><small>uyum</small></div>${wrBox}</div>
+      <p class="muted small" style="margin:10px 0 0">Uyum, yetenek kombolarından ve rol dengesinden hesaplanan bir tahmindir (${esc(S.roleTxt)}). Birlikte kazanma oranı ölçülmüş veridir: ${DUOS?`${esc(DUOS.queue||"Rekabetçi")} · ${esc(DUOS.rank||"")} · ${esc(DUOS.actName||"")} · ${esc(DUOS.src)} (${fmtDate(DUOS.date)})`:"veri yok"}.</p></div>
+    <div class="card"><h2>${ic("spark")}Kombolar <small>${S.combos.length}</small></h2>${ixList(S.combos,"Bu iki ajanın yetenekleri arasında belirgin bir kombo yok.",6)}</div>
+  </div>
+  <div class="card"><h2>${ic("users")}${esc(A.n)} için en iyi eşler <small>${esc(mapN(map))}</small></h2>
+    <div class="grid2 tight">
+      <div><h3 class="h3">${ic("trophy")}Birlikte en çok kazanan</h3>${B.measured.length?`<div class="pchips">${B.measured.map(r=>chip(r,pctTR(r.st.wr))).join("")}</div>`:`<p class="muted small">Bu harita için yeterli ikili verisi yok.</p>`}</div>
+      <div><h3 class="h3">${ic("link")}En iyi kombo</h3><div class="pchips">${B.combo.map(r=>chip(r,r.syn)).join("")}</div></div>
     </div>
-    <button type="button" class="f-gun" data-dgun="${side}" aria-label="Silah: ${esc(w.n)} — değiştir">
-      <span style="min-width:0;display:grid;gap:6px">${mk(w.img,"gimg")}<span class="gnm">${esc(w.n)} ${wc&&wc.n===LAST?chgBadge(wc.ch.v):""}</span></span>
-      <span class="gsub">${cr(w.cost)}<small>${esc(catName(w.cat))}</small><small>değiştir ›</small></span>
-    </button>
-    <div class="f-row" title="Kalkan">${ic("shield")}<div class="opt" role="group" aria-label="Kalkan">${ARMOR.map(x=>`<button type="button" data-darm="${side}:${x.id}" aria-pressed="${f.arm===x.id}" title="${esc(x.n)}${x.cap?` · ${x.cap} kalkan, hasarın %${Math.round(x.abs*100)}'ini emer`:""}">${x.img?mk(x.img):""}${esc(x.id==="plasmaarmor"?"Yenilenen":x.id==="none"?"Yok":x.n.split(" ")[0])}${x.cap?`<small>${x.cap}</small>`:""}</button>`).join("")}</div></div>
-    <div class="f-row" title="Nişan">${ic("target")}<div class="opt" role="group" aria-label="Nişan (kafa vuruşu oranı)">${AIM.map((x,i)=>`<button type="button" data-daim="${side}:${i}" aria-pressed="${f.aim===i}">${esc(x.n)}<small>%${Math.round(x.hs*100)}</small></button>`).join("")}</div></div>
-    ${abs.length?`<div class="f-row" title="Düelloya etki eden yetenekler">${ic("spark")}<div class="opt abt" role="group" aria-label="Yetenek kullan">${abs.map(([t,x])=>`<button type="button" data-dab="${side}:${t}" aria-pressed="${f.ab.has(t)}" title="${esc(x.n)}: ${esc(ABFX[t].fx)}">${mk(x.img)}${esc(ABFX[t].n)}</button>`).join("")}</div></div>`:""}
-    <dl class="f-stats" title="Hiç ıskalamadan, rakibin kalkanına karşı ${DIST[D.band].n} mesafede kaç mermi gerekir${shot?" (pompalıda beklenen saçma isabetiyle)":""}">
-      ${[0,1,2].map(p=>{const k=stk(f.w,p,o.arm,d);return `<div class="${p===0&&k===1?"hd":""}"><dt>${PART[p]}</dt><dd>${k?(shot?"≈":"")+k:"–"}</dd></div>`}).join("")}
-      <div><dt>Atış/sn</dt><dd>${dec(w.fr,w.fr<10?2:1).replace(/,?0+$/,"")}</dd></div>
-      <div><dt>Şarjör</dt><dd>${w.mag}</dd></div>
-    </dl>`;
+    <p class="muted small" style="margin:10px 0 0">Dokun: arkadaşının ajanı olarak seç. Soldaki liste ölçülmüş birlikte kazanma oranı (en az ${n0(map==="all"?DUO_MIN.all:DUO_MIN.map)} maç), sağdaki uyum tahmini.</p></div>`;
 }
-function metric(label,val,delta,goodUp,hint){
-  const d = delta==null||Math.abs(delta)<0.005 ? "" : `<span class="dl ${(delta>0)===goodUp?"good":"bad"}">${delta>0?"▲":"▼"} %${Math.abs(delta*100).toFixed(0)}</span>`;
-  return `<div class="mt" title="${esc(hint||"")}"><span class="ml">${label}</span><b>${val}</b>${d}</div>`;
+function renderHome(){
+  const duo=H.mode==="duo";
+  segSet($("#h-mode"),"hm",H.mode);
+  $("#f-me").innerHTML=pickCard("me",H.me);
+  $("#f-en").innerHTML=pickCard(duo?"fr":"en",duo?H.fr:H.en);
+  $("#f-en").className="fighter "+(duo?"fr":"en");
+  $("#h-vs").textContent=duo?"+":"VS";
+  const maps = DUOS&&DUOS.map ? Object.keys(DUOS.map).filter(m=>G.maps[m]).sort() : [];
+  $("#h-map").hidden=!duo||!maps.length;
+  $("#h-map").innerHTML=[["all","Tüm haritalar"],...maps.map(m=>[m,G.maps[m].n])].map(([k,v])=>`<button type="button" data-hmap="${k}" aria-pressed="${H.map===k}">${k==="all"?ic("map"):""}${esc(v)}</button>`).join("");
+  $("#h-out").innerHTML = duo ? duoHTML(H.me,H.fr,H.map) : vsHTML(H.me,H.en);
+  hSave();
 }
-let lastR=null;
-function renderDuel(){
-  $("#f-me").innerHTML=fighterHTML("me"); $("#f-en").innerHTML=fighterHTML("en");
-  $("#d-dist").innerHTML=DIST.map((x,i)=>`<button type="button" data-dband="${i}" aria-pressed="${D.band===i}">${x.n}</button>`).join("")+`<small>Mesafe</small>`;
-  const r=simulate(D.me,D.en,D.band); lastR=r; const out=$("#d-result"), p=D.prev;
-  const rel=(a,b)=>b?(a-b)/b:null;
-  const V=verdictTxt(r.win), pctMe=Math.round(r.win*100);
-  out.innerHTML=`
-    <div class="tug" role="img" aria-label="Kazanma şansı: sen yüzde ${pctMe}, rakip yüzde ${100-pctMe}">
-      <span class="tug-me" style="width:${pctMe}%"><b>%${pctMe}</b></span><span class="tug-en"><b>%${100-pctMe}</b></span>
-    </div>
-    <div class="verdict ${V[1]}"><span class="vh">${esc(V[0])}</span>
-      <span class="muted small">Bu ayarlarla 100 düellonun yaklaşık <b>${pctMe}</b>'ini sen kazanırsın.</span></div>
-    <div class="metrics">
-      ${metric("Rakibi indirme",secs(r.ttkMe),p?rel(r.ttkMe,p.ttkMe):null,false,"Rakip karşılık vermezse: tepki süresi + ilk atıştan ölüme kadar geçen süre (ortanca)")}
-      ${metric("Seni indirme",secs(r.ttkEn),p?rel(r.ttkEn,p.ttkEn):null,true,"Sen karşılık vermezsen rakibin seni indirme süresi (ortanca)")}
-      ${metric("Gereken mermi",dec(r.bulMe,r.bulMe%1?1:0),p?rel(r.bulMe,p.bulMe):null,false,"Rakibi indirmek için ateşlediğin mermi sayısı (ortanca, ıskalar dahil)")}
-      ${metric("İlk mermide öldürme","%"+Math.round(r.oneMe*100),p?(p.oneMe?rel(r.oneMe,p.oneMe):(r.oneMe>0?1:null)):null,true,"İlk merminin rakibi tek başına indirme olasılığı")}
-    </div>
-    ${D.log.length?`<ul class="dlog">${D.log.slice(0,3).map((l,i)=>`<li class="${i?"old":""}">${l}</li>`).join("")}</ul>`:`<p class="muted small" style="margin:0">Silahı, kalkanı, mesafeyi ya da nişanı değiştir; sonuç anında değişsin.</p>`}
-    <div class="fight-row"><button type="button" class="btn gold" id="d-fight">${ic("play")}Dövüştür</button><span class="tally" id="d-tally">${D.tally[0]+D.tally[1]?`Skor ${D.tally[0]} – ${D.tally[1]}`:""}</span></div>
-    <div class="arena-bars" id="d-bars" hidden>
-      <div class="hb-top"><span class="hb-clock" id="hb-t">0,00 sn</span><span class="muted small" id="hb-d"></span></div>
-      <div class="hb"><span>${esc(AG[D.me.a].n)}</span><span class="bar"><b id="hb-me"></b><s id="hs-me"></s></span><span class="num" id="hn-me"></span></div>
-      <div class="hb"><span>${esc(AG[D.en.a].n)}</span><span class="bar"><b id="hb-en" class="en"></b><s id="hs-en"></s></span><span class="num" id="hn-en"></span></div>
-      <ul class="feed" id="d-feed" aria-hidden="true"></ul>
-      <p id="d-ko" class="ko" aria-live="polite"></p>
-    </div>
-    <p class="note muted small">${ic("info")}<span>Atış atış ${N_MAIN} denemelik simülasyon: silahın atış hızı, ilk mermi sapması, menzile göre kafa/gövde/bacak hasarı, kalkan emilimi ve nişan profilinin tepki süresi ile kafa oranı. Hareket, siper, ses, ping avantajı, yetenek hasarları ve iyileştirmeler hesaba katılmaz; ajan seçimi yalnızca işaretli yeteneklerle etkiler.</span></p>`;
-  $("#d-fight").onclick=fight;
-  renderRecs(); renderRange();
-  D.prev={ttkMe:r.ttkMe,ttkEn:r.ttkEn,bulMe:r.bulMe,oneMe:r.oneMe,win:r.win};
-  dSave();
-}
-/* Dövüştür: rastgele bir deneme atış atış oynatılır */
-function fight(){
-  const bars=$("#d-bars"); bars.hidden=false;
-  const ev=[]; const seed=(Math.random()*2**31)|0; const res=trial(D.me,D.en,D.band,rng(seed),null,ev);
-  const capMe=(ARM[D.me.arm]||ARMOR[0]).cap, capEn=(ARM[D.en.arm]||ARMOR[0]).cap;
-  const set=(hp,sh,cap,id)=>{ const tot=100+cap; $("#hb-"+id).style.width=(hp/tot*100)+"%"; $("#hs-"+id).style.width=(sh/tot*100)+"%"; $("#hn-"+id).textContent=Math.ceil(hp)+(cap?" +"+Math.ceil(sh):""); };
-  set(100,capMe,capMe,"me"); set(100,capEn,capEn,"en");
-  $("#hb-d").textContent=`${Math.round(res.d)} m`;
-  const feed=$("#d-feed"), ko=$("#d-ko"), clock=$("#hb-t"); feed.innerHTML=""; ko.textContent="";
-  const end=Math.max(res.t,.05); const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const dur=reduce?0:Math.min(3600,Math.max(1400,end*2600));
-  const nm={me:AG[D.me.a].n,en:AG[D.en.a].n};
-  const line=e=>{ const who=e.s==="me"?`<span class="who me">Sen</span>`:`<span class="who en">Rakip</span>`;
-    if(e.blocked&&!e.dealt) return `<li><span class="t">${dec(e.t,2)}</span>${who}<span>Kalkan isabeti engelledi</span></li>`;
-    if(!e.parts.length) return `<li><span class="t">${dec(e.t,2)}</span>${who}<span class="ms">Iska</span></li>`;
-    const c=[0,1,2].map(p=>e.parts.filter(x=>x===p).length); const txt=c.map((k,p)=>k?`${PART[p]}${k>1?" ×"+k:""}`:"").filter(Boolean).join(", ");
-    return `<li><span class="t">${dec(e.t,2)}</span>${who}<span class="${c[0]?"hd":""}">${txt}</span><span class="muted">−${Math.round(e.dealt)}</span></li>`; };
-  let shown=0; const t0=performance.now(); let done=false;
-  const step=now=>{ if(done) return; const k=dur?Math.min(1,(now-t0)/dur):1; const tt=end*k;
-    while(shown<ev.length&&ev[shown].t<=tt+1e-9){ const e=ev[shown++]; set(e.hp[0],e.hp[1],capMe,"me"); set(e.hp[2],e.hp[3],capEn,"en"); feed.insertAdjacentHTML("afterbegin",line(e)); while(feed.children.length>4) feed.lastChild.remove(); }
-    clock.textContent=dec(tt,2)+" sn";
-    if(k<1){ requestAnimationFrame(step); return; }
-    done=true;
-    if(res.res===1){ D.tally[0]++; ko.innerHTML=`<b class="good">${esc(nm.en)} düştü.</b> ${esc(nm.me)} ${Math.ceil(res.A.hp)} canla ayakta (${secs(res.t)}, ${res.A.fired} mermi).`; }
-    else if(res.res===0){ D.tally[1]++; ko.innerHTML=`<b class="bad">${esc(nm.me)} düştü.</b> ${esc(nm.en)} ${Math.ceil(res.B.hp)} canla ayakta (${secs(res.t)}, ${res.B.fired} mermi).`; }
-    else ko.innerHTML = res.t>=MAXT?`<b>6 saniyede kimse düşmedi.</b>`:`<b>İkisi aynı anda düştü (takas).</b>`;
-    $("#d-tally").textContent=`Skor ${D.tally[0]} – ${D.tally[1]}`;
-    $("#d-fight").innerHTML=`${ic("reset")}Tekrar dövüştür`;
-  };
-  requestAnimationFrame(step); setTimeout(()=>step(t0+dur+1), dur+80);
-}
-/* Bu rakibe ve menzile karşı en iyi silahlar: her silah senin elinde denenir */
-const BUDGET = [[0,"Tümü"],[2900,"≤ 2.900"],[1600,"≤ 1.600"],[800,"≤ 800"]];
-function weaponGains(side,list){
-  const base=winProb(D.me,D.en,D.band,N_FAST);
-  return list.map(w=>{ const f={...D[side],w:w.id}; const p= side==="me"?winProb(f,D.en,D.band,N_FAST):winProb(D.me,f,D.band,N_FAST);
-    return {w, win:side==="me"?p:1-p, gain: side==="me"?p-base:base-p}; });
-}
-function renderRecs(){
-  const lim=BUDGET[D.budget][0];
-  const list=WLIST.filter(w=>w.id!==D.me.w&&(!lim||w.cost<=lim));
-  const best=weaponGains("me",list).sort((a,b)=>b.win-a.win).slice(0,6);
-  $("#d-recs").innerHTML=`<h2>${ic("wand")}Bu rakibe en iyi silahlar <small>${esc(DIST[D.band].n)}</small></h2>
-    <div class="seg sm" role="group" aria-label="Bütçe" style="margin-bottom:12px">${BUDGET.map(([v,l],i)=>`<button type="button" data-dbud="${i}" aria-pressed="${D.budget===i}">${i?ic("coin"):""}${l}</button>`).join("")}</div>
-    ${best.length?`<div class="rec-row">${best.map(x=>`<button type="button" class="rec" data-dwpn="${x.w.id}" title="Kazanma şansın %${Math.round(x.win*100)} olur">${mk(x.w.img)}<span class="nm">${esc(x.w.n)}</span>${cr(x.w.cost)}<span class="gain ${x.gain>.004?"good":x.gain<-.004?"bad":""}">${Math.abs(x.gain)<.005?"±0":(x.gain>0?"+":"−")+Math.round(Math.abs(x.gain)*100)} puan</span></button>`).join("")}</div>`:'<div class="empty">Bu bütçede başka silah yok.</div>'}
-    <p class="muted small" style="margin:10px 0 0">Puan: silahı değiştirirsen kazanma şansın kaç puan değişir. Dokun, kuşan.</p>`;
-}
-function renderRange(){
-  $("#d-range").innerHTML=`<h2>${ic("ruler")}Mesafeye göre şansın</h2>
-    <div class="rng">${DIST.map((x,i)=>{ const p=Math.round(winProb(D.me,D.en,i,i===D.band?N_MAIN:N_FAST)*100);
-      return `<button type="button" class="rngrow" data-dband="${i}" aria-pressed="${D.band===i}"><span class="l">${x.n}</span><span class="tb" role="img" aria-label="Yüzde ${p}"><i style="width:${p}%"></i></span><b class="${p>=54?"good":p<=46?"bad":""}">%${p}</b></button>`; }).join("")}</div>
-    <p class="muted small" style="margin:10px 0 0">${(()=>{ const ps=DIST.map((x,i)=>winProb(D.me,D.en,i,i===D.band?N_MAIN:N_FAST)); const bi=ps.indexOf(Math.max(...ps)), wi=ps.indexOf(Math.min(...ps));
-      return ps[bi]-ps[wi]<.06?"Mesafe bu eşleşmede pek fark yaratmıyor.":`En rahat olduğun mesafe <b>${DIST[bi].n}</b>; <b>${DIST[wi].n}</b> aralığından kaçın.`; })()}</p>`;
-}
-function logChange(side,what,before){
-  const r=winProb(D.me,D.en,D.band,N_MAIN); const d=Math.round((r-before)*100);
-  const sf=side==="me"?"n":"";
-  D.log.unshift(`${side?`<span class="who ${side}">${side==="me"?"Sen":"Rakip"}</span> `:""}${what.replace("{s}",sf)} → avantajın <b class="${d>=0?"good":"bad"}">${d>=0?"+":"−"}${Math.abs(d)} puan</b>`); D.log=D.log.slice(0,3);
-}
-function change(side,fn,what){ const before=winProb(D.me,D.en,D.band,N_MAIN); fn(); if(what) logChange(side,what,before); renderDuel(); }
 
 /* Ajan seçici */
 const ov=$("#ov"); let pickerCb=null, pickerRole="all";
@@ -366,48 +280,27 @@ function drawPicker(){
   const rows=ALIST.filter(a=>(pickerRole==="all"||a.r===pickerRole)&&(!q||key(a.n).includes(q)));
   $("#pk-grid").innerHTML=rows.map(a=>`<button class="pbtn" type="button" data-pick="${a.id}">${por(a)}<span>${esc(a.n)}</span></button>`).join("")||'<div class="empty">Bulunamadı.</div>';
 }
-/* Silah seçici: her seçeneğin kazanma şansına etkisi kutunun üstünde */
-let wpSide="me";
-function openWeaponPicker(side){
-  wpSide=side; const f=D[side];
-  const gains=Object.fromEntries(weaponGains(side,WLIST).map(x=>[x.w.id,x]));
-  ov.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Silah seç">
-    <div class="sheet-head"><h3>${side==="me"?"Senin":"Rakibin"} silahı</h3><span class="muted small">${esc(DIST[D.band].n)}</span><button class="btn icon" type="button" data-close aria-label="Kapat">${ic("x")}</button></div>
-    <p class="muted small" style="margin:0">Kutulardaki sayı: bu silahla ${side==="me"?"senin":"rakibin"} kazanma şansı kaç puan değişir.</p>
-    <div class="wpk">${CAT_ORDER.map(c=>{const ws=WLIST.filter(w=>w.cat===c); if(!ws.length) return "";
-      return `<section><h4>${esc(catName(c))}</h4><div class="wgrid">${ws.map(w=>{const g=gains[w.id], on=w.id===f.w; const v=g?g.gain:0;
-        return `<button type="button" class="wbtn${on?" on":""}" data-wpick="${w.id}"${on?' aria-current="true"':""}>${chgBadge((chgOf("wp",w.id)||{}).v)}${mk(w.img)}<span class="nm">${esc(w.n)}</span><span class="meta">${cr(w.cost)}<span class="gain ${on?"":v>.004?"good":v<-.004?"bad":""}">${on?"Kuşanılı":Math.abs(v)<.005?"±0":(v>0?"+":"−")+Math.round(Math.abs(v)*100)}</span></span></button>`}).join("")}</div></section>`}).join("")}</div></div>`;
-  ov.hidden=false;
-}
 ov.addEventListener("click",e=>{
   if(e.target===ov||e.target.closest("[data-close]")){ ov.hidden=true; return; }
-  const p=e.target.closest("[data-pick]"); if(p){ ov.hidden=true; pickerCb&&pickerCb(AG[p.dataset.pick]); return; }
-  const w=e.target.closest("[data-wpick]"); if(w){ ov.hidden=true; const id=w.dataset.wpick, side=wpSide; if(id===D[side].w) return;
-    const old=W[D[side].w].n; change(side,()=>{D[side].w=id},`${esc(old)} yerine <b>${esc(W[id].n)}</b> aldı{s}`); return; }
+  const p=e.target.closest("[data-pick]"); if(p){ ov.hidden=true; pickerCb&&pickerCb(AG[p.dataset.pick]); }
 });
 ov.addEventListener("keydown",e=>{ if(e.key==="Enter"&&e.target.id==="pk-q"){ const f=ov.querySelector("[data-pick]"); if(f) f.click(); } });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&!ov.hidden) ov.hidden=true; });
 
+const segSet=(el,attr,v)=>[...el.children].forEach(x=>x.setAttribute("aria-pressed",x.dataset[attr]===v));
+$("#h-mode").addEventListener("click",e=>{ const b=e.target.closest("[data-hm]"); if(!b||b.dataset.hm===H.mode) return; H.mode=b.dataset.hm; renderHome(); });
+$("#h-map").addEventListener("click",e=>{ const b=e.target.closest("[data-hmap]"); if(!b) return; H.map=b.dataset.hmap; renderHome(); });
 document.getElementById("v-ana").addEventListener("click",e=>{
-  const t=e.target.closest("[data-dpick],[data-dgun],[data-darm],[data-daim],[data-dab],[data-dband],[data-dwpn],[data-dbud]"); if(!t) return;
-  const ds=t.dataset;
-  if(ds.dpick){ const side=ds.dpick; openPicker(side==="me"?"Senin ajanın":"Rakip ajan",a=>{ const f=D[side]; D[side]=fighter(a.id,f.w,f.arm,f.aim,[...f.ab]); D.log=[]; D.prev=null; renderDuel(); }); }
-  else if(ds.dgun) openWeaponPicker(ds.dgun);
-  else if(ds.darm){ const [s,id]=ds.darm.split(":"); if(D[s].arm===id) return; change(s,()=>{D[s].arm=id},id==="none"?"kalkanı çıkardı{s}":`<b>${esc(ARM[id].n)}</b> aldı{s}`); }
-  else if(ds.daim){ const [s,i]=ds.daim.split(":"); if(D[s].aim===+i) return; change(s,()=>{D[s].aim=+i},`nişanı <b>${esc(AIM[+i].n)}</b> seçti{s}`); }
-  else if(ds.dab){ const [s,t2]=ds.dab.split(":"); const on=D[s].ab.has(t2); const x=AG[D[s].a].duel[t2];
-    change(s,()=>{ on?D[s].ab.delete(t2):D[s].ab.add(t2); },`<b>${esc(x.n)}</b> ${on?"kullanmadı{s}":"kullandı{s}"}`); }
-  else if(ds.dband){ const b=+ds.dband; if(b===D.band) return; change(null,()=>{D.band=b},`Mesafe <b>${esc(DIST[b].n)}</b>`); }
-  else if(ds.dwpn){ const id=ds.dwpn, old=W[D.me.w].n; change("me",()=>{D.me.w=id},`${esc(old)} yerine <b>${esc(W[id].n)}</b> aldı{s}`); }
-  else if(ds.dbud){ D.budget=+ds.dbud; renderRecs(); dSave(); }
+  const p=e.target.closest("[data-hpick]"); if(p){ const side=p.dataset.hpick;
+    openPicker({me:"Senin ajanın",en:"Rakip ajan",fr:"Arkadaşının ajanı"}[side],a=>{ H[side]=a.id; if(side!=="en"&&H.me===H.fr) H[side==="me"?"fr":"me"]=ALIST.find(x=>x.id!==a.id).id; renderHome(); }); return; }
+  const f=e.target.closest("[data-hfr]"); if(f){ H.fr=f.dataset.hfr; renderHome(); }
 });
-$("#d-swap").addEventListener("click",()=>{ [D.me,D.en]=[D.en,D.me]; D.log=[]; D.prev=null; D.tally=[0,0]; renderDuel(); });
+$("#h-swap").addEventListener("click",()=>{ if(H.mode==="duo") [H.me,H.fr]=[H.fr,H.me]; else [H.me,H.en]=[H.en,H.me]; renderHome(); });
 
 /* ===================================================================
  *  AJANLAR
  * =================================================================== */
 let aRole="all", aMap="all", aSort=pref("rk-val-asort","role");
-const segSet=(el,attr,v)=>[...el.children].forEach(x=>x.setAttribute("aria-pressed",x.dataset[attr]===v));
 $("#a-roles").innerHTML=[["all","Tümü"],...ROLE_ORDER.map(r=>[r,ROLES[r].n])].map(([k,v])=>`<button type="button" data-r="${k}" aria-pressed="${k==="all"}">${k!=="all"?mk(ROLES[k].img,"rmk"):""}${esc(v)}</button>`).join("");
 $("#a-roles").addEventListener("click",e=>{const b=e.target.closest("[data-r]");if(!b)return;aRole=b.dataset.r;segSet($("#a-roles"),"r",aRole);renderGrid()});
 const poolIds = Object.keys(POOL).filter(m=>G.maps[m]).sort();
@@ -470,7 +363,6 @@ function renderProfile(id){
       const cp=lc&&lc.ch.c.find(g=>g[0]&&key(g[0])===key(x.n)); const d=cp?cp[2].reduce((s,l)=>s+l[1],0):0;
       return `<div class="ab${cp?" chg-ab":""}"><span class="abi">${mk(x.img)}<span class="k">${x.k==="P"?"P":x.k}</span>${cp?chgBadge(d>0?"buff":d<0?"nerf":"adj"):""}</span>
         <div style="min-width:0"><div class="n">${esc(x.n)}</div><p>${rich(x.d)}</p>
-        ${(x.t||[]).filter(t=>a.duel[t]===x).map(t=>`<span class="dtag">${ic("duel")}Düelloda: ${esc(ABFX[t].fx)}</span>`).join(" ")}
         ${cp?`<ul class="lns">${cp[2].map(lineHTML).join("")}</ul><span class="muted small">Yama ${esc(lc.n.patch)}</span>`:""}</div></div>`; }).join("")}</div></div>`;
   if(pTab==="harita"){
     const rows=poolIds.map(m=>{ const s=MAPSTAT[m]&&MAPSTAT[m][id]; return s?{m,wr:s[0],pr:s[1],n:s[2]}:null; }).filter(Boolean).sort((x,y)=>y.wr-x.wr);
@@ -486,9 +378,13 @@ function renderProfile(id){
       : '<div class="empty">Bu ajan için harita bazlı oran verisi yok.</div>';
   }
   if(pTab==="oyna"){
-    const du=Object.entries(a.duel);
+    const ctr=counterList(id), bp=bestPartners(id,"all").measured;
+    const face=(x,attr,val)=>`<button type="button" class="pchip" ${attr}>${por(AG[x],"sm",true)}<span class="n">${esc(AG[x].n)}</span>${val?`<span class="v">${val}</span>`:""}</button>`;
     body=`<div class="grid2"><div class="card"><h2>${mk(ROLES[a.r]&&ROLES[a.r].img,"rmk")}${esc((ROLES[a.r]||{}).n||"Rol")}</h2><p class="muted" style="margin:0 0 10px">${esc((ROLES[a.r]||{}).d||"")}</p><ul class="tips">${(ROLE_TIPS[a.r]||[]).map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>
-      <div class="card"><h2>${ic("duel")}Düelloda</h2>${du.length?`<ul class="tips">${du.map(([t,x])=>`<li><b>${esc(x.n)}</b>: ${esc(ABFX[t].fx)}</li>`).join("")}</ul><p class="muted small" style="margin:10px 0 0">Düello ekranında bu yetenekleri açıp kapatabilirsin.</p>`:`<p class="muted" style="margin:0">Bu ajanın yetenekleri (hareket, bilgi, duman, alan kontrolü) 1v1 silah düellosunun hesabına doğrudan girmiyor. Sonucu silah, kalkan, mesafe ve nişan belirler.</p>`}</div></div>
+      <div class="card"><h2>${ic("bolt")}Kontralar <small>yetenekleri ${esc(a.n)}'i en çok zorlayanlar</small></h2>${ctr.length?`<div class="pchips">${ctr.map(r=>face(r.id,`data-hvs="${id}:${r.id}"`,"")).join("")}</div>`:`<p class="muted small" style="margin:0">Belirgin bir yetenek kontrası yok.</p>`}
+        <h3 class="h3">${ic("users")}İyi eşler <small class="muted">birlikte kazanma</small></h3>${bp.length?`<div class="pchips">${bp.map(r=>face(r.id,`data-hduo="${id}:${r.id}"`,pct(r.st.wr))).join("")}</div>`:`<p class="muted small" style="margin:0">İkili oran verisi yok.</p>`}
+        <p class="muted small" style="margin:10px 0 0">Dokun: Eşleşme ekranında aç.</p></div></div>
+      ${(IXD.tips[id]||[]).length?`<div class="card"><h2>${ic("target")}${esc(a.n)} karşısında</h2><ul class="tips">${IXD.tips[id].map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`:""}
       <div class="card"><h2>Hikâyesi</h2><p style="margin:0">${rich(a.d)}</p></div>`;
   }
   const kpis = a.wr!=null ? `<div class="ph-kpi"><span class="tier big" data-t="${TIER[a.id]}">${TIER[a.id]}</span><div><b>${pct(a.wr)}</b><span>kazanma</span></div><div><b>${pct(a.pr)}</b><span>seçilme</span></div><div><b>${a.games>=1e6?dec(a.games/1e6)+" mn":n0(a.games/1e3)+" bin"}</b><span>maç</span></div></div>` : `<div class="ph-kpi"><span class="muted small">Oran verisi yok</span></div>`;
@@ -496,13 +392,13 @@ function renderProfile(id){
   <div class="prof-head">${por(a,"lg")}
     <div class="ph-id"><h1>${esc(a.n)}</h1><div class="row">${roleChip(a.r)}</div></div>
     ${kpis}
-    <div class="ph-cta"><button class="btn gold" type="button" id="pf-duel">${ic("duel")}Düelloda dene</button></div>
+    <div class="ph-cta"><button class="btn gold" type="button" id="pf-duel">${ic("duel")}VS'de dene</button></div>
   </div>
   ${lc?`<button type="button" class="chstrip" data-v="${lc.ch.v}" data-chg="ag:${a.id}:${NOTES.indexOf(lc.n)}">${chgBadge(lc.ch.v)}<span>Yama ${esc(lc.n.patch)}: <b>${esc(VMARK[lc.ch.v][1])}</b>${lc.ch.c.length?" — "+esc(lc.ch.c.map(g=>g[0]||"Genel").join(", ")):""}</span><span class="go">Ayrıntı ›</span></button>`:""}
   <div class="ptabs" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" data-pt="${k}" aria-selected="${k===pTab}">${l}</button>`).join("")}</div>
   ${body}
   ${a.wr!=null?`<p class="muted small" style="margin:0">Oranlar: ${esc(srcLabel())}.</p>`:""}`;
-  $("#pf-duel").onclick=()=>{ const f=D.me; D.me=fighter(a.id,f.w,f.arm,f.aim,[]); D.log=[]; D.prev=null; location.hash="ana"; };
+  $("#pf-duel").onclick=()=>{ H.me=a.id; if(H.en===a.id) H.en=ALIST.find(x=>x.id!==a.id).id; if(H.fr===a.id) H.fr=ALIST.find(x=>x.id!==a.id).id; H.mode="vs"; location.hash="ana"; };
   v.querySelector(".ptabs").onclick=e=>{const b=e.target.closest("[data-pt]");if(!b)return;pTab=b.dataset.pt;renderProfile(id)};
   document.title=`${a.n} · Rift Kontra VALORANT`;
 }
@@ -519,8 +415,7 @@ function renderArmory(){
       return `<section class="isec"><h2 class="th">${esc(catName(c))}<small>${ws.length}</small></h2><div class="wcards">${ws.map(w=>{ const r0=w.dr[0];
         return `<button type="button" class="wcard" data-weapon="${w.id}">${chgBadge((chgOf("wp",w.id)||{}).v)}${mk(w.img)}<span class="top"><span class="nm">${esc(w.n)}</span>${cr(w.cost)}</span>
           <span class="q" title="Kafa / gövde / bacak hasarı (yakın mesafe)${w.pel>1?", saçma başına":""}"><span class="hdv" style="color:var(--gold)">${n0(r0[2])}</span><span>${n0(r0[3])}</span><span>${n0(r0[4])}</span>${w.pel>1?`<span>×${w.pel}</span>`:""}<span style="margin-left:auto">${dec(w.fr,w.fr<10?2:1).replace(/,?0+$/,"")}/sn</span></span></button>`; }).join("")}</div></section>`; }).join("")
-      + `<section class="isec"><h2 class="th">Kalkanlar<small>${ARMOR.length-1}</small></h2><div class="wcards">${ARMOR.filter(a=>a.cap).map(a=>`<div class="gcard">${mk(a.img)}<div><b>${esc(a.n)}</b> ${cr(a.cost)}<p>${esc(a.d||"")}</p></div></div>`).join("")}</div>
-        <p class="muted small">Düelloda Yenilenen Kalkan 25 puan ve %100 emilim kabul edilir; tek çatışma içinde yenilenmez.</p></section>`;
+      + `<section class="isec"><h2 class="th">Kalkanlar<small>${ARMOR.length-1}</small></h2><div class="wcards">${ARMOR.filter(a=>a.cap).map(a=>`<div class="gcard">${mk(a.img)}<div><b>${esc(a.n)}</b> ${cr(a.cost)}<p>${esc(a.d||"")}</p></div></div>`).join("")}</div></section>`;
   } else {
     const pool=poolIds.map(m=>({id:m,...G.maps[m],st:POOL[m]})), off=Object.keys(G.maps).filter(m=>!POOL[m]).sort().map(m=>({id:m,...G.maps[m]}));
     const top=m=>{ const s=MAPSTAT[m]||{}; return Object.entries(s).filter(([k,v])=>AG[k]&&v[1]>=1).sort((x,y)=>y[1][0]-x[1][0]).slice(0,4).map(([k])=>AG[k]); };
@@ -550,8 +445,7 @@ function showWeapon(id){
     <table class="dmg"><thead><tr><th>Mesafe</th><th>Kafa</th><th>Gövde</th><th>Bacak</th></tr></thead><tbody>${w.dr.map(r=>`<tr><td>${rng(r)}</td><td class="hd">${n0(r[2])}</td><td>${n0(r[3])}</td><td>${n0(r[4])}</td></tr>`).join("")}</tbody></table></div>
     <div><h4 class="h3" style="margin-top:0">Kaç mermi? <small class="muted">(${rng(w.dr[0])}, hiç ıskalamadan${w.pel>1?", beklenen saçma isabetiyle":""})</small></h4>
     <table class="dmg"><thead><tr><th>Rakip</th><th>Kafa</th><th>Gövde</th><th>Bacak</th></tr></thead><tbody>${ARMOR.filter(a=>a.id!=="plasmaarmor").map(a=>`<tr><td>${a.id==="none"?"Kalkansız":esc(a.n)}</td>${[0,1,2].map(p=>{const k=stk(id,p,a.id,d0);return `<td class="${p===0&&k===1?"hd":""}">${k||"–"}</td>`}).join("")}</tr>`).join("")}</tbody></table></div>
-    ${lc?`<div class="chbox">${vPill(lc.ch.v)} <span class="muted small">Yama ${esc(lc.n.patch)}</span>${changeBody(lc.ch)}</div>`:""}
-    <div class="row"><button class="btn gold" type="button" data-usew="${id}">${ic("duel")}Düelloda kullan</button></div></div>`;
+    ${lc?`<div class="chbox">${vPill(lc.ch.v)} <span class="muted small">Yama ${esc(lc.n.patch)}</span>${changeBody(lc.ch)}</div>`:""}</div>`;
   ov.hidden=false; ov.querySelector("[data-close]").focus();
 }
 function showMap(id){
@@ -613,16 +507,17 @@ document.addEventListener("click",e=>{
   const ch=e.target.closest("[data-chg]"); if(ch){ const [t,id,ni]=ch.dataset.chg.split(":"); showChange(t,id,+ni||0); return; }
   const w=e.target.closest("[data-weapon]"); if(w){ showWeapon(w.dataset.weapon); return; }
   const m=e.target.closest("[data-map]"); if(m){ showMap(m.dataset.map); return; }
-  const u=e.target.closest("[data-usew]"); if(u){ ov.hidden=true; D.me.w=u.dataset.usew; D.log=[]; D.prev=null; const here=(location.hash||"#ana")==="#ana"; location.hash="ana"; if(here) route(); }
+  const hv=e.target.closest("[data-hvs],[data-hduo]"); if(hv){ const duo=!!hv.dataset.hduo; const [x,y]=(hv.dataset.hduo||hv.dataset.hvs).split(":");
+    H.me=x; if(duo) H.fr=y; else H.en=y; H.mode=duo?"duo":"vs"; if(duo) H.map="all"; const here=(location.hash||"#ana")==="#ana"; location.hash="ana"; if(here) route(); }
 });
 
 /* ===================================================================
  *  YÖNLENDİRME VE GEZİNME
  * =================================================================== */
-const NAV=[["ana","Düello","duel"],["ajanlar","Ajanlar","users"],["silahlar","Cephanelik","gun"],["yama","Yama","scroll"]];
+const NAV=[["ana","Eşleşme","duel"],["ajanlar","Ajanlar","users"],["silahlar","Cephanelik","gun"],["yama","Yama","scroll"]];
 $("#nav-top").innerHTML=NAV.map(([h,l,i])=>`<a href="#${h}">${ic(i)}${l}</a>`).join("");
 $("#nav-bot").innerHTML=NAV.map(([h,l,i])=>`<a href="#${h}">${ic(i)}<span>${l}</span></a>`).join("");
-const TITLES={ana:"Rift Kontra · VALORANT düello hesaplayıcı",ajanlar:"Ajanlar · Rift Kontra VALORANT",silahlar:"Cephanelik · Rift Kontra VALORANT",yama:"Yama notları · Rift Kontra VALORANT"};
+const TITLES={ana:"Rift Kontra · VALORANT yetenek eşleşmeleri ve ikili seçimi",ajanlar:"Ajanlar · Rift Kontra VALORANT",silahlar:"Cephanelik · Rift Kontra VALORANT",yama:"Yama notları · Rift Kontra VALORANT"};
 function route(){
   ov.hidden=true;
   let h=(location.hash||"#ana").slice(1), v="ana";
@@ -630,7 +525,7 @@ function route(){
   else if(h==="silahlar"){ wTab="silah"; v="silahlar"; }
   else if(["ana","ajanlar","yama"].includes(h)) v=h;
   if(h.startsWith("a-")){ v="profil"; renderProfile(h.slice(2)); } else document.title=TITLES[v];
-  if(v==="ana") renderDuel();
+  if(v==="ana") renderHome();
   if(v==="silahlar") renderArmory();
   ["ana","ajanlar","profil","silahlar","yama"].forEach(x=>$("#v-"+x).hidden=x!==v);
   const nav = v==="profil"?"ajanlar":v;
@@ -652,4 +547,4 @@ if("serviceWorker" in navigator && location.protocol==="https:"){
   navigator.serviceWorker.register("../sw.js",{updateViaCache:"none",scope:"../"}).then(r=>r.update()).catch(()=>{});
 }
 if(!ALIST.length||!WLIST.length){ document.querySelector("main").innerHTML='<div class="empty">Veri dosyaları yüklenemedi. Sayfayı yenile.</div>'; }
-else { dLoad(); renderGrid(); renderPatch(); renderPatchStrip(); route(); }
+else { hLoad(); renderGrid(); renderPatch(); renderPatchStrip(); route(); }

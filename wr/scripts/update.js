@@ -325,7 +325,7 @@ async function updateAbilities(names, prev) {
       if (!j.parse) throw new Error("sayfa yok");
       const a = parseAbilities(j.parse.text["*"]);
       const dmg = Object.entries(a).filter(([k, x]) => k !== "i" && x.d && x.d.length).length;
-      if (dmg) { out[slug] = Object.fromEntries(Object.entries(a).map(([k, v]) => { const o = {}; if (v.cd) o.cd = v.cd; if (v.d) o.d = v.d; if (v.sh) o.sh = v.sh; if (v.cc) o.cc = v.cc; return [k, o]; })); ok++; }
+      if (dmg) { out[slug] = Object.fromEntries(Object.entries(a).map(([k, v]) => { const o = {}; if (v.cd) o.cd = v.cd; if (v.d) o.d = v.d; if (v.sh) o.sh = v.sh; if (v.cc) o.cc = v.cc; if (v.hl) o.hl = v.hl; if (v.bf) o.bf = v.bf; return [k, o]; })); ok++; }
       else { fail++; if (prev && prev[slug]) out[slug] = prev[slug]; }
     } catch (e) { fail++; problems.push("yetenek " + slug + ": " + e.message); if (prev && prev[slug]) out[slug] = prev[slug]; }
     await sleep(700);

@@ -6,6 +6,7 @@
  *  - Sürüm değiştiyse, 7 günden eskiyse ya da --full verildiyse ajanları, silahları, kalkanları,
  *    haritaları ve görselleri yeniler (valorant-api.com, tr-TR)
  *  - Ajan kazanma/seçilme oranlarını ve harita bazlı oranları her çalışmada çeker (blitz.gg, Elmas+)
+ *  - Aynı takımdaki ajan ikililerinin birlikte kazanma oranlarını çeker (vstats.gg, Elmas+, tüm haritalar + havuz)
  *  - Son üç resmi Türkçe yama notundan değişen ajan, silah ve haritaları çıkarır (playvalorant.com/tr-tr)
  * Her adım kendi sağlamlık kontrolünden geçer; kontrolü geçemeyen veri yazılmaz, eskisi korunur.
  * Yollar valorant/ klasörüne göredir. Bir adım başarısız olursa çıkış kodu 1'dir.
@@ -78,15 +79,6 @@ async function saveImage(url, file, state) {
 }
 
 /* ---------- 1. Oyun verisi (valorant-api.com) ---------- */
-/* Düelloda modellenen yetenek etkileri: Türkçe açıklamadan anahtar kelimeyle bulunur */
-function duelTags(desc) {
-  const d = desc.toLocaleLowerCase("tr"); const t = [];
-  if (/flaşlar|kör eder|körleştir/.test(d)) t.push("flash");
-  if (/sersemlet/.test(d)) t.push("stun");
-  if (/hasar engelleyen bir kalkan/.test(d)) t.push("shield");
-  if (/kuvvetli savaş/.test(d)) t.push("stim");
-  return t;
-}
 const SLOT = { Passive: "P", Ability1: "Q", Ability2: "E", Grenade: "C", Ultimate: "X" };
 async function updateGame(state, prev) {
   const [agents, weapons, gear, maps] = [await api("/agents?language=tr-TR&isPlayableCharacter=true"), await api("/weapons?language=tr-TR"), await api("/gear?language=tr-TR"), await api("/maps?language=tr-TR")];
@@ -101,7 +93,7 @@ async function updateGame(state, prev) {
     const ab = [];
     for (const b of a.abilities) {
       if (!SLOT[b.slot] || !b.displayName) continue;
-      ab.push({ k: SLOT[b.slot], n: titleTR(b.displayName), d: richTR(b.description), img: b.displayIcon ? await saveImage(b.displayIcon, `abil/${id}-${SLOT[b.slot].toLowerCase()}.png`, state) : null, t: duelTags(richTR(b.description)) });
+      ab.push({ k: SLOT[b.slot], n: titleTR(b.displayName), d: richTR(b.description), img: b.displayIcon ? await saveImage(b.displayIcon, `abil/${id}-${SLOT[b.slot].toLowerCase()}.png`, state) : null });
     }
     ab.sort((x, y) => "PQECX".indexOf(x.k) - "PQECX".indexOf(y.k));
     A[id] = {
@@ -216,6 +208,62 @@ async function updateStats(agentIds, mapIds, prev) {
   return { src: "blitz.gg", rank: lbl ? lbl.rank : "", act: lbl ? lbl.act : "", queue: "Rekabetçi", date: new Date().toISOString().slice(0, 10), all, map: byMap, pool };
 }
 
+/* ---------- 2b. İkili kazanma oranları (vstats.gg, Rekabetçi · Elmas+) ----------
+ * vstats.gg sitesinin kendi kullandığı statik dosyalar: /statistics/{bölüm}/ALL/{harita}/duo.json.gz
+ * Her satır: d = aynı takımdaki iki ajanın uuid'si (sıralı), r = rütbe grubu (19 = Elmas, 22 Yücelik, 25 Ölümsüzlük, 27 Radyant),
+ * m = maç, w = kazanılan maç. Elmas+ satırları toplanır. Ajanın tek başına oranı da aynı veriden çıkar
+ * (bir maç, ajanın dört takım arkadaşıyla dört ayrı ikili satırında sayılır; Σw/Σm = ajanın kazanma oranı). */
+const DUO_MIN_RANK = 19, DUO_KEEP = 200;
+const gunzipMaybe = buf => (buf[0] === 0x1f && buf[1] === 0x8b) ? require("zlib").gunzipSync(buf) : buf;
+function duoTable(rows, uuidToId) {
+  const p = {}, ag = {};
+  for (const x of rows) {
+    if (!x || !Array.isArray(x.d) || x.d.length !== 2 || !(x.r >= DUO_MIN_RANK) || !(x.m > 0)) continue;
+    const ids = x.d.map(u => uuidToId[u]); if (!ids[0] || !ids[1] || ids[0] === ids[1]) continue;
+    const k = ids.sort().join("|");
+    const c = (p[k] ||= [0, 0]); c[0] += x.m; c[1] += x.w;
+    for (const id of ids) { const a = (ag[id] ||= [0, 0]); a[0] += x.m; a[1] += x.w; }
+  }
+  const out = { p: {}, ag: {} };
+  for (const [k, [m, w]] of Object.entries(p)) if (m >= DUO_KEEP) out.p[k] = [Math.round(w / m * 1000) / 10, m];
+  for (const [id, [m, w]] of Object.entries(ag)) out.ag[id] = [Math.round(w / m * 1000) / 10, Math.round(m / 4)];
+  return out;
+}
+async function updateDuos(game, mapIds, prev) {
+  // Güncel bölüm (act) kimliği valorant-api'den; vstats aynı uuid'yi kullanır
+  const now = Date.now();
+  const act = (await api("/seasons")).find(s => /Act$/.test(s.type || "") && new Date(s.startTime) <= now && new Date(s.endTime) >= now);
+  if (!act) throw new Error("güncel bölüm bulunamadı");
+  const agents = await api("/agents?isPlayableCharacter=true");
+  const uuidToId = {}; for (const a of agents) { const id = slug(a.displayName); if (game.agents[id]) uuidToId[a.uuid] = id; }
+  if (Object.keys(uuidToId).length < Object.keys(game.agents).length * 0.9) throw new Error("ajan uuid eşlemesi eksik");
+  const maps = await api("/maps");
+  const code = {}; for (const m of maps) { const id = slug(m.displayName); const c = (m.mapUrl || "").split("/")[3]; if (game.maps[id] && c) code[id] = c; }
+  const B = `https://www.vstats.gg/statistics/${act.uuid}/ALL`;
+  const fetchTable = async seg => {
+    const buf = gunzipMaybe(await get(`${B}/${seg}/duo.json.gz`, { binary: true, ua: BROWSER_UA, tries: 3 }));
+    const txt = buf.toString("utf8");
+    if (!/^\s*\[/.test(txt)) throw new Error(`vstats ${seg}: JSON değil (site yapısı değişmiş olabilir)`);
+    return duoTable(JSON.parse(txt), uuidToId);
+  };
+  const all = await fetchTable("ALL");
+  const nP = Object.keys(all.p).length, games = Object.values(all.ag).reduce((s, x) => s + x[1], 0);
+  if (nP < 300) throw new Error(`İkililer: çok az çift (${nP})`);
+  if (games < 500000) throw new Error(`İkililer: çok az maç (${games})`);
+  if (Object.values(all.p).some(([wr, m]) => m >= 2000 && (wr < 35 || wr > 65))) throw new Error("İkililer: oranlar mantıksız");
+  const byMap = {};
+  for (const m of [...mapIds].filter(x => code[x]).sort()) {
+    await sleep(2500); // siteye yük bindirmemek için
+    try {
+      const t = await fetchTable(code[m]);
+      if (Object.keys(t.p).length >= 150) byMap[m] = t;
+      else { problems.push("ikili oranı az: " + m); if (prev && prev.map && prev.map[m]) byMap[m] = prev.map[m]; }
+    } catch (e) { problems.push("ikili oranı " + m + ": " + e.message); if (prev && prev.map && prev.map[m]) byMap[m] = prev.map[m]; }
+  }
+  log("ikililer:", nP, "çift,", Object.keys(byMap).length, "harita,", act.displayName);
+  return { src: "vstats.gg", url: "https://www.vstats.gg/agents", act: act.uuid, actName: (act.displayName || "").replace(/^ACT\s*/i, "Bölüm "), rank: "Elmas+", queue: "Rekabetçi", date: new Date().toISOString().slice(0, 10), all, map: byMap };
+}
+
 /* ---------- 3. Yama notları (playvalorant.com/tr-tr) ---------- */
 const { parseNotes, norm } = require("./notes.js");
 async function updateNotes(game, state) {
@@ -289,6 +337,18 @@ async function updateNotes(game, state) {
   catch (e) {
     if (/HTTP 40[13]/.test(e.message)) log("ATLANDI: blitz.gg erişimi engelliyor; oranlar olmadan devam ediliyor —", e.message);
     else { failed = true; problems.push("oranlar: " + e.message); }
+  }
+
+  // 2b. ikili oranları (her çalışmada; harita listesi oranların rekabetçi havuzundan)
+  const prevDuos = readGlobal("duos.js", "VAL_DUOS");
+  try {
+    await sleep(2000);
+    const pool = stats && stats.pool && Object.keys(stats.pool).length ? Object.keys(stats.pool) : Object.keys(game.maps);
+    const duos = await updateDuos(game, new Set(pool), prevDuos);
+    writeGlobal("duos.js", "VAL_DUOS", duos, "Aynı takımdaki iki ajanın birlikte kazanma oranı (Rekabetçi, Elmas+), kaynak: vstats.gg");
+  } catch (e) {
+    if (/HTTP 40[13]/.test(e.message)) log("ATLANDI: vstats.gg erişimi engelliyor; ikili oranları olmadan devam ediliyor —", e.message);
+    else { failed = true; problems.push("ikili oranları: " + e.message); }
   }
 
   // 3. yama notları (her çalışmada: Riot notları sonradan düzeltebiliyor)
