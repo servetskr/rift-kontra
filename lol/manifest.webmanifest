@@ -1,0 +1,12 @@
+{
+  "name": "Rift Kontra · LoL",
+  "short_name": "Rift Kontra LoL",
+  "description": "League of Legends Türkçe düello, kontra ve eşya rehberi",
+  "lang": "tr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0c131d",
+  "theme_color": "#0c131d",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

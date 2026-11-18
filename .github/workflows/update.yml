@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       full:
-        description: "Profilleri, görselleri ve eşleşmeleri zorla yenile"
+        description: "Her şeyi zorla yenile (profiller, görseller, yetenekler)"
         type: boolean
         default: false
 
@@ -20,7 +20,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -28,25 +28,39 @@ jobs:
         with:
           node-version: 22
 
-      - name: Verileri çek
-        id: run
-        run: node scripts/update.js ${{ inputs.full && '--full' || '' }} || echo "failed=1" >> "$GITHUB_OUTPUT"
+      # Her oyun ayrı güncellenir; biri başarısız olursa diğerleri yine güncellenir, eski veri korunur.
+      - name: Wild Rift
+        id: wr
+        run: node wr/scripts/update.js ${{ inputs.full && '--full' || '' }} || echo "failed=1" >> "$GITHUB_OUTPUT"
+
+      - name: League of Legends
+        id: lol
+        run: |
+          if [ -f lol/scripts/update.js ]; then
+            node lol/scripts/update.js ${{ inputs.full && '--full' || '' }} || echo "failed=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: VALORANT
+        id: val
+        run: |
+          if [ -f valorant/scripts/update.js ]; then
+            node valorant/scripts/update.js ${{ inputs.full && '--full' || '' }} || echo "failed=1" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Değişiklik varsa kaydet ve yayınla
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data img
+          for d in wr/data wr/img lol/data lol/img valorant/data valorant/img; do [ -e "$d" ] && git add "$d"; done
           if git diff --cached --quiet; then
             echo "Veri değişmedi."
           else
-            PATCH=$(node -e 'const w={};new Function("window",require("fs").readFileSync("data/meta.js","utf8"))(w);console.log(w.WR_META.patch)')
-            git commit -m "Veri güncellemesi: yama $PATCH ($(date -u +%F))"
-            git push
+            git commit -m "Veri güncellemesi ($(date -u +%F))"
+            git pull --rebase -q && git push
           fi
 
       - name: Hata bildirimi
-        if: steps.run.outputs.failed == '1'
+        if: steps.wr.outputs.failed == '1' || steps.lol.outputs.failed == '1' || steps.val.outputs.failed == '1'
         run: |
-          echo "::error::Bazı veri adımları başarısız oldu; eski veriler korundu. Ayrıntılar 'Verileri çek' adımında."
+          echo "::error::Bazı veri adımları başarısız oldu (WR=${{ steps.wr.outputs.failed }} LoL=${{ steps.lol.outputs.failed }} VAL=${{ steps.val.outputs.failed }}); eski veriler korundu."
           exit 1

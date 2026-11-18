@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rift Kontra · VALORANT düello hesaplayıcı</title>
+<meta name="description" content="VALORANT için Türkçe 1v1 düello hesaplayıcı: silah, kalkan, mesafe ve nişana göre kim kazanır? Ajanlar, silah değerleri, haritalar ve yama notları. Her yamada otomatik güncellenir.">
+<meta property="og:title" content="Rift Kontra · VALORANT">
+<meta property="og:description" content="VALORANT Türkçe düello hesaplayıcı, ajan ve silah rehberi. Her yamada otomatik güncellenir.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0c131d">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Rift Kontra ortak belirteçleri (Wild Rift sürümüyle aynı); düzen: üstte gezinme → seçim → sonuç kartları */
+:root{
+  --bg:#0c131d; --surface:#131c29; --surface-2:#1a2535; --line:#263449; --fg:#e9eef6; --muted:#97a5b9;
+  --gold:#e0b153; --gold-ink:#1d1405; --gold-soft:#3a2f17; --teal:#4cc7bc; --teal-soft:#15363a;
+  --good:#5ed294; --good-soft:#143224; --bad:#f2806f; --bad-soft:#3b1b18; --even:#e6cf6b; --even-soft:#36311a;
+  --val:#ff5a63; --shield:#8fb8ff;
+  --r-assault:#f2806f; --r-breaker:#6cc77a; --r-strategist:#a29cff; --r-sentinel:#4fb6d8;
+  --f-display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --radius:12px; color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#eef1f5; --surface:#ffffff; --surface-2:#f4f6f9; --line:#d5dce6; --fg:#121b28; --muted:#5a6779;
+  --gold:#9a6a12; --gold-ink:#ffffff; --gold-soft:#f6ecd6; --teal:#0b7d74; --teal-soft:#d9f0ed;
+  --good:#1b7a46; --good-soft:#dcf2e5; --bad:#b2392d; --bad-soft:#f9e1dd; --even:#7a6410; --even-soft:#f4edc8;
+  --val:#c8303a; --shield:#3d6fc4;
+  --r-assault:#b2392d; --r-breaker:#2f7d3c; --r-strategist:#5a52c8; --r-sentinel:#1e7fa3; color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#eef1f5; --surface:#ffffff; --surface-2:#f4f6f9; --line:#d5dce6; --fg:#121b28; --muted:#5a6779;
+  --gold:#9a6a12; --gold-ink:#ffffff; --gold-soft:#f6ecd6; --teal:#0b7d74; --teal-soft:#d9f0ed;
+  --good:#1b7a46; --good-soft:#dcf2e5; --bad:#b2392d; --bad-soft:#f9e1dd; --even:#7a6410; --even-soft:#f4edc8;
+  --val:#c8303a; --shield:#3d6fc4;
+  --r-assault:#b2392d; --r-breaker:#2f7d3c; --r-strategist:#5a52c8; --r-sentinel:#1e7fa3; color-scheme:light}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+a{color:var(--teal)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+h1,h2,h3,h4{font-family:var(--f-display);margin:0;line-height:1.15;text-wrap:balance}
+
+header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;align-items:center;gap:14px;padding-block:10px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fg);min-width:0}
+.brand svg{flex:none}
+.brand b{font-family:var(--f-display);font-size:21px;letter-spacing:.03em;white-space:nowrap}
+.brand b span{color:var(--gold)}
+.brand .gt{font:700 10px/1 var(--f-mono);letter-spacing:.12em;color:var(--val);border:1px solid var(--val);border-radius:4px;padding:3px 5px}
+.patch{font-family:var(--f-mono);font-size:12px;color:var(--gold);border:1px solid var(--gold-soft);background:var(--gold-soft);padding:2px 8px;border-radius:99px;white-space:nowrap}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-left:24px;margin-right:auto;max-width:100%}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs a{flex:none;display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:14px;text-decoration:none;color:var(--muted);padding:8px 12px;border-radius:8px}
+nav.tabs a:hover{color:var(--fg);background:var(--surface-2)}
+nav.tabs a[aria-current="page"]{color:var(--gold-ink);background:var(--gold)}
+
+main{padding-block:22px 48px;min-height:70vh}
+.view{display:grid;gap:20px;min-width:0}
+.page-head{display:grid;gap:6px}
+.page-head h1{font-size:clamp(24px,3.4vw,32px)}
+.page-head p{margin:0;color:var(--muted);max-width:70ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;min-width:0}
+.card h2{font-size:19px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.card h2 small{font-family:var(--f-body);font-size:13px;font-weight:500;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{border:1px solid var(--line);background:var(--surface-2);padding:7px 12px;border-radius:99px;cursor:pointer;font-size:14px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg);font-weight:600}
+.btn{border:1px solid var(--line);background:var(--surface-2);padding:9px 14px;border-radius:9px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--gold)}
+.btn.gold{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.empty{padding:18px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:14px;text-align:center}
+footer{border-top:1px solid var(--line);padding-block:22px;color:var(--muted);font-size:13px}
+footer p{margin:0 0 6px;max-width:90ch}
+input[type=search]{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 12px;min-width:0;width:240px;max-width:100%}
+input::placeholder{color:var(--muted)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+</style>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header class="bar"><div class="wrap">
+  <a class="brand" href="../" aria-label="Rift Kontra — oyun seçimine dön" title="Oyun seçimine dön">
+    <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><path d="M14 2 25 8v12L14 26 3 20V8z" fill="none" stroke="var(--gold)" stroke-width="2"/><path d="M9 9l5 10 5-10" fill="none" stroke="var(--val)" stroke-width="2.2" stroke-linejoin="round"/></svg>
+    <b>Rift <span>Kontra</span></b><span class="gt">VALORANT</span>
+  </a>
+  <nav class="tabs" aria-label="Bölümler" id="nav-top"></nav>
+  <span class="patch">Yama</span>
+  <button class="btn icon" type="button" id="hSearch" aria-label="Ajan ara"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg></button>
+</div></header>
+
+<main class="wrap">
+
+<!-- DÜELLO: tek amaç — iki oyuncunun 1v1 çatışmasını karşılaştır, değişikliği anında gör -->
+<section class="view" id="v-ana">
+  <div class="arena">
+    <div class="fighter me" id="f-me"></div>
+    <div class="vs-col">
+      <span class="vs">VS</span>
+      <div class="dist" id="d-dist" role="group" aria-label="Mesafe"></div>
+      <button type="button" class="btn icon" id="d-swap" aria-label="Tarafları değiştir" title="Tarafları değiştir"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg></button>
+    </div>
+    <div class="fighter en" id="f-en"></div>
+  </div>
+  <div class="card result" id="d-result" aria-live="polite"></div>
+  <div class="grid2">
+    <div class="card" id="d-recs"></div>
+    <div class="card" id="d-range"></div>
+  </div>
+  <div id="d-patch"></div>
+</section>
+
+<!-- AJANLAR: rol ya da kademeye göre bul -->
+<section class="view" id="v-ajanlar" hidden>
+  <div class="page-head"><h1>Ajanlar</h1></div>
+  <div class="toolbar sticky">
+    <input id="a-q" type="search" placeholder="Ajan ara" aria-label="Ajan ara">
+    <div class="seg" id="a-roles" aria-label="Rol"></div>
+    <div class="seg" id="a-sort" aria-label="Sıralama"><button type="button" data-s="role">Rol</button><button type="button" data-s="tier">Kademe</button><button type="button" data-s="az">A–Z</button></div>
+  </div>
+  <div class="seg sm scrollx" id="a-maps" aria-label="Harita"></div>
+  <div id="a-grid"></div>
+  <p class="muted small" id="a-src"></p>
+</section>
+
+<section class="view" id="v-profil" hidden></section>
+
+<!-- SİLAHLAR: silah değerleri; Haritalar aynı ekranda ikinci sekme -->
+<section class="view" id="v-silahlar" hidden>
+  <div class="page-head"><h1>Cephanelik</h1></div>
+  <div class="ptabs" role="tablist" id="w-tabs"><button type="button" role="tab" data-wt="silah">Silahlar</button><button type="button" role="tab" data-wt="harita">Haritalar</button></div>
+  <div id="w-out"></div>
+</section>
+
+<!-- YAMA: bu yamada ne değişti -->
+<section class="view" id="v-yama" hidden>
+  <div class="page-head"><h1>Yama <span id="y-patch"></span></h1><p id="y-sum"></p></div>
+  <div class="seg sm" id="y-sel" aria-label="Yama seç"></div>
+  <div id="y-out"></div>
+</section>
+</main>
+
+<nav class="bnav" aria-label="Bölümler" id="nav-bot"></nav>
+
+<footer><div class="wrap">
+  <p id="footFresh"></p>
+  <p>Kaynaklar: valorant-api.com (Türkçe ajan, silah ve harita verisi) · playvalorant.com resmi Türkçe yama notları · blitz.gg (Rekabetçi oranlar). Düello sonuçları basitleştirilmiş bir simülasyonun tahminidir.</p>
+  <p>Hayran yapımıdır; Riot Games ile bağlantılı değildir. <a href="https://github.com/servetskr/rift-kontra" target="_blank" rel="noopener">GitHub</a></p>
+</div></footer>
+
+<div class="overlay" id="ov" hidden></div>
+
+<script src="data/meta.js"></script>
+<script src="data/game.js"></script>
+<script src="data/stats.js"></script>
+<script src="data/notes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
