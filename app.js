@@ -566,7 +566,12 @@ document.querySelectorAll(".js-count").forEach(e=>e.textContent=LIST.length);
   if(f) f.textContent = txt+(META.patchSeenAt?` · bu yama ilk ${fmtDate(META.patchSeenAt)} tarihinde görüldü`:"")+".";
 })();
 $("#homeSearch").addEventListener("click",()=>openPicker("Şampiyon ara",c=>{location.hash="s-"+c.slug}));
-if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+if("serviceWorker" in navigator && location.protocol==="https:"){
+  // Yeni sürüm yayınlanınca sayfa bir kez kendiliğinden yenilenir (eski önbellekte takılı kalmasın)
+  const hadCtl = !!navigator.serviceWorker.controller; let reloaded=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(hadCtl&&!reloaded){reloaded=true;location.reload();} });
+  navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>r.update()).catch(()=>{});
+}
 
 /* Başlangıç: örnek seçimler */
 kEnemy=CH[key("Darius")];
