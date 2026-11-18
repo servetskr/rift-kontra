@@ -289,9 +289,10 @@ const WIKI_MENU = { physical: "fiz", magical: "buy", defense: "sav", support: "d
 async function updateWiki(slugMap) {
   const C = await wikiModule("Module:ChampionDataWR/data");
   const I = await wikiModule("Module:WRItemData/data");
-  const champ = {};
+  const champ = {}; wikiNames = {};
   for (const name in C) {
     const st = C[name].stats; const slug = slugMap[canon(name)]; if (!st || !slug) continue;
+    wikiNames[slug] = name;
     champ[slug] = {
       hp: st.hp_base, hpL: st.hp_lvl, ar: st.arm_base, arL: st.arm_lvl, mr: st.mr_base, mrL: st.mr_lvl,
       ad: st.dam_base, adL: st.dam_lvl, as: st.as_base, asR: st.as_ratio || st.as_base, asL: st.as_lvl || 0,
@@ -311,6 +312,27 @@ async function updateWiki(slugMap) {
   if (!champ.yasuo || !(champ.yasuo.hp > 400)) throw new Error("Wiki verisi bozuk görünüyor (Yasuo)");
   log("wiki:", nc, "şampiyon taban değeri,", ni, "eşya");
   return { champ, item };
+}
+
+/* ---------- 7. Yetenek hasarları (LoL Wiki "WR:<şampiyon>" sayfaları) ---------- */
+const { parseAbilities } = require("./abilities.js");
+let wikiNames = null;
+async function updateAbilities(names, prev) {
+  const out = {}; let ok = 0, fail = 0;
+  for (const slug of Object.keys(names).sort()) {
+    try {
+      const j = JSON.parse(await get(`https://wiki.leagueoflegends.com/en-us/api.php?action=parse&format=json&prop=text&page=${encodeURIComponent("WR:" + names[slug])}`, { ua: "RiftKontraUpdater/1.0 (+https://github.com/servetskr/rift-kontra)", tries: 3 }));
+      if (!j.parse) throw new Error("sayfa yok");
+      const a = parseAbilities(j.parse.text["*"]);
+      const dmg = Object.values(a).filter(x => x.d.length).length;
+      if (dmg) { out[slug] = Object.fromEntries(Object.entries(a).map(([k, v]) => [k, { cd: v.cd, d: v.d }])); ok++; }
+      else { fail++; if (prev && prev[slug]) out[slug] = prev[slug]; }
+    } catch (e) { fail++; problems.push("yetenek " + slug + ": " + e.message); if (prev && prev[slug]) out[slug] = prev[slug]; }
+    await sleep(700);
+  }
+  if (ok < Object.keys(names).length * 0.8) throw new Error(`Yetenekler: yalnızca ${ok} şampiyon okunabildi`);
+  log("yetenek hasarı:", ok, "şampiyon,", fail, "eksik");
+  return out;
 }
 
 /* ---------- ana akış ---------- */
@@ -369,9 +391,17 @@ async function updateWiki(slugMap) {
 
   // 3b. taban değerler + eşya sayıları: günde bir ya da yeni yamada
   const wikiAge = prevMeta.wikiAt ? (now - new Date(prevMeta.wikiAt)) / 36e5 : 99;
-  if (patchChanged || wikiAge > 20 || args.has("--full") || !fs.existsSync(path.join(DATA, "wr.js"))) {
+  const needAb = !fs.existsSync(path.join(DATA, "abilities.js")) || !prevMeta.abilitiesAt || (now - new Date(prevMeta.abilitiesAt)) / 864e5 > 7;
+  if (patchChanged || wikiAge > 20 || needAb || args.has("--full") || !fs.existsSync(path.join(DATA, "wr.js"))) {
     try { writeGlobal("wr.js", "WR_DATA", await updateWiki(slugMap), "Wild Rift taban değerleri ve eşya sayıları, kaynak: wiki.leagueoflegends.com (CC BY-SA 4.0)"); prevMeta.wikiAt = now.toISOString(); }
     catch (e) { problems.push("wiki: " + e.message); }
+  }
+
+  // 3c. yetenek hasarları: yeni yamada, haftada bir ya da dosya yoksa
+  const abAge = prevMeta.abilitiesAt ? (now - new Date(prevMeta.abilitiesAt)) / 864e5 : 99;
+  if (wikiNames && (patchChanged || abAge > 7 || args.has("--full") || !fs.existsSync(path.join(DATA, "abilities.js")))) {
+    try { writeGlobal("abilities.js", "WR_ABIL", await updateAbilities(wikiNames, readGlobal("abilities.js", "WR_ABIL")), "Yetenek hasarları ve bekleme süreleri, kaynak: wiki.leagueoflegends.com (CC BY-SA 4.0)"); prevMeta.abilitiesAt = now.toISOString(); }
+    catch (e) { problems.push("yetenekler: " + e.message); }
   }
 
   // 4. yama notları

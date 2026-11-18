@@ -277,11 +277,6 @@ const RUNE_TR = {"Conqueror":"Yenilmez","Lethal Tempo":"Ölümcül Tempo","Elect
 const runeTR = n => RUNE_TR[n] || n;
 const runeImg = (n,cls) => ICO_RUNE[n] ? `<img class="${cls||""}" src="${ICO_RUNE[n]}" alt="${esc(runeTR(n))}" title="${esc(runeTR(n))}" loading="lazy">` : `<span class="chip">${esc(runeTR(n))}</span>`;
 const wrBuild = (c,r) => { const b=BUILDS[c.slug]; if(!b) return null; const rr = b.r[r] ? r : b.r[c.main] ? c.main : Object.keys(b.r)[0]; return rr ? {role:rr, ...b.r[rr], sit:b.sit||[]} : null; };
-const defaultItems = (c,variant) => {
-  const b=wrBuild(c,c.main); if(!b) return [...(OVERRIDE[c.name]||ARCH[c.arch].core).slice(0,3), ARCH[c.arch].boots];
-  const V=(variant&&b.v.find(v=>v[0]===variant))||b.v[0];
-  return [...V[2].slice(0,3).map(itemOf), b.boots?itemOf(b.boots):null].filter(Boolean);
-};
 let bRole=null, bVar=0;
 function buildCard(c){
   const b=BUILDS[c.slug];
@@ -301,11 +296,14 @@ function buildCard(c){
 }
 
 /* ===================================================================
- *  DÜELLO MOTORU
- *  Taban değerler ve eşya sayıları Wild Rift'e özgü (LoL Wiki). Yetenek hasarı
- *  her şampiyon için ayrı modellenmez; seviye, hasar puanı ve SG/YG ile ortalama alınır.
+ *  DÜELLO MOTORU — saniye saniye dövüş simülasyonu
+ *  Taban değerler, item sayıları ve yetenek hasarları Wild Rift'e özgü (LoL Wiki).
+ *  0. saniyede iki taraf da yetenek kombosunu atar; sonra normal saldırılar ve
+ *  bekleme süresi dolan yetenekler devam eder. Kalkan, iyileştirme yetenekleri,
+ *  kitle kontrolü, menzil ve kaçma hesaba katılmaz.
  * =================================================================== */
 const WD = window.WR_DATA || {champ:{}, item:{}};
+const AB = window.WR_ABIL || {};
 const STAT_TR = {hp:"Can",ad:"Saldırı Gücü",ap:"Yetenek Gücü",armor:"Zırh",mr:"Büyü Direnci",as:"Saldırı Hızı",crit:"Kritik",ah:"Yetenek Hızı",
   armpenflat:"Zırh Delme",armpen:"Zırh Delme",mpenflat:"Büyü Delme",mpen:"Büyü Delme",lifesteal:"Can Çalma",omnivamp:"Tam Can Çalma",ms:"Hareket Hızı",
   msflat:"Hareket Hızı",mana:"Mana",mp5:"Mana Yenileme",hp5:"Can Yenileme",hsp:"İyileştirme ve Kalkan Gücü",tenacity:"Etki Direnci"};
@@ -316,52 +314,117 @@ const fmtStat = (k,v) => `${PCT_STATS.has(k)?"%":"+"}${String(v).replace(".",","
 function fstats(f){
   const b=WD.champ[f.c.slug]; if(!b) return null;
   const L=f.lvl-1;
-  const s={hp:b.hp+b.hpL*L, ar:b.ar+b.arL*L, mr:b.mr+b.mrL*L, ad:b.ad+b.adL*L, bad:0, ap:0, asB:b.asL*L, crit:0, leth:0, arpen:0, mpenF:0, mpen:0, ls:0, ov:0, ah:0, lvl:f.lvl, critMul:1.75};
+  const s={hp:b.hp+b.hpL*L, ar:b.ar+b.arL*L, mr:b.mr+b.mrL*L, ad:b.ad+b.adL*L, bad:0, bhp:0, ap:0, asB:b.asL*L, crit:0, leth:0, arpen:0, mpenF:0, mpen:0, ls:0, ov:0, ah:0, lvl:f.lvl, critMul:1.75};
   for(const en of f.items){ if(!en) continue; const x=itemStats(en);
-    s.hp+=x.hp||0; s.ar+=x.armor||0; s.mr+=x.mr||0; s.ad+=x.ad||0; s.bad+=x.ad||0; s.ap+=x.ap||0; s.asB+=x.as||0; s.crit+=x.crit||0;
+    s.hp+=x.hp||0; s.bhp+=x.hp||0; s.ar+=x.armor||0; s.mr+=x.mr||0; s.ad+=x.ad||0; s.bad+=x.ad||0; s.ap+=x.ap||0; s.asB+=x.as||0; s.crit+=x.crit||0;
     s.leth+=x.armpenflat||0; s.arpen+=x.armpen||0; s.mpenF+=x.mpenflat||0; s.mpen+=x.mpen||0; s.ls+=x.lifesteal||0; s.ov+=x.omnivamp||0; s.ah+=x.ah||0;
     if(kb(en)==="infinity-edge") s.critMul+=0.3; }
   s.as=Math.min(2.5, b.as + b.asR*s.asB/100); s.crit=Math.min(100,s.crit)/100;
   s.arpen=Math.min(60,s.arpen); s.mpen=Math.min(60,s.mpen);
   return s;
 }
-function hitOn(a,ac,d){
-  const physMul=100/(100+Math.max(0, d.ar*(1-a.arpen/100)-a.leth));
-  const magMul=100/(100+Math.max(0, d.mr*(1-a.mpen/100)-a.mpenF));
-  const aaW = ac.cls==="Marksman"?1 : ac.cls==="Mage"?0.35 : ac.cls==="Support"?0.4 : 0.7;
-  const spW = ac.cls==="Marksman"?0.5 : 1;
-  const aa = a.ad*a.as*(1+a.crit*(a.critMul-1))*aaW;
-  const spell = ((8+5.5*a.lvl)*(0.6+0.25*(ac.dmg||2)) + 0.3*a.bad + 0.35*a.ap) * (1+a.ah/200) * spW;
-  const spMul = ac.t==="M"?magMul:physMul;
-  const total = aa*physMul + spell*spMul;
-  return {total, physMul, magMul, mainMul: ac.t==="M"?magMul:physMul, heal: aa*physMul*a.ls/100 + total*a.ov/100};
+const mulOf = (a,d,type) => type==="T" ? 1 : type==="M" ? 100/(100+Math.max(0, d.mr*(1-a.mpen/100)-a.mpenF)) : 100/(100+Math.max(0, d.ar*(1-a.arpen/100)-a.leth));
+/* Seviyeye göre yetenek kademesi (Wild Rift: temel yetenekler 4, ulti 3 kademe) */
+const abRank = (slot,L) => slot==="4" ? (L>=13?3:L>=9?2:L>=5?1:0) : Math.max(1,Math.min(4,Math.ceil(L/3.25)));
+const atRank = (v,rank) => Array.isArray(v) ? v[Math.min(v.length,rank)-1] : (v||0);
+function abilities(slug,a,d){
+  const A=AB[slug]||{}, base=WD.champ[slug], out=[];
+  for(const slot of ["1","2","3","4"]){
+    const x=A[slot]; if(!x||!x.d||!x.d.length) continue;
+    const rank=abRank(slot,a.lvl); if(!rank) continue;
+    const [b,t,r,ps]=x.d[0];
+    const bv = b.lvl ? b.lvl[0]+(b.lvl[1]-b.lvl[0])*(a.lvl-1)/14 : atRank(b.r,rank);
+    let dmg = bv + atRank(r.ap,rank)/100*a.ap + atRank(r.ad,rank)/100*a.ad + atRank(r.bad,rank)/100*a.bad
+            + atRank(r.thp,rank)/100*d.hp + atRank(r.mhp,rank)/100*a.hp + atRank(r.bhp,rank)/100*a.bhp;
+    if(ps) dmg*=3;
+    const type = t || (base.t==="M"?"M":"P");
+    const cd = Math.max(2, x.cd?atRank(x.cd,rank):8) * 100/(100+a.ah);
+    if(dmg>0) out.push({slot, raw:dmg, type, cd, mul:mulOf(a,d,type)});
+  }
+  return out;
+}
+/* Yetenek verisi olmayan şampiyonlar için ortalama yetenek hasarı */
+const AB_FALLBACK = (a,c) => [{slot:"x", raw:((8+5.5*a.lvl)*(0.6+0.25*(c.dmg||2)) + 0.3*a.bad + 0.35*a.ap)*4, type:c.t==="M"?"M":"P", cd:4}];
+function fightSim(me,en){
+  const sm=fstats(me), se=fstats(en); if(!sm||!se) return null;
+  const mk=(f,s,o)=>{ const c=WD.champ[f.c.slug];
+    let abs=abilities(f.c.slug,s,o); const real=abs.length>0;
+    if(!real) abs=AB_FALLBACK(s,c).map(x=>({...x,mul:mulOf(s,o,x.type)}));
+    return {s, hp:s.hp, max:s.hp, abs, real, cds:abs.map(()=>0), aaT:0, aaInt:1/s.as,
+      aaHit: s.ad*(1+s.crit*(s.critMul-1))*mulOf(s,o,"P"), dAA:0, dAB:0}; };
+  const A=mk(me,sm,se), B=mk(en,se,sm);
+  const dt=0.05, T=30, tl=[[0,1,1]]; let t=0, step=0;
+  const act = X => { let ab=0;
+    X.abs.forEach((x,i)=>{ if(X.cds[i]<=0){ ab+=x.raw*x.mul; X.cds[i]=x.cd; } X.cds[i]-=dt; });
+    let aa=0; if(X.aaT<=0){ aa=X.aaHit; X.aaT=X.aaInt; } X.aaT-=dt;
+    X.dAA+=aa; X.dAB+=ab; return {aa, tot:aa+ab}; };
+  while(t<T && A.hp>0 && B.hp>0){
+    const ha=act(A), hb=act(B);
+    B.hp-=ha.tot; A.hp-=hb.tot;
+    if(A.hp>0) A.hp=Math.min(A.max, A.hp + ha.aa*A.s.ls/100 + ha.tot*A.s.ov/100);
+    if(B.hp>0) B.hp=Math.min(B.max, B.hp + hb.aa*B.s.ls/100 + hb.tot*B.s.ov/100);
+    t+=dt; step++;
+    if(step%4===0) tl.push([t, Math.max(0,A.hp/A.max), Math.max(0,B.hp/B.max)]);
+  }
+  tl.push([t, Math.max(0,A.hp/A.max), Math.max(0,B.hp/B.max)]);
+  // 30 sn'de iki taraf da ayaktaysa kalan canı ortalama hasar hızıyla tahmin et
+  const dps = X => (X.dAA+X.dAB)/Math.max(t,dt);
+  const ttkMe = B.hp<=0 ? t : t + B.hp/Math.max(1,dps(A));
+  const ttkEn = A.hp<=0 ? t : t + A.hp/Math.max(1,dps(B));
+  return {sm, se, A, B, tl, ttkMe, ttkEn, abShareMe: A.dAB/Math.max(1,A.dAA+A.dAB), realMe:A.real, realEn:B.real};
 }
 function simulate(me,en){
-  const sm=fstats(me), se=fstats(en); if(!sm||!se) return null;
-  const cm=WD.champ[me.c.slug], ce=WD.champ[en.c.slug];
-  const hm=hitOn(sm,cm,se), he=hitOn(se,ce,sm);
-  const ttkMe = se.hp/Math.max(1, hm.total - he.heal*0.5);   // rakibi indirme süresi
-  const ttkEn = sm.hp/Math.max(1, he.total - hm.heal*0.5);   // seni indirme süresi
-  const r = ttkEn/ttkMe;
-  const stat = r/(1+r);
+  const F=fightSim(me,en); if(!F) return null;
+  const {sm,se,ttkMe,ttkEn}=F;
+  const r = ttkEn/ttkMe, stat = r/(1+r);
   const role = me.c.roles.find(x=>en.c.roles.includes(x)) || (MU[en.c.main]&&MU[en.c.main][en.c.slug]?en.c.main:me.c.main);
   const e = edge(me.c,en.c,role);
-  // gerçek maç verisi (koridor eşleşmesi) tahmini hesaptan daha güvenilir: yarı yarıya
+  // gerçek maç verisi (koridor eşleşmesi) simülasyondan daha güvenilir: yarı yarıya
   const score = e!=null ? 0.5*stat + 0.5*Math.min(0.95,Math.max(0.05,0.5+e*0.1)) : stat;
-  return {sm,se,hm,he,ttkMe,ttkEn,score,edge:e,role,
-    ehpMe: sm.hp/he.mainMul, ehpEn: se.hp/hm.mainMul, passMe: hm.mainMul, passEn: he.mainMul};
+  const mainT = WD.champ[me.c.slug].t, enT = WD.champ[en.c.slug].t;
+  const passMe = mulOf(sm,se,mainT==="M"?"M":"P"), passEn = mulOf(se,sm,enT==="M"?"M":"P");
+  return {...F, score, edge:e, role, passMe, ehpMe: sm.hp/passEn};
 }
+
+/* ===================================================================
+ *  BUILD TARZLARI — aynı şampiyon tank, büyücü, nişancı… oynanabilir
+ *  "Oyuncu" işaretli olanlar gerçek CN sunucu buildlerinden; diğerleri deneysel.
+ * =================================================================== */
+const STYLES = [["tank","Tank","shield"],["mage","Büyücü","spark"],["adc","Nişancı","target"],["bruiser","Dövüşçü","sword"],["assassin","Suikastçı","bolt"]];
+const STYLE_ARCH = {tank:"tank",mage:"mage_burst",adc:"crit_adc",bruiser:"bruiser",assassin:"ad_assassin"};
+function styleOf(items,c){
+  const t={ap:0,crit:0,def:0,ad:0,leth:0};
+  items.forEach(en=>{ const x=itemStats(en); t.ap+=x.ap||0; t.crit+=(x.crit||0)*2+(x.as||0); t.def+=(x.armor||0)+(x.mr||0)+(x.hp||0)/12; t.ad+=x.ad||0; t.leth+=(x.armpenflat||0)*4; });
+  if(t.ap>=Math.max(60,t.ad)) return t.def>t.ap*1.6?"tank":"mage";
+  if(t.crit>=60) return "adc";
+  if(t.def>t.ad*2.2) return "tank";
+  if(t.leth>=t.ad*0.6) return "assassin";
+  if(c&&WD.champ[c.slug]&&WD.champ[c.slug].cls==="Marksman") return "adc";
+  return "bruiser";
+}
+const styleCache = {};
+function stylesFor(c){
+  if(styleCache[c.slug]) return styleCache[c.slug];
+  const out={}; const b=BUILDS[c.slug];
+  if(b){ const roles=[c.main,...Object.keys(b.r).filter(r=>r!==c.main)].filter(r=>b.r[r]);
+    for(const r of roles) for(const v of b.r[r].v){ const its=[...v[2].map(itemOf), b.r[r].boots?itemOf(b.r[r].boots):null].filter(Boolean);
+      const st=styleOf(its,c); if(!out[st]) out[st]={items:its, real:true}; } }
+  for(const [k] of STYLES) if(!out[k]){ const a=ARCH[STYLE_ARCH[k]]; out[k]={items:[...a.core,...a.late.slice(0,2),a.boots].filter(n=>IT[n]).slice(0,6), real:false}; }
+  out._def = b ? STYLES.map(x=>x[0]).find(k=>out[k].real) : ((STYLES.find(([k])=>STYLE_ARCH[k]===c.arch)||["bruiser"])[0]);
+  return styleCache[c.slug]=out;
+}
+const defaultItems = c => { const S=stylesFor(c); return [...S[S._def].items]; };
 
 /* ===================================================================
  *  DÜELLO EKRANI
  * =================================================================== */
 const SLOTS = 6;
 const D = { me:null, en:null, lvl:11, prev:null, log:[] };
-const dSave = () => { try { localStorage.setItem("rk-duel", JSON.stringify({me:D.me&&{s:D.me.c.slug,i:D.me.items},en:D.en&&{s:D.en.c.slug,i:D.en.items},lvl:D.lvl})); } catch {} };
-const fighter = (c,items) => ({c, items: [...(items||defaultItems(c)), ...Array(SLOTS).fill(null)].slice(0,SLOTS), get lvl(){return D.lvl}});
+const dSave = () => { try { localStorage.setItem("rk-duel", JSON.stringify({me:D.me&&{s:D.me.c.slug,i:D.me.items,y:D.me.style},en:D.en&&{s:D.en.c.slug,i:D.en.items,y:D.en.style},lvl:D.lvl})); } catch {} };
+const fighter = (c,items,style) => ({c, style: items ? (style||null) : stylesFor(c)._def, items: [...(items||defaultItems(c)), ...Array(SLOTS).fill(null)].slice(0,SLOTS), get lvl(){return D.lvl}});
 function dLoad(){
   try { const s=JSON.parse(localStorage.getItem("rk-duel")||"null");
-    if(s&&s.me&&BYSLUG[s.me.s]&&s.en&&BYSLUG[s.en.s]){ D.me=fighter(BYSLUG[s.me.s],s.me.i); D.en=fighter(BYSLUG[s.en.s],s.en.i); D.lvl=s.lvl||11; return; } } catch {}
+    if(s&&s.me&&BYSLUG[s.me.s]&&s.en&&BYSLUG[s.en.s]){ D.me=fighter(BYSLUG[s.me.s],s.me.i,s.me.y); D.en=fighter(BYSLUG[s.en.s],s.en.i,s.en.y); D.lvl=s.lvl||11; return; } } catch {}
   D.me=fighter(BYSLUG.yasuo||LIST[0]); D.en=fighter(BYSLUG.malphite||LIST[1]);
 }
 const verdictTxt = s => s>=0.62?["Sen kazanırsın","good"]:s>=0.54?["Avantaj sende","good"]:s>0.46?["Başa baş","even"]:s>0.38?["Rakip önde","bad"]:["Rakip kazanır","bad"];
@@ -384,7 +447,8 @@ function fighterHTML(side){
       <div><dt>Büyü D.</dt><dd>${n0(st.mr)}</dd></div>
       <div><dt>Saldırı H.</dt><dd>${st.as.toFixed(2).replace(".",",")}</dd></div>
     </dl>`:`<p class="muted small">Bu şampiyonun taban değerleri henüz yok.</p>`}
-    <div class="f-acts"><button type="button" class="lnk" data-dbuild="${side}">${ic("wand")}Önerilen build</button><button type="button" class="lnk" data-dclear="${side}">${ic("reset")}Boşalt</button></div>`;
+    <div class="f-styles" role="group" aria-label="Build tarzı">${(S=>STYLES.map(([k,l,i])=>(l=k==="adc"&&(WD.champ[c.slug]||{}).rng<300?"Kritik":l,`<button type="button" data-dstyle="${side}:${k}" aria-pressed="${f.style===k}" class="${S[k].real?"real":"exp"}" title="${S[k].real?"Oyuncuların gerçekten oynadığı tarz":"Deneysel: oyuncular bu tarzı nadiren kullanır"}">${ic(i)}${l}${S[k].real?"":"<sup>?</sup>"}</button>`)).join(""))(stylesFor(c))}</div>
+    <div class="f-acts"><button type="button" class="lnk" data-dclear="${side}">${ic("reset")}Yuvaları boşalt</button>${AB[c.slug]?"":`<span class="muted small">Yetenek verisi yok, ortalama alınıyor</span>`}</div>`;
 }
 function metric(label,val,delta,goodUp,hint){
   const d = delta==null||Math.abs(delta)<0.005 ? "" : `<span class="dl ${(delta>0)===goodUp?"good":"bad"}">${delta>0?"▲":"▼"} %${Math.abs(delta*100).toFixed(0)}</span>`; // ok: değerin yönü, renk: senin için iyi mi
@@ -403,17 +467,22 @@ function renderDuel(){
       <span class="tug-me" style="width:${pctMe}%"><b>%${pctMe}</b></span><span class="tug-en"><b>%${100-pctMe}</b></span>
     </div>
     <div class="verdict ${V[1]}"><span class="vh">${esc(V[0])}</span>
+      <span class="muted small">Denge = dövüş simülasyonu + gerçek koridor verisi</span>
       ${E?`<span class="vtag">${ic("users")}Koridor eşleşmesi: <b class="${E[0]==="good"?"good":E[0]==="bad"?"bad":""}">${esc(E[1])}</b> <small>${ROLE_LONG[r.role]} · gerçek maç verisi</small></span>`:""}
     </div>
     <div class="metrics">
-      ${metric("Rakibi indirme",secs(r.ttkMe),p?rel(r.ttkMe,p.ttkMe):null,false,"Senin hasarınla rakibin canının bitme süresi (tahmini)")}
-      ${metric("Seni indirme",secs(r.ttkEn),p?rel(r.ttkEn,p.ttkEn):null,true,"Rakibin hasarıyla senin canının bitme süresi (tahmini)")}
-      ${metric("Hasarının geçen kısmı","%"+Math.round(r.passMe*100),p?rel(r.passMe,p.passMe):null,true,"Rakibin zırh/büyü direncinden sonra hasarının ne kadarı işliyor")}
+      ${metric("Rakibi indirme",secs(r.ttkMe),p?rel(r.ttkMe,p.ttkMe):null,false,"Yetenek kombosu + normal saldırılarla rakibin canının bitme süresi")}
+      ${metric("Seni indirme",secs(r.ttkEn),p?rel(r.ttkEn,p.ttkEn):null,true,"Rakibin kombosu + normal saldırılarıyla senin canının bitme süresi")}
+      ${metric("Hasarının geçen kısmı","%"+Math.round(r.passMe*100),p?rel(r.passMe,p.passMe):null,true,"Rakibin zırh/büyü direncinden sonra ana hasar türünün ne kadarı işliyor")}
       ${metric("Etkili canın",n0(r.ehpMe),p?rel(r.ehpMe,p.ehpMe):null,true,"Rakibin hasar türüne karşı gerçek dayanıklılığın")}
     </div>
-    ${D.log.length?`<ul class="dlog">${D.log.slice(0,3).map((l,i)=>`<li class="${i?"old":""}">${l}</li>`).join("")}</ul>`:`<p class="muted small" style="margin:0">Bir itemı değiştir, sonuç anında değişsin. ${ic("info")} Hesap: Wild Rift taban değerleri + item sayıları; yetenek hasarı ortalama alınır.</p>`}
+    <div class="split" title="Senin verdiğin hasarın kaynağı"><span class="sp-ab" style="width:${Math.round(r.abShareMe*100)}%"></span></div>
+    <p class="muted small" style="margin:-6px 0 0">Hasarının <b>%${Math.round(r.abShareMe*100)}</b>'i yeteneklerden, <b>%${100-Math.round(r.abShareMe*100)}</b>'i normal saldırıdan.</p>
+    ${D.log.length?`<ul class="dlog">${D.log.slice(0,3).map((l,i)=>`<li class="${i?"old":""}">${l}</li>`).join("")}</ul>`:`<p class="muted small" style="margin:0">Bir itemı ya da tarzı değiştir, sonuç anında değişsin.</p>`}
+    <p class="muted small" style="margin:0">${ic("info")} Saniye saniye simülasyon: Wild Rift taban değerleri, item sayıları ve yetenek hasarları. Kalkan, iyileştirme yetenekleri, kitle kontrolü ve menzil hesaba katılmaz.</p>
     <button type="button" class="btn gold fight" id="d-fight">${ic("play")}Dövüştür</button>
     <div class="arena-bars" id="d-bars" hidden>
+      <span class="hb-clock" id="hb-t">0 sn</span>
       <div><span>${esc(D.me.c.disp)}</span><i><b id="hb-me"></b></i></div>
       <div><span>${esc(D.en.c.disp)}</span><i><b id="hb-en" class="en"></b></i></div>
       <p id="d-ko" class="ko" aria-live="polite"></p>
@@ -423,15 +492,19 @@ function renderDuel(){
   D.prev={ttkMe:r.ttkMe,ttkEn:r.ttkEn,passMe:r.passMe,ehpMe:r.ehpMe,score:r.score};
   dSave();
 }
-/* Yeşil/kırmızı can çubukları: kim önce düşer */
+/* Can çubukları: simülasyondaki gerçek can değişimi oynatılır (ilk saniyedeki kombo ani düşüş olarak görünür) */
 function fight(r){
-  const bars=$("#d-bars"); bars.hidden=false; const me=$("#hb-me"), en=$("#hb-en"), ko=$("#d-ko");
-  ko.textContent=""; const end=Math.min(r.ttkMe,r.ttkEn); const dur=matchMedia("(prefers-reduced-motion: reduce)").matches?0:1800;
+  const bars=$("#d-bars"); bars.hidden=false; const me=$("#hb-me"), en=$("#hb-en"), ko=$("#d-ko"), clock=$("#hb-t");
+  ko.textContent=""; const tl=r.tl, end=tl[tl.length-1][0]; const dur=matchMedia("(prefers-reduced-motion: reduce)").matches?0:Math.min(3200,Math.max(1400,end*260));
   const t0=performance.now(); let done=false;
-  const step=now=>{ if(done) return; const k=dur?Math.min(1,(now-t0)/dur):1; const t=end*k; if(k>=1) done=true;
-    me.style.width=Math.max(0,100*(1-t/r.ttkEn))+"%"; en.style.width=Math.max(0,100*(1-t/r.ttkMe))+"%";
+  const at = t => { let i=0; while(i<tl.length-1&&tl[i+1][0]<=t) i++; return tl[i]; };
+  const step=now=>{ if(done) return; const k=dur?Math.min(1,(now-t0)/dur):1; const p=at(end*k); if(k>=1) done=true;
+    me.style.width=(p[1]*100)+"%"; en.style.width=(p[2]*100)+"%"; clock.textContent=p[0].toFixed(1).replace(".",",")+" sn";
     if(k<1) requestAnimationFrame(step);
-    else ko.innerHTML = r.ttkMe<=r.ttkEn ? `<b class="good">${esc(D.en.c.disp)} düştü!</b> ${esc(D.me.c.disp)} canının %${Math.round(100*(1-r.ttkMe/r.ttkEn))} kadarıyla ayakta.` : `<b class="bad">${esc(D.me.c.disp)} düştü.</b> ${esc(D.en.c.disp)} canının %${Math.round(100*(1-r.ttkEn/r.ttkMe))} kadarıyla ayakta.`;
+    else { const last=tl[tl.length-1];
+      ko.innerHTML = last[2]<=0&&last[1]>0 ? `<b class="good">${esc(D.en.c.disp)} düştü!</b> ${esc(D.me.c.disp)} canının %${Math.round(last[1]*100)} kadarıyla ayakta (${secs(last[0])}).`
+        : last[1]<=0&&last[2]>0 ? `<b class="bad">${esc(D.me.c.disp)} düştü.</b> ${esc(D.en.c.disp)} canının %${Math.round(last[2]*100)} kadarıyla ayakta (${secs(last[0])}).`
+        : last[1]<=0 ? `<b>İkisi aynı anda düştü.</b>` : `<b>30 saniyede kimse düşmedi.</b> Uzun dövüşte ${r.ttkMe<=r.ttkEn?esc(D.me.c.disp):esc(D.en.c.disp)} önde.`; }
   };
   requestAnimationFrame(step); setTimeout(()=>step(t0+dur+1), dur+60);
 }
@@ -491,7 +564,7 @@ function drawItemPicker(){
       <span class="nm">${esc(i.tr)}</span><span class="gain ${own?"":g>0.0005?"good":g<-0.0005?"bad":""}">${own?"Takılı":Math.abs(g)<0.0005?"±0":(g>0?"+":"−")+Math.abs(g*100).toFixed(1).replace(".",",")}</span></button>`).join("")||'<div class="empty">Bulunamadı.</div>';
 }
 function setItem(side,slot,en){
-  const f=D[side], old=f.items[slot]; f.items[slot]=en;
+  const f=D[side], old=f.items[slot]; f.items[slot]=en; f.style=styleOf(f.items.filter(Boolean),f.c);
   const r=simulate(D.me,D.en), p=D.prev;
   if(r&&p){ const who=side==="me"?"Sen":"Rakip"; const d=Math.round((r.score-p.score)*100);
     const sf = side==="me"?"n":""; const what = en&&old?`${esc(iname(old))} yerine <b>${esc(iname(en))}</b> aldı${sf}`:en?`<b>${esc(iname(en))}</b> aldı${sf}`:`<b>${esc(iname(old))}</b> çıkardı${sf}`;
@@ -499,11 +572,13 @@ function setItem(side,slot,en){
   renderDuel();
 }
 document.getElementById("v-ana").addEventListener("click",e=>{
-  const t=e.target.closest("[data-dpick],[data-dslot],[data-dbuild],[data-dclear],[data-dadd],[data-dme],[data-lvl]"); if(!t) return;
+  const t=e.target.closest("[data-dpick],[data-dslot],[data-dstyle],[data-dclear],[data-dadd],[data-dme],[data-lvl]"); if(!t) return;
   if(t.dataset.dpick){ const side=t.dataset.dpick; openPicker(side==="me"?"Senin şampiyonun":"Rakip şampiyon",c=>{D[side]=fighter(c);D.log=[];D.prev=null;renderDuel()}); }
   else if(t.dataset.dslot){ const [s,i]=t.dataset.dslot.split(":"); openItemPicker(s,+i); }
-  else if(t.dataset.dbuild){ const s=t.dataset.dbuild; D[s]=fighter(D[s].c); D.log.unshift(`<span class="who ${s}">${s==="me"?"Sen":"Rakip"}</span> önerilen builde döndü${s==="me"?"n":""}`); renderDuel(); }
-  else if(t.dataset.dclear){ const s=t.dataset.dclear; D[s]=fighter(D[s].c,[]); renderDuel(); }
+  else if(t.dataset.dstyle){ const [s,k]=t.dataset.dstyle.split(":"); const S=stylesFor(D[s].c); D[s]=fighter(D[s].c,[...S[k].items],k);
+    const r=simulate(D.me,D.en), p=D.prev; const dd=r&&p?Math.round((r.score-p.score)*100):0;
+    D.log.unshift(`<span class="who ${s}">${s==="me"?"Sen":"Rakip"}</span> <b>${esc(STYLES.find(x=>x[0]===k)[1])}</b> tarzına geçti${s==="me"?"n":""}${p?` → avantajın <b class="${dd>=0?"good":"bad"}">${dd>=0?"+":"−"}${Math.abs(dd)} puan</b>`:""}`); D.log=D.log.slice(0,3); renderDuel(); }
+  else if(t.dataset.dclear){ const s=t.dataset.dclear; D[s]=fighter(D[s].c,[],null); renderDuel(); }
   else if(t.dataset.dadd){ const f=D.me; let i=f.items.indexOf(null); if(i<0) i=SLOTS-1; setItem("me",i,t.dataset.dadd); }
   else if(t.dataset.dme){ D.me=fighter(BYSLUG[t.dataset.dme]); D.log=[]; D.prev=null; renderDuel(); window.scrollTo({top:0,behavior:"smooth"}); }
   else if(t.dataset.lvl){ D.lvl=Math.min(15,Math.max(1,D.lvl+(+t.dataset.lvl))); renderDuel(); }
