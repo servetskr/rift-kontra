@@ -200,6 +200,14 @@ main{padding-block:22px 48px}
 .f-styles button sup{font-size:10px;margin-left:-2px}
 .f-styles button[aria-pressed="true"]{background:var(--gold-soft);border-color:var(--gold);color:var(--fg);border-style:solid}
 .f-styles .ic{width:15px;height:15px}
+.f-spells{display:flex;flex-wrap:wrap;gap:6px}
+.fighter.en .f-spells{justify-content:flex-end}
+.f-spells button{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:13px;font-weight:600;cursor:pointer;min-height:32px}
+.f-spells .ic{width:14px;height:14px;color:var(--gold)}
+.spgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.spb{display:grid;gap:2px;text-align:left;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);cursor:pointer;min-height:44px}
+.spb[aria-pressed="true"]{border-color:var(--gold);background:var(--gold-soft)}
+.fev{margin-top:8px;font-size:13px}
 /* Hasar kaynağı çubuğu */
 .split{height:8px;border-radius:4px;background:color-mix(in srgb,var(--teal) 30%,var(--surface-2));overflow:hidden}
 .split .sp-ab{display:block;height:100%;background:var(--gold)}
@@ -218,3 +226,5 @@ main{padding-block:22px 48px}
 .dfx{font-size:13px;color:var(--muted)}
 .dfx summary{cursor:pointer;color:var(--fg);min-height:24px}
 .dfx ul{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px;line-height:1.45;overflow-wrap:anywhere}
+.brand b{white-space:nowrap}
+@media (max-width:760px){.fighter.en .f-spells{justify-content:flex-start}}

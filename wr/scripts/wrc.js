@@ -8,7 +8,22 @@ const dec = s => (s || "").replace(/&#x27;|&#39;/g, "'").replace(/&amp;/g, "&").
 const kebab = s => (s || "").toLowerCase().replace(/'/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 /* Bir şampiyonun build sayfası → { roles:{rol:{v:[[anahtar, başlık, [eşya...], [ne zaman...]]], boots, runes}}, sit:[[eşya, durum]], icons } */
+/* Çağırıcı büyüleri (SSS metninden, sırayla) ve yetenek yükseltme önceliği (ör. ["Q","W","E"]) */
+const SPELLS = ["Flash", "Ignite", "Exhaust", "Heal", "Barrier", "Ghost", "Cleanse", "Smite"];
+function spellsOf(raw) {
+  const q = raw.match(/çağırıcı büyü[^"]*","acceptedAnswer":{"@type":"Answer","text":"([^"]*)"/i) || raw.match(/summoner spell[^"]*","acceptedAnswer":{"@type":"Answer","text":"([^"]*)"/i);
+  if (!q) return null;
+  const found = SPELLS.map(n => [n, q[1].search(new RegExp("\\b" + n + "\\b"))]).filter(x => x[1] >= 0).sort((a, b) => a[1] - b[1]).map(x => x[0]);
+  return found.length >= 2 ? found.slice(0, 2) : null;
+}
+function skillOrderOf(raw) {
+  const i = raw.indexOf('class="so-prio-img'); if (i < 0) return null;
+  const blk = raw.slice(i, i + 2000).split("</div>")[0];
+  const o = [...blk.matchAll(/so-prio-img[^>]*alt="([QWE])"/g)].map(m => m[1]);
+  return o.length === 3 && new Set(o).size === 3 ? o : null;
+}
 function parseBuilds(raw) {
+  const spells = spellsOf(raw), order = skillOrderOf(raw);
   const h = raw.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, "").replace(/\s+/g, " ");
   let panels = h.split('<div class="eb-rolepanel">').slice(1);
   if (!panels.length) panels = [h.split('data-nx-section="eb_variants"')[1] || ""];
@@ -36,7 +51,7 @@ function parseBuilds(raw) {
   const sitBlk = (h.split('data-nx-section="eb_situational"')[1] || "").split("</h3>")[0];
   const sit = [...sitBlk.matchAll(/data-item="([^"]+)"[^>]*><img src="([^"]+)" alt="([^"]*)"[^>]*><div><strong>[^<]*<\/strong><em>([^<]*)<\/em>/g)]
     .map(m => { icons[m[1]] = { src: m[2], en: dec(m[3]) }; return [m[1], dec(m[4])]; });
-  return { roles, sit, icons };
+  return { roles, sit, icons, spells, order };
 }
 
 /* Eşya listesi sayfası → { slug: { src, n } } */

@@ -350,5 +350,21 @@ const rune = {
   "Grasp of the Undying":[{on:"aa",cd:3,startCd:3,t:"M",v:c=>(c.melee?.03:.012)*c.s.hp,heal:c=>(c.melee?.013:.0052)*c.s.hp,name:"Hortlağın Pençesi"}],
 };
 
-window.WR_MECH = { champ, item, rune, fix, lv, st, rk };
+
+/* Ayrıştırıcının hareket türünü yanlış okuduğu yetenekler (d atılma, b ışınlanma, p çekme, k itme, null yok) */
+const MVFIX = {"yasuo":{"1":null},"camille":{"3":"d","4":"d"},"fizz":{"4":null},"galio":{"4":"d"},"gragas":{"3":"d"},"hecarim":{"3":"d"},"ksante":{"2":"d"},"ornn":{"2":null},"rammus":{"1":"d"},"riven":{"1":"d"},"swain":{"3":"p"},"velkoz":{"3":null},"viego":{"4":"b"},"amumu":{"1":"d"},"nunu":{},"nunu-and-willump":{"1":null},"shen":{"1":null},"vi":{"1":"d"},"kalista":{"4":null},"blitzcrank":{"1":"p"},"thresh":{"1":"p","2":null},"sett":{"3":"p"},"pyke":{"1":"p"},"jax":{"2":null},"teemo":{"2":null},"yuumi":{"2":null},"garen":{"1":null},"braum":{"2":null},"kindred":{"2":null},"singed":{"3":null}};
+for(const [c,o] of Object.entries(MVFIX)) for(const [k,v] of Object.entries(o)){ fix[c]=fix[c]||{}; fix[c][k]={...(fix[c][k]||{}), mv:v}; }
+
+/* Çağırıcı büyüleri (WR değerleri, wiki WR:<büyü> sayfaları). Hayalet: wiki ilk patlamanın hızını vermiyor, yalnızca %25 kullanılır. */
+const spell = {
+  Flash:{tr:"Sıçra", cd:150, rg:400},
+  Ignite:{tr:"Tutuştur", cd:100, rg:600, v:c=>lv(c,72,380), dur:5, gw:.6},
+  Exhaust:{tr:"Bitkinlik", cd:100, rg:600, dur:2.5, red:.4, slow:.35},
+  Heal:{tr:"Şifa", cd:100, v:c=>lv(c,110,400), ms:30, msDur:1},
+  Barrier:{tr:"Bariyer", cd:100, v:c=>lv(c,120,560), dur:2.5},
+  Ghost:{tr:"Hayalet", cd:90, ms:25, dur:8},
+  Cleanse:{tr:"Arındır", cd:100, imm:.75},
+  Smite:{tr:"Çarp", cd:15},
+};
+window.WR_MECH = { champ, item, rune, fix, spell, lv, st, rk };
 })();

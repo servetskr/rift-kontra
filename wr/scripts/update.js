@@ -177,7 +177,7 @@ async function updateMatchups(slugMap, prev, prevBuilds) {
       await sleep(2500);
       try {
         const r = parseBuilds(await get(`https://wildriftcore.com/tr/champions/${s}/builds/`, { tries: 4 }));
-        if (Object.keys(r.roles).length) { B.c[me] = { r: r.roles, sit: r.sit }; Object.assign(B.src, r.icons); bOk++; }
+        if (Object.keys(r.roles).length) { const old = (prevBuilds && prevBuilds.c && prevBuilds.c[me]) || {}; B.c[me] = { r: r.roles, sit: r.sit }; const sp = r.spells || old.sp, so = r.order || old.so; if (sp) B.c[me].sp = sp; if (so) B.c[me].so = so; Object.assign(B.src, r.icons); bOk++; }
         else problems.push("build: boş sayfa " + s);
       } catch (e) {
         problems.push("build " + s + ": " + e.message);
@@ -321,11 +321,11 @@ async function updateAbilities(names, prev) {
   const out = {}; let ok = 0, fail = 0;
   for (const slug of Object.keys(names).sort()) {
     try {
-      const j = JSON.parse(await get(`https://wiki.leagueoflegends.com/en-us/api.php?action=parse&format=json&prop=text&page=${encodeURIComponent("WR:" + names[slug])}`, { ua: "RiftKontraUpdater/1.0 (+https://github.com/servetskr/rift-kontra)", tries: 3 }));
+      const j = JSON.parse(await get(`https://wiki.leagueoflegends.com/en-us/api.php?action=parse&format=json&prop=text&redirects=1&page=${encodeURIComponent("WR:" + names[slug])}`, { ua: "RiftKontraUpdater/1.0 (+https://github.com/servetskr/rift-kontra)", tries: 3 }));
       if (!j.parse) throw new Error("sayfa yok");
       const a = parseAbilities(j.parse.text["*"]);
       const dmg = Object.entries(a).filter(([k, x]) => k !== "i" && x.d && x.d.length).length;
-      if (dmg) { out[slug] = Object.fromEntries(Object.entries(a).map(([k, v]) => { const o = {}; if (v.cd) o.cd = v.cd; if (v.d) o.d = v.d; if (v.sh) o.sh = v.sh; if (v.cc) o.cc = v.cc; if (v.hl) o.hl = v.hl; if (v.bf) o.bf = v.bf; return [k, o]; })); ok++; }
+      if (dmg) { out[slug] = Object.fromEntries(Object.entries(a).map(([k, v]) => { const o = {}; if (v.cd) o.cd = v.cd; if (v.d) o.d = v.d; if (v.sh) o.sh = v.sh; if (v.cc) o.cc = v.cc; if (v.hl) o.hl = v.hl; if (v.bf) o.bf = v.bf; for (const f of ["rg", "tg", "mv", "sl"]) if (v[f] != null) o[f] = v[f]; return [k, o]; })); ok++; }
       else { fail++; if (prev && prev[slug]) out[slug] = prev[slug]; }
     } catch (e) { fail++; problems.push("yetenek " + slug + ": " + e.message); if (prev && prev[slug]) out[slug] = prev[slug]; }
     await sleep(700);
