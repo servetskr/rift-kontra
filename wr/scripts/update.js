@@ -331,6 +331,10 @@ async function updateWiki(slugMap) {
     if (typeof it.limit === "string" && /ranged/i.test(it.limit)) o.ro = 1; // yalnızca menzilli şampiyonlar
     item[kebab(name)] = o;
   }
+  // yükseltilmiş itemlarda "=>Manamune" gibi değerler: o itemın değerini devral
+  const inh = (o, depth = 0) => { if (depth > 3) return; for (const [k, v] of Object.entries(o.s || {})) if (typeof v === "string" && v.startsWith("=>")) { const b = item[kebab(v.slice(2))]; if (b) { inh(b, depth + 1); o.s[k] = typeof b.s[k] === "number" ? b.s[k] : 0; } else delete o.s[k]; }
+    if (typeof o.c === "string" && o.c.startsWith("=>")) { const b = item[kebab(o.c.slice(2))]; o.c = b && typeof b.c === "number" ? b.c : 0; if (b && !o.m.length) o.m = [...b.m]; } };
+  for (const k in item) inh(item[k]);
   const nc = Object.keys(champ).length, ni = Object.keys(item).length;
   if (nc < 120 || ni < 120) throw new Error(`Wiki verisi eksik (${nc} şampiyon, ${ni} eşya)`);
   if (!champ.yasuo || !(champ.yasuo.hp > 400)) throw new Error("Wiki verisi bozuk görünüyor (Yasuo)");

@@ -102,6 +102,11 @@ const IT = {}, ILIST = [], SLUG2EN = {};
 Object.entries(ITEM_ALIAS).forEach(([w,k])=>{ if(SLUG2EN[k]){ SLUG2EN[w]=SLUG2EN[k]; if(ICO_ITEM[w]) IT[SLUG2EN[k]].icon=ICO_ITEM[w]; } });
 // Buildlerde geçen ama elle bakılan listede olmayan eşyalar
 Object.entries(WB.names||{}).forEach(([k,[en,tr]])=>{ if(SLUG2EN[k]) return; SLUG2EN[k]=en; if(!IT[en]) IT[en]={en,tr,cost:0,cat:"",st:"",fx:"",icon:ICO_ITEM[k]||null}; });
+// En çok kazanan buildlerde geçen ama listede olmayan itemlar (ör. Muramana gibi yükseltmeler): wiki adı ve oyun içi simgesiyle
+{ const wi=(window.WR_DATA||{}).item||{}, CATM={fiz:"fiz",buy:"buy",sav:"sav",des:"des",bot:"bot"};
+  Object.values((window.WR_CORES||{}).c||{}).forEach(R=>Object.values(R).forEach(x=>[...x.c.flatMap(c=>c[0]),...(x.b||[]).map(b=>b[0])].forEach(k=>{
+    if(SLUG2EN[k]||!wi[k]) return; const en=wi[k].n; SLUG2EN[k]=en; if(IT[en]) return;
+    const i={en,tr:en,cost:wi[k].c||0,cat:CATM[(wi[k].m||[])[0]]||"",st:"",fx:wi[k].t>=4?"Görev tamamlanınca dönüşen yükseltilmiş item.":"",icon:ICO_ITEM[k]||null}; IT[en]=i; ILIST.push(i); }))); }
 const itemOf = slug => SLUG2EN[slug] || slug;
 /* Yama değişiklikleri: v = buff | nerf | adj | rework | new */
 const NOTES = META.notes || {}, CHG = NOTES.ch || {}, ICHG = NOTES.it || {};
@@ -832,7 +837,7 @@ function presetsFor(c, role){
   }
   const C=(CORES[c.slug]||{})[role];
   if(C&&C.c.length){
-    const fill=V.length?V[0].items:[], boot=C.b&&C.b[0]?itemOf(C.b[0][0]):(V[0]&&V[0].boots);
+    const fill=V.flatMap(v=>v.items), boot=C.b&&C.b[0]?itemOf(C.b[0][0]):(V[0]&&V[0].boots);
     [...C.c].sort((a,b)=>b[1]-a[1]).forEach((x,i)=>{ const core=x[0].map(itemOf);
       out.push({id:"t"+i, tab:"top", lbl:`#${i+1}`, ic:"trophy", wr:x[1], pr:x[2], core,
         sub:`%${dec1(x[1])} kazanma · %${dec1(x[2])} seçilme (çekirdek: ilk 3 item)`, items:arrange([...core,...fill,boot],c,role), src:"Elmas+ maçlar, CN sunucusu"}); });
