@@ -199,36 +199,33 @@ function skillOrderHTML(so, mx) {
     <div class="sko-grid">${rows.map(k => `<div class="sko-row"><span class="sk-k">${k}</span>${so.split("").slice(0, 18).map((x, i) => `<i class="${x === k ? "on" + (k === "R" ? " r" : "") : ""}" title="Seviye ${i + 1}">${x === k ? i + 1 : ""}</i>`).join("")}</div>`).join("")}</div></div>`;
 }
 let bRole = null, bVar = 0;
-/* Profil build kartı: koridor → hazır buildler (u.gg) + Karma; rol kuralları uygulanmış */
+/* Profil build kartı: koridor → oyuncu buildleri (u.gg) + tarz buildleri; her biri kendi rünüyle; rol kuralları uygulanmış */
 function buildCard(c) {
-  const b = BUILDS[c.slug];
-  if (!b || !Object.keys(b).length) return `<div class="empty">Bu şampiyon için oyuncu build verisi henüz yok (u.gg).</div>`;
   const roles = rolesOf(c); if (!roles.includes(bRole)) bRole = roles.includes(c.main) ? c.main : roles[0];
-  const R = b[bRole]; const P = presetsFor(c, bRole).filter(p => p.id !== "ct");
-  const hy = P.find(p => p.id === "hy"); if (hy) { const kind = kindOf(c); const pool = kind === "tank" ? DMG_POOL[c.dmg] : (DEF_POOL[kind] || DEF_POOL.adm);
-    const def = arrange([...hy.base.slice(0, 2), ...pool], c, bRole).filter(x => !hy.base.includes(x)).slice(0, 3);
-    hy.items = arrange([hy.base[0], hy.base[1], def[0], hy.base[2], def[1], hy.base[3], def[2], hy.boots].filter(Boolean), c, bRole); }
+  const R = (BUILDS[c.slug] || {})[bRole];
+  const P = presetsFor(c, bRole).filter(p => !p.gen);
+  if (!P.length) return `<div class="empty">Bu şampiyon için build verisi henüz yok (u.gg).</div>`;
   if (!P[bVar]) bVar = 0; const V = P[bVar];
-  const ru = R.ru || [];
-  const kind = kindOf(c), defPool = (kind === "tank" || kind === "sup") ? FINISHED().filter(i => i.cat === "sav" && i.u).map(i => i.id) : (DEF_POOL[kind] || []);
-  const vsM = defPool.filter(id => (istat(id).mr || 0) > 0).slice(0, 4), vsP = defPool.filter(id => (istat(id).armor || 0) > 0 && !(istat(id).mr > 0)).slice(0, 4);
-  const boot = V && V.items.find(isBoot);
+  const kind = kindOf(c), defPool = (kind === "tank" || kind === "sup") ? STY.tank.pool : (DEF_EXTRA[kind] || []);
+  const vsM = defPool.filter(id => isMrOnly(id) || (istat(id).mr > 0 && !(istat(id).armor > 0))).slice(0, 4), vsP = defPool.filter(isArmorOnly).slice(0, 4);
+  const boot = V.items.find(isBoot), ru = V.ru || [];
+  const isSty = V.id.startsWith("s-");
   return `${roles.length > 1 ? `<div class="seg sm" style="margin-bottom:10px">${roles.map(r => `<button type="button" data-br="${r}" aria-pressed="${r === bRole}">${ROLE_LONG[r]}</button>`).join("")}</div>` : ""}
-    <div class="vtabs" role="tablist">${P.map((p, i) => `<button type="button" role="tab" data-bv="${i}" aria-selected="${i === bVar}">${ic(p.ic)}${esc(p.lbl)}${p.wr != null ? ` <small>${pct(p.wr)}</small>` : ""}</button>`).join("")}</div>
-    <p class="muted small" style="margin:0 0 10px">${esc(ROLE_LONG[bRole])} · ${n0(R.g)} maç · kazanma ${pct(R.wr)}${V ? " · " + esc(V.sub) : ""}</p>
-    ${R.start && R.start.length ? `<div class="brow2"><span class="l" title="Başlangıç">Başla</span><div class="irow">${R.start.map(id => itile(id)).join("")}</div></div>` : ""}
-    ${V ? `<div class="brow2"><span class="l" title="Eşya sırası">Build</span><div class="irow">${V.items.filter(x => !isBoot(x)).map((id, i) => itile(id, i + 1)).join('<span class="arrow" aria-hidden="true">›</span>')}</div></div>` : ""}
+    <div class="vtabs" role="tablist">${P.map((p, i) => `<button type="button" role="tab" data-bv="${i}" aria-selected="${i === bVar}"${p.id.startsWith("s-") ? ' class="sty"' : ""}>${ic(p.ic)}${esc(p.lbl)}${p.wr != null ? ` <small>${pct(p.wr)}</small>` : ""}</button>`).join("")}</div>
+    <p class="muted small" style="margin:0 0 10px">${esc(ROLE_LONG[bRole])}${R ? ` · ${n0(R.g)} maç · kazanma ${pct(R.wr)}` : ""} · ${esc(V.sub)}${isSty ? " · Tarz buildi: şampiyonun bu tarzda oynayan oyuncularının aldığı eşyalar önce gelir; rün sayfası tarza göre hazırlandı." : ""}</p>
+    ${V.start && V.start.length ? `<div class="brow2"><span class="l" title="Başlangıç">Başla</span><div class="irow">${V.start.map(id => itile(id)).join("")}</div></div>` : ""}
+    <div class="brow2"><span class="l" title="Eşya sırası">Build</span><div class="irow">${V.items.filter(x => !isBoot(x)).map((id, i) => itile(id, i + 1)).join('<span class="arrow" aria-hidden="true">›</span>')}</div></div>
     <div class="bsub">
       ${boot ? `<div><span class="l" title="Çizme">${ic("boot")}</span>${itile(boot)}</div>` : ""}
       ${ru.length ? `<div class="runes"><span class="l" title="Rünler">${ic("rune")}</span>${runeImg(ru[0], "ks")}<span class="minor">${ru.slice(1, 4).map(n => runeImg(n)).join("")}</span><span class="minor sec">${ru.slice(4, 6).map(n => runeImg(n)).join("")}</span><span class="rn">${esc((RUNES.r[ru[0]] || [""])[0])}</span></div>` : ""}
-      ${R.sp && R.sp.length ? `<div class="spells"><span class="l" title="Sihirdar büyüleri">${ic("spark")}</span>${R.sp.map(spellImg).join("")}<span class="small">${esc(R.sp.map(s => (RUNES.sp[s] || [""])[0]).join(" + "))}</span></div>` : ""}
+      ${V.sp && V.sp.length ? `<div class="spells"><span class="l" title="Sihirdar büyüleri">${ic("spark")}</span>${V.sp.map(spellImg).join("")}<span class="small">${esc(V.sp.map(s => (RUNES.sp[s] || [""])[0]).join(" + "))}</span></div>` : ""}
     </div>
+    ${bRole === "sup" ? supPath(V.items, V.after) : ""}
     <p class="muted small" style="margin:8px 0 0">${ic("info")} ${bRole === "adc" ? "Alt koridor rol görevi çizmeye ayrı yuva açar: çizme + 6 eşya." : bRole === "mid" ? "Orta koridor rol görevi çizmeyi gelişmiş (3. kademe) çizmeye yükseltir; çizme + 5 eşya." : bRole === "sup" ? "Destek eşyası yalnızca destek rolünde alınır; çizme + 5 eşya." : "Çizme + 5 eşya; gelişmiş çizmeler yalnızca orta koridorda."} Aynı gruptan tek eşya alınabilir (ör. tek zırh delme, tek can simidi, tek Hydra).</p>
-    ${R.so ? `<h3 class="h3">Yetenek sırası</h3>${skillOrderHTML(R.so, R.mx)}` : ""}
+    ${R && R.so ? `<h3 class="h3">Yetenek sırası</h3>${skillOrderHTML(R.so, R.mx)}` : ""}
     ${vsM.length || vsP.length ? `<h3 class="h3">Karşı takıma göre savunma</h3><div class="irow">${vsM.map(id => itile(id)).join("")}<span class="muted small" style="align-self:center">← çoğu büyü hasarıysa</span></div><div class="irow" style="margin-top:6px">${vsP.map(id => itile(id)).join("")}<span class="muted small" style="align-self:center">← çoğu fiziksel hasarsa</span></div>` : ""}
-    ${R.sit && R.sit.length ? `<h3 class="h3">Duruma göre</h3><div class="irow">${arrange(R.sit, c, bRole).map(id => itile(id)).join("")}</div>` : ""}`;
+    ${R && R.sit && R.sit.length ? `<h3 class="h3">Duruma göre</h3><div class="irow">${arrange(R.sit, c, bRole).map(id => itile(id)).join("")}</div>` : ""}`;
 }
-
 /* ===================================================================
  *  DÜELLO MOTORU — saniye saniye dövüş simülasyonu
  *  LoL taban değerleri (LoL Wiki), eşya sayıları (Data Dragon), yetenek hasarları, oranlar,
@@ -424,40 +421,202 @@ const itemsForLevel = (items, L, role) => {
 };
 
 /* ===================================================================
- *  HAZIR BUILDLER — koridora göre (u.gg: en çok tercih edilen, en yüksek kazanan, Master+)
- *  + Karma (hasar + dayanıklılık) + Bu rakibe göre (düello rakibine karşı tamamlanır)
+ *  OYUN TARZLARI VE HAZIR BUILDLER
+ *  - Koridor buildleri: u.gg (en çok tercih, en çok kazanan, Master+). Şampiyonun o koridorda
+ *    verisi yoksa en çok oynandığı koridorun buildi koridor kurallarına göre uyarlanır.
+ *  - Tarz buildleri: şampiyonun gerçekten oynandığı tarzlar (oyuncu verisi, sınıf, yetenek oranları).
+ *    Ör. Malphite: Tank + Büyücü; Yasuo: Kritik + Off-tank. Suikastçı Malphite gibi tarzlar eklenmez.
+ *  - Bu rakibe göre: ilk 2 eşya üstteki buildden, kalanlar düello rakibine karşı seçilir.
  * =================================================================== */
 const ROLE_ORDER = ["top", "jg", "mid", "adc", "sup"];
 const rolesOf = c => { const b = BUILDS[c.slug]; const have = b ? Object.keys(b) : []; const rs = [...new Set([...c.roles, ...ROLE_ORDER])].filter(r => have.includes(r)); return rs.length ? rs : [c.main]; };
+const hasData = (c, r) => !!(BUILDS[c.slug] && BUILDS[c.slug][r]);
 const kindOf = c => { const cls = (c.prof.cls || [])[0];
   if (cls === "Tank") return "tank"; if (cls === "Support") return c.dmg === "AP" ? "sup" : "tank";
   if (cls === "Marksman") return "adr"; return c.dmg === "AP" ? "ap" : "adm"; };
 const have = l => l.filter(id => IT[id]);
-const DEF_POOL = {
-  adm: have(["3053", "6333", "3156", "3026", "3143", "4401", "3742", "3065", "2504", "3075"]),
-  adr: have(["3026", "6673", "3139", "3156", "6333", "3814"]),
-  ap: have(["3157", "3102", "6657", "8020", "2504", "4633", "4401", "3143"]),
+const isMelee = c => !!(c.b && c.b.rng < 300);
+/* Eşya türü (sayılarından): crit · leth (ölümcüllük) · brz (SG + dayanıklılık) · ad · ap · apt (YG + dayanıklılık) · ench (koruyucu destek) · tank · sup (destek eşyası) */
+const ENCH = new Set(have(["3504", "6616", "6617", "6620", "3107", "3222", "2065", "4005", "6621", "2526"]));
+function ITYPE(id) {
+  const i = IT[id]; if (!i) return "?"; if (isBoot(id)) return "boot"; if (igrp(id).includes("starter")) return "sup"; if (ENCH.has(id)) return "ench";
+  const s = i.s || {};
+  if (s.crit) return "crit"; if (s.leth) return "leth"; if (s.ap) return (s.hp || s.armor || s.mr) ? "apt" : "ap";
+  if (s.ad && (s.hp || s.armor || s.mr)) return "brz"; if (s.ad || s.as) return "ad"; if (s.hp || s.armor || s.mr) return "tank"; return "?";
+}
+const STY = {
+  crit: { lbl: "Kritik", ic: "sword", boots: "3006", sub: "Kritik vuruş ve saldırı hızı: tam hasar",
+    pool: have(["3031", "6673", "3036", "6675", "3046", "3095", "3094", "3072", "3033", "3508", "6676", "2512", "3085", "2523", "3026", "3139", "6672", "3153"]) },
+  leth: { lbl: "Ölümcüllük", ic: "target", boots: "3158", sub: "Zırh deşme ile patlama hasarı",
+    pool: have(["3142", "6695", "6696", "6697", "6698", "3179", "2520", "3814", "6699", "6676", "6694", "3156", "6333", "3026"]) },
+  brz: { lbl: "Dövüşçü", ic: "sword", boots: "3047", sub: "Saldırı gücü + can: uzun dövüş",
+    pool: have(["3078", "6610", "3071", "3161", "3053", "6333", "3156", "3748", "6631", "3073", "2501", "3181", "6609", "3074", "3065", "2517", "6692"]) },
+  offtank: { lbl: "Off-tank", ic: "shield", sub: "2 hasar eşyası, kalanı dayanıklılık: hem vurur hem dayanır" },
+  tank: { lbl: "Tank", ic: "shield", boots: "3047", sub: "Can, zırh ve büyü direnci: ön saf",
+    pool: have(["3068", "6664", "3075", "2504", "3143", "4401", "3742", "3110", "6665", "3065", "3083", "3084", "2502", "6662", "8020", "3119", "2525"]) },
+  ap: { lbl: "Büyücü (AP)", ic: "spark", boots: "3020", sub: "Yetenek gücü: patlama hasarı",
+    pool: have(["3118", "6655", "4645", "3089", "3135", "3157", "3102", "3100", "4646", "3137", "2503", "3003", "4628", "2522", "3115", "3165", "3116", "6653", "4633"]) },
+  apt: { lbl: "AP dövüşçü", ic: "spark", boots: "3111", sub: "Yetenek gücü + can: uzun dövüş",
+    pool: have(["4633", "6653", "3152", "3116", "8010", "3157", "3102", "6657", "3165", "8020", "4629", "2510", "3089", "3135"]) },
+  ench: { lbl: "Koruyucu", ic: "heart", boots: "3158", sub: "İyileştirme ve kalkan: takımı korur",
+    pool: have(["3504", "6616", "6617", "6620", "3107", "3222", "2065", "4005", "6621", "3190", "3109"]) },
 };
-const DMG_POOL = { AP: have(["3152", "4633", "6653", "8020", "6657"]), AD: have(["3071", "6610", "3053", "3078", "3748", "3181"]) };
-const ANTI_HEAL = new Set(have(["3033", "6609", "3165", "3075"]));
+const STY_ORDER = ["crit", "leth", "brz", "ap", "apt", "ench", "tank", "offtank"];
+const RANGED_ONLY_FEEL = new Set(["3094", "3085", "2523"]); // menzilli nişancı eşyaları: yakın dövüşçüye önerme
+/* Bir eşya listesinin baskın tarzı */
+function styleOfItems(items) {
+  // kritik eşyaları buildi tanımlar (1,5 sayılır); saf SG/saldırı hızı eşyaları tarz belirlemez
+  const n = {}; for (const id of items) { const t = ITYPE(id); if (["boot", "sup", "?", "ad"].includes(t)) continue; n[t] = (n[t] || 0) + (t === "crit" ? 1.5 : 1); }
+  if (!Object.keys(n).length && items.some(id => ITYPE(id) === "ad")) return "brz";
+  const best = Object.entries(n).sort((a, b) => b[1] - a[1])[0]; return best ? best[0] : null;
+}
+/* Yeteneklerin toplam YG oranı (%), ör. Malphite ≈ 230 */
+const valLast = x => Array.isArray(x) ? x[x.length - 1] : (x || 0);
+function apRatio(c) { const a = AB[c.slug] || {}; let s = 0; for (const k of ["q", "w", "e", "r"]) for (const d of (a[k] && a[k].d) || []) s += valLast((d[2] || {}).ap); return s; }
+const STYLE_MEMO = {};
+function stylesOf(c) {
+  if (STYLE_MEMO[c.slug]) return STYLE_MEMO[c.slug];
+  const cls = c.prof.cls || [], b = BUILDS[c.slug] || {}, out = new Set();
+  const vs = Object.values(b).flatMap(R => R.v.map(v => v[1]));
+  for (const v of vs) { const s = styleOfItems(v); if (s) out.add(s); if (!["ap", "apt"].includes(s) && v.filter(id => ["ap", "apt"].includes(ITYPE(id))).length >= 2) out.add("ap"); }
+  const critData = vs.some(v => styleOfItems(v) === "crit");
+  if (cls.includes("Tank")) out.add("tank");
+  if (c.dmg === "AD" && cls.includes("Marksman")) out.add("crit");
+  if (c.dmg === "AD" && cls.includes("Fighter") && (!critData || cls.includes("Tank"))) out.add("brz");
+  if (c.dmg === "AD" && cls.includes("Assassin") && !cls.includes("Marksman") && !critData) out.add("leth");
+  if (cls.includes("Mage") && apRatio(c) >= 150) out.add("ap");
+  if (c.dmg === "AP" && cls.includes("Fighter")) out.add("apt");
+  if (cls[0] === "Support" && c.dmg === "AP" && !cls.includes("Tank")) out.add("ench");
+  const kind = kindOf(c); if (kind !== "tank" && kind !== "sup") out.add("offtank");
+  return (STYLE_MEMO[c.slug] = STY_ORDER.filter(k => out.has(k)));
+}
+const styleLbl = (c, st) => st === "offtank" && kindOf(c) !== "adm" ? "Karma (dayanıklı)" : STY[st].lbl;
+/* Şampiyonun tüm koridorlardaki oyuncu buildlerinde eşya ağırlığı (öndeki eşya daha ağır) */
+const FREQ_MEMO = {};
+function dataFreq(c) {
+  if (FREQ_MEMO[c.slug]) return FREQ_MEMO[c.slug];
+  const m = new Map(); for (const R of Object.values(BUILDS[c.slug] || {})) for (const v of R.v) v[1].forEach((id, i) => m.set(id, (m.get(id) || 0) + (6 - i) * (v[3] || 1))); return (FREQ_MEMO[c.slug] = m);
+}
+/* Dayanıklılık havuzu (off-tank buildi ve öneriler için) */
+const DEF_EXTRA = {
+  adm: have(["3053", "6333", "3156", "3742", "3143", "4401", "3065", "2504", "3075", "6665", "3026"]),
+  adr: have(["3026", "6673", "3139", "3156"]),
+  crit: have(["3026", "6673", "3139", "3156", "6333", "3053"]), leth: have(["3814", "3156", "6333", "3026", "3053"]),
+  ap: have(["3157", "3102", "4633", "6657", "3116", "2504", "4401"]),
+  tank: STY.tank.pool, sup: have(["3190", "3050", "3109", "2524", "3157", "3102", "4401", "3143"]),
+};
+const ANTI_HEAL = new Set(have(["3033", "6609", "3165", "3075", "3123", "3916"]));
 const ANTI_TANK = new Set(have(["3153", "3036", "6694", "3071", "3135", "6653", "3302", "3137", "8010", "6672"]));
+/* Destek eşyası: Dünya Atlası → Rün Pusulası → Dünyaların Ganimeti → bedelsiz son yükseltme */
+const SUP_FINAL = { ad: "3877", ap: "3871", tank: "3869", ench: "3870", cc: "3876" };
+function supItemFor(c, st) {
+  const R = BUILDS[c.slug] && BUILDS[c.slug].sup; const d = R && R.v[0][1].find(isSupItem); if (d) return d;
+  if (st === "ench" || kindOf(c) === "sup" && !["ap", "apt"].includes(st)) return SUP_FINAL.ench;
+  if (st === "tank") return SUP_FINAL.tank;
+  if (st === "ap" || st === "apt") return SUP_FINAL.ap;
+  return SUP_FINAL.ad;
+}
+/* Koridora göre büyüler (veri yoksa) ve başlangıç eşyası */
+const SPELL_DEF = { top: ["4", "12"], jg: ["4", "11"], mid: ["4", "14"], adc: ["4", "7"], sup: ["4", "3"] };
+function spellsFor(sp, src, role) {
+  if (sp && src === role) return sp;
+  return SPELL_DEF[role];
+}
+function startFor(c, role, R, st) {
+  if (R && R.start && R.start.length && !(role === "sup" && !R.start.includes("3865"))) return R.start;
+  if (role === "sup") return ["3865"];
+  if (role === "jg") return [st === "tank" || kindOf(c) === "tank" ? "1103" : "1101"];
+  if (st === "tank" || kindOf(c) === "tank") return ["1054"];
+  return [c.dmg === "AP" || ["ap", "apt", "ench"].includes(st) ? "1056" : "1055"];
+}
+/* Tarz başına rün sayfaları (ana ağaç: anahtar + 3; ikincil ağaç: 2) — LoL rün kurallarına uygun */
+const RUNE_PAGES = {
+  crit_r: [8008, 9111, 9104, 8014, 8139, 8135], crit_m: [8010, 9111, 9104, 8299, 8473, 8451],
+  leth: [8112, 8143, 8140, 8135, 9111, 8014], brz: [8010, 9111, 9104, 8299, 8444, 8451],
+  offtank: [8437, 8446, 8444, 8451, 9111, 9104], offtank_r: [8010, 9111, 9104, 8299, 8444, 8451],
+  tank: [8437, 8446, 8444, 8451, 8304, 8347], tank_sup: [8439, 8463, 8473, 8453, 8304, 8347],
+  ap_m: [8112, 8143, 8140, 8135, 8226, 8210], ap_r: [8229, 8226, 8210, 8237, 8139, 8135],
+  apt: [8010, 9111, 9104, 8299, 8444, 8451], ench: [8214, 8226, 8210, 8237, 8463, 8453],
+};
+function runePage(c, role, st) {
+  const m = isMelee(c), k = st === "crit" ? (m ? "crit_m" : "crit_r") : st === "ap" ? (m ? "ap_m" : "ap_r") : st === "tank" ? (role === "sup" ? "tank_sup" : "tank")
+    : st === "offtank" ? (m ? "offtank" : "offtank_r") : st;
+  return (RUNE_PAGES[k] || RUNE_PAGES.brz).map(String);
+}
+const runeTree = id => (RUNES.r[id] || [])[2];
+/* Tarz buildi: önce şampiyonun oyuncu verisinde geçen o tarz eşyaları, sonra tarzın genel sırası */
+function styleList(c, st, base) {
+  const fr = dataFreq(c), melee = isMelee(c);
+  const rank = pool => [...pool].filter(id => !(melee && RANGED_ONLY_FEEL.has(id))).sort((a, b) => (fr.get(b) || 0) - (fr.get(a) || 0) || pool.indexOf(a) - pool.indexOf(b));
+  if (st !== "offtank") return rank(STY[st].pool);
+  const kind = kindOf(c), dmgSt = styleOfItems(base) || (c.dmg === "AP" ? "ap" : "brz");
+  const dmg = [...base.filter(id => !["tank", "sup", "boot"].includes(ITYPE(id))), ...rank((STY[dmgSt] || STY.brz).pool)];
+  const def = rank(DEF_EXTRA[kind] || DEF_EXTRA.adm).filter(id => !dmg.slice(0, 3).includes(id));
+  const d = [...new Set(dmg)];
+  return [d[0], d[1], def[0], def[1], d[2], def[2], def[3], def[4]].filter(Boolean);
+}
 const VAR_P = { pop: ["users", "En çok tercih"], win: ["trophy", "En çok kazanan"], high: ["star", "Master+"] };
-/* [{id, lbl, ic, sub, items (tam build), wr, gen}] */
+/* Koridorun veri kaynağı: kendi verisi, yoksa en çok oynanan koridor */
+function srcRoleOf(c, role) { const b = BUILDS[c.slug]; if (!b) return null; if (b[role]) return role; return Object.keys(b).sort((x, y) => b[y].g - b[x].g)[0] || null; }
+/* [{id, lbl, ic, sub, items (tam build), style, ru, sp, start, wr, gen, adapted, after}] */
+const P_MEMO = new Map();
 function presetsFor(c, role) {
-  const b = BUILDS[c.slug], R = b && b[role], out = [], kind = kindOf(c);
+  const mk = c.slug + ":" + role; if (P_MEMO.has(mk)) return P_MEMO.get(mk);
+  const b = BUILDS[c.slug] || {}, src = srcRoleOf(c, role), R = src ? b[src] : null, adapted = !!R && src !== role, out = [];
+  const note = adapted ? `${ROLE_LONG[role]} için oyuncu verisi yok; ${ROLE_LONG[src]} buildinden uyarlandı` : "";
+  const finish = (p, list) => {
+    if (role === "sup" && !list.some(isSupItem)) list = [supItemFor(c, p.style), ...list];
+    p.items = arrange(list, c, role);
+    // uyarlamadan sonra aynı eşyalara düşen buildler bir kez gösterilir
+    const sig = [...p.items].sort().join(); if (out.some(q => q.items && [...q.items].sort().join() === sig)) return;
+    if (role === "sup") p.after = arrange(list.filter(x => !isSupItem(x)), c, "adc").find(x => !isBoot(x) && !p.items.includes(x)) || null;
+    out.push(p);
+  };
+  let main = null;
+  // çizme: koridorun verisi; yoksa şampiyonun diğer koridorlarındaki çizme, o da yoksa tarzın çizmesi (u.gg çekirdeği bazı şampiyonlarda çizmeyi içermiyor)
+  const anyBoots = Object.values(b).map(x => x.boots).find(Boolean) || null;
   if (R) {
-    const spare = [...R.v.flatMap(v => v[1]), ...(R.sit || [])];
+    main = styleOfItems(R.v[0][1]);
+    const spare = [...R.v.flatMap(v => v[1]), ...(R.sit || []), ...(STY[main] && STY[main].pool ? styleList(c, main, []) : [])];
     R.v.forEach((v, i) => { const m = VAR_P[v[0]] || ["wand", v[0]];
-      const items = arrange([...v[1], ...spare.filter(x => !v[1].includes(x)), R.boots], c, role);
-      out.push({ id: "v" + i, lbl: m[1], ic: m[0], wr: v[2], g: v[3], items,
-        sub: `${v[3] ? `${n0(v[3])} maç${v[2] != null ? " · " + pct(v[2]) + " kazanma" : ""}` : "maç sayısı az"}` }); });
-    if (role !== "sup" && kind !== "sup") {
-      const std = R.v[0][1].filter(x => !isBoot(x));
-      out.push({ id: "hy", lbl: "Karma", ic: "heart", gen: "hy", base: std, boots: R.boots, sub: kind === "tank" ? "Tank + hasar: dayanıklılık eşyalarının arasına hasar eşyası" : "Hasar + dayanıklılık: 2 hasar eşyasından sonra savunma" });
-      out.push({ id: "ct", lbl: "Bu rakibe göre", ic: "target", gen: "ct", base: std, boots: R.boots, sub: "İlk 2 eşya oyuncu buildinden; kalanlar düello rakibine karşı en çok fark yaratanlar" });
-    }
+      finish({ id: "v" + i, lbl: m[1], ic: m[0], wr: adapted ? null : v[2], g: v[3], style: main, ru: R.ru, sp: spellsFor(R.sp, src, role), start: startFor(c, role, adapted ? null : R, main), adapted,
+        sub: adapted ? note : `${v[3] ? `${n0(v[3])} maç${v[2] != null ? " · " + pct(v[2]) + " kazanma" : ""}` : "maç sayısı az"}` },
+        [...v[1], ...spare.filter(x => !v[1].includes(x)), R.boots || anyBoots || (STY[main] && STY[main].boots) || null]);
+    });
   }
-  return out;
+  const base = R ? R.v[0][1] : [];
+  for (const st of stylesOf(c)) {
+    if (st === main) continue;
+    const boots = st === "offtank" ? (R && R.boots) || anyBoots || (c.dmg === "AP" ? "3020" : "3047") : STY[st].boots;
+    finish({ id: "s-" + st, lbl: styleLbl(c, st), ic: STY[st].ic, style: st, ru: runePage(c, role, st), sp: spellsFor(R && R.sp, src, role), start: startFor(c, role, null, st), adapted,
+      sub: STY[st].sub + (adapted ? " · " + note : "") }, [...styleList(c, st, base), boots]);
+  }
+  if (out.length) { const f0 = out[0];
+    out.push({ id: "ct", lbl: "Bu rakibe göre", ic: "target", gen: "ct", style: f0.style, ru: f0.ru, sp: f0.sp, start: f0.start, adapted,
+      base: f0.items.filter(x => !isBoot(x)), boots: f0.items.find(isBoot) || null,
+      sub: `İlk 2 eşya "${f0.lbl}" buildinden; kalanlar düello rakibine karşı en çok fark yaratanlar` }); }
+  P_MEMO.set(mk, out); return out;
+}
+/* Karşı takıma göre savunma: büyü direnci ↔ zırh eşdeğerleri */
+const SWAP_TO_ARMOR = { "4401": "3143", "2504": "3075", "6664": "3068", "3156": "6333", "3102": "3157", "3111": "3047", "3139": "3026", "8020": "3110", "3065": "3110" };
+const SWAP_TO_MR = { "3143": "4401", "3742": "4401", "3075": "2504", "3110": "3065", "3068": "6664", "6333": "3156", "3157": "3102", "3047": "3111", "3026": "3139", "2502": "3065" };
+const FALLBACK = { armor: have(["3143", "3075", "3110", "3742", "3068", "2502", "6333", "3157"]), mr: have(["4401", "2504", "3065", "6664", "8020", "3156", "3102", "3091"]) };
+const isArmorOnly = id => (istat(id).armor || 0) > 0 && !(istat(id).mr > 0);
+const isMrOnly = id => (istat(id).mr || 0) > 0 && !(istat(id).armor > 0);
+/* team: "ad" (çoğu fiziksel) · "ap" (çoğu büyü) · "bal" → [yeni liste, [[eski, yeni]...]] */
+function swapDef(items, c, role, team) {
+  if (team !== "ad" && team !== "ap") return [items, []];
+  const map = team === "ad" ? SWAP_TO_ARMOR : SWAP_TO_MR, fb = team === "ad" ? FALLBACK.armor : FALLBACK.mr;
+  const out = [...items], done = [];
+  out.forEach((id, i) => {
+    if (!id || !map[id] || isSupItem(id)) return; // yalnızca eşdeğeri bilinen savunma eşyaları değişir
+    const tries = [map[id], ...(isBoot(id) ? [] : fb)].filter(Boolean);
+    for (const t of tries) { const f = { c, role, items: out }; if (t === id || out.includes(t) || !IT[t] || blockOf(f, t, i)) continue;
+      // tarz: hasar eşyasını savunma eşyasıyla değiştirirken saldırı gücü/yetenek gücü türü korunur
+      if ((istat(id).ad > 0) !== (istat(t).ad > 0) || (istat(id).ap > 0) !== (istat(t).ap > 0)) continue;
+      done.push([id, t]); out[i] = t; break; }
+  });
+  return [out, done];
 }
 const trial = (f, items, o) => { const t = { ...f, items }; const r = f.side === "en" ? simulate(o, t) : simulate(t, o); return r ? (f.side === "en" ? 1 - r.score : r.score) : 0; };
 /* tam buildi oyun sonuna (18. seviye) göre seçer; düelloda seviyeye göre kırpılır */
@@ -471,52 +630,68 @@ function greedyFill(f, base, pool, o, upto) {
   return items;
 }
 function genItems(f, p, o) {
-  const c = f.c, kind = kindOf(c), n = slotsOf(f.role) - 1;
-  if (p.gen === "hy") {
-    const pool = kind === "tank" ? DMG_POOL[c.dmg] : DEF_POOL[kind] || DEF_POOL.adm;
-    const dmg = p.base, def = greedyFill(f, [], pool, o, 3);
-    // sıra: 2 ana eşya, 1 savunma/hasar, 1 ana, kalanlar
-    const order = [dmg[0], dmg[1], def[0], dmg[2], def[1], dmg[3], def[2]].filter(Boolean);
-    return arrange([...order.slice(0, n), p.boots], c, f.role);
-  }
-  const pool = [...new Set([...buildPool(c, f.role), ...(DEF_POOL[kind] || []), ...(kind === "tank" ? DMG_POOL[c.dmg] : [])])];
+  const c = f.c, n = slotsOf(f.role) - 1;
+  const pool = recPool(f, p.style).filter(id => !isBoot(id));
   const items = greedyFill(f, p.base.slice(0, 2), pool, o, n);
   const bc = have([p.boots, "3047", "3111"].filter(Boolean)); let bb = p.boots, bv = -1;
   for (const b of bc) { const v = trial(f, itemsForLevel([...items, b], D.lvl, f.role), o); if (v > bv) { bv = v; bb = b; } }
   return arrange([...items, bb], c, f.role);
 }
+/* Şampiyonun bu koridorda gerçekten alınan eşyaları */
 function buildPool(c, role) {
   const b = BUILDS[c.slug]; const s = new Set();
   if (b) { const rs = b[role] ? [role] : Object.keys(b); rs.forEach(r => { const R = b[r]; R.v.forEach(v => v[1].forEach(x => s.add(x))); (R.sit || []).forEach(x => s.add(x)); if (R.boots) s.add(R.boots); }); }
-  if (s.size < 8) (DEF_POOL[kindOf(c)] || []).forEach(x => s.add(x));
   return [...s].filter(id => IT[id] && !blockOf({ c, role, items: [] }, id, -1));
+}
+/* Tarzla uyumlu eşya türleri */
+const COMPAT = { crit: ["crit", "ad", "brz"], leth: ["leth", "ad", "brz"], brz: ["brz", "ad", "tank"], tank: ["tank"], ap: ["ap", "apt"], apt: ["apt", "ap", "tank"], ench: ["ench", "tank"], offtank: ["tank", "brz"] };
+/* Öneri havuzu: oyuncu verisi + şampiyonun tarzları + sınıfına uygun savunma; tarza uymayanlar ayıklanır */
+function recPool(f, style) {
+  const c = f.c, kind = kindOf(c), data = new Set(buildPool(c, f.role));
+  const st = style || styleOfItems(f.items.filter(Boolean)) || (presetsFor(c, f.role)[0] || {}).style;
+  const ok = new Set([...(COMPAT[st] || []), ...(st === "offtank" ? COMPAT[styleOfItems(f.items.filter(Boolean)) || "brz"] || [] : [])]);
+  const s = new Set(data);
+  for (const k of stylesOf(c)) if (STY[k].pool && (COMPAT[st] || []).some(t => COMPAT[k] && COMPAT[k][0] === t)) STY[k].pool.forEach(x => s.add(x));
+  if (st && STY[st] && STY[st].pool) STY[st].pool.forEach(x => s.add(x));
+  // savunma: tarza göre (kritik buildde tank eşyası değil, SG'li savunma eşyaları)
+  const defL = (["crit", "leth"].includes(st) && kind !== "adr" ? DEF_EXTRA[st] : DEF_EXTRA[kind]) || [];
+  defL.forEach(x => s.add(x));
+  const melee = isMelee(c), extra = new Set(defL);
+  return [...s].filter(id => { if (!IT[id] || (IT[id].tier !== "fin" && !isBoot(id))) return false; if (melee && RANGED_ONLY_FEEL.has(id)) return false; if (blockOf({ c, role: f.role, items: [] }, id, -1)) return false;
+    if (isBoot(id) || data.has(id) || extra.has(id)) return true; const t = ITYPE(id); return !st || ok.has(t); });
 }
 
 /* ===================================================================
  *  DÜELLO EKRANI
  * =================================================================== */
 const MAXL = 18;
-const D = { me: null, en: null, lvl: 11, prev: null, log: [] };
-const dSave = () => { try { const o = f => f && { s: f.c.slug, r: f.role, b: f.build, i: f.items }; localStorage.setItem("rk-lol-duel2", JSON.stringify({ me: o(D.me), en: o(D.en), lvl: D.lvl })); } catch { } };
+const D = { me: null, en: null, lvl: 11, prev: null, log: [], team: "bal" };
+const dSave = () => { try { const o = f => f && { s: f.c.slug, r: f.role, b: f.build, i: f.items }; localStorage.setItem("rk-lol-duel2", JSON.stringify({ me: o(D.me), en: o(D.en), lvl: D.lvl, team: D.team })); } catch { } };
 const pad = (items, role) => { const n = slotsOf(role), boot = items.find(x => x && isBoot(x)), rest = items.filter(x => x && !isBoot(x)); return [...rest, ...Array(n).fill(null)].slice(0, n - 1).concat(boot || null); };
+/* Koridor: 5 koridorun hepsi seçilebilir; verisi olmayan koridorda build uyarlanır */
 function fighter(side, c, o = {}) {
   const roles = rolesOf(c);
-  const role = roles.includes(o.role) ? o.role : (side === "en" && D.me && roles.includes(D.me.role) ? D.me.role : roles.includes(c.main) ? c.main : roles[0]);
-  const f = { side, c, role, build: o.build || "v0", items: [], get lvl() { return D.lvl; } };
+  const role = ROLE_ORDER.includes(o.role) ? o.role : (side === "en" && D.me && roles.includes(D.me.role) ? D.me.role : roles.includes(c.main) ? c.main : roles[0]);
+  const f = { side, c, role, build: o.build || "v0", items: [], swaps: [], get lvl() { return D.lvl; } };
   if (Array.isArray(o.items)) f.items = pad(arrange(o.items, c, role), role);
   else { const P = presetsFor(c, role); if (!P.some(p => p.id === f.build && !p.gen)) f.build = (P[0] || {}).id || null;
-    const p = P.find(x => x.id === f.build); f.items = pad(p ? itemsForLevel(p.items, D.lvl, role) : [], role); }
+    const p = P.find(x => x.id === f.build); let full = p ? p.items : [];
+    if (side === "me" && p) [full, f.swaps] = swapDef(full, c, role, D.team);
+    f.full = full; f.items = pad(itemsForLevel(full, D.lvl, role), role); }
   return f;
 }
 const other = side => D[side === "me" ? "en" : "me"];
 function applyPreset(side, id) {
   const f = D[side], p = presetsFor(f.c, f.role).find(x => x.id === id); if (!p) return;
-  f.full = p.gen ? genItems(f, p, other(side)) : p.items; f.build = id;
+  let full = p.gen ? genItems(f, p, other(side)) : p.items; f.swaps = [];
+  if (side === "me") [full, f.swaps] = swapDef(full, f.c, f.role, D.team);
+  f.full = full; f.build = id;
   f.items = pad(itemsForLevel(f.full, D.lvl, f.role), f.role);
 }
 function dLoad() {
   try {
     const s = JSON.parse(localStorage.getItem("rk-lol-duel2") || "null");
+    if (s && ["ad", "ap", "bal"].includes(s.team)) D.team = s.team;
     if (s && s.me && BYSLUG[s.me.s] && s.en && BYSLUG[s.en.s]) { D.lvl = Math.min(MAXL, Math.max(1, s.lvl || 11));
       D.me = fighter("me", BYSLUG[s.me.s], { role: s.me.r, build: s.me.b, items: s.me.i }); D.en = fighter("en", BYSLUG[s.en.s], { role: s.en.r, build: s.en.b, items: s.en.i }); return; }
   } catch { }
@@ -524,28 +699,45 @@ function dLoad() {
 }
 const verdictTxt = s => s >= 0.62 ? ["Sen kazanırsın", "good"] : s >= 0.54 ? ["Avantaj sende", "good"] : s > 0.46 ? ["Başa baş", "even"] : s > 0.38 ? ["Rakip önde", "bad"] : ["Rakip kazanır", "bad"];
 const secs = t => t >= 60 ? "60+ sn" : (t < 10 ? dec(t) : Math.round(t)) + " sn";
-
+/* Rün sayfası + büyüler (küçük satır) */
+function runeLine(ru, sp) {
+  if (!ru || !ru.length) return "";
+  const t2 = runeTree(ru[4]);
+  return `<div class="f-rune" title="Rünler: ${esc(ru.map(id => (RUNES.r[id] || [""])[0]).filter(Boolean).join(", "))}">${runeImg(ru[0], "ks")}<span class="rn">${esc((RUNES.r[ru[0]] || [""])[0])}</span>
+    <span class="minor">${ru.slice(1, 4).map(n => runeImg(n)).join("")}</span>${t2 && RUNES.st[t2] ? `<img class="tree" src="${RUNES.st[t2][1]}" alt="${esc(RUNES.st[t2][0])}" title="İkincil: ${esc(RUNES.st[t2][0])}">` : ""}<span class="minor sec">${ru.slice(4, 6).map(n => runeImg(n)).join("")}</span>
+    ${sp && sp.length ? `<span class="sps">${sp.map(spellImg).join("")}</span>` : ""}</div>`;
+}
+/* Destek eşyası yolu ve sonrası (Data Dragon: Dünya Atlası → Rün Pusulası → Dünyaların Ganimeti → bedelsiz son yükseltme) */
+function supPath(items, after) {
+  const fin = (items || []).find(isSupItem); if (!fin) return "";
+  return `<div class="f-sup"><span class="l">${ic("scroll")}Destek eşyası</span>
+    <span>${esc(iname("3865"))} → Rün Pusulası → Dünyaların Ganimeti → <b>${esc(iname(fin))}</b></span>
+    <span class="muted">Destek görevinin altını dolunca kendiliğinden yükselir; son adım bedelsizdir. Satış değeri 160 altın: satarsan altın geliri ve totem yükleri gider${after ? `. Oyun sonunda yuvaya ihtiyacın olursa satıp yerine <b>${esc(iname(after))}</b> alabilirsin` : ""}.</span></div>`;
+}
 function fighterHTML(side) {
-  const f = D[side], c = f.c, st = fstats(f), roles = rolesOf(c), P = presetsFor(c, f.role), cur = P.find(p => p.id === f.build);
+  const f = D[side], c = f.c, st = fstats(f), P = presetsFor(c, f.role), cur = P.find(p => p.id === f.build);
   const abl = AB[c.slug] && Object.values(AB[c.slug]).some(x => x.d && x.d.length);
+  const ruP = cur || P[0];
   return `<div class="f-top">
       <button type="button" class="f-pick" data-dpick="${side}" aria-label="${side === "me" ? "Şampiyonunu" : "Rakibi"} değiştir: ${esc(c.disp)}">${por(c, "xl")}<span class="f-swap">${ic("swap")}</span></button>
       <div class="f-id"><span class="f-side">${side === "me" ? "Sen" : "Rakip"}</span><b class="f-name">${esc(c.disp)}</b>
-        <span class="f-sub">${tierB(c)} ${esc(ROLE_LONG[f.role] || "")}</span></div>
+        <span class="f-sub">${tierB(c)} ${esc(ROLE_LONG[f.role] || "")}${hasData(c, f.role) ? "" : ' <span class="adapt">uyarlanmış build</span>'}</span></div>
     </div>
-    ${roles.length > 1 ? `<div class="f-roles" role="group" aria-label="Koridor">${roles.map(r => `<button type="button" data-drole="${side}:${r}" aria-pressed="${r === f.role}">${ROLE[r]}</button>`).join("")}</div>` : ""}
+    <div class="f-roles" role="group" aria-label="Koridor">${ROLE_ORDER.map(r => `<button type="button" data-drole="${side}:${r}" aria-pressed="${r === f.role}"${hasData(c, r) ? "" : ` class="nod" title="Bu koridorda ${esc(c.disp)} için oyuncu verisi yok; build uyarlanır"`}>${ROLE[r]}</button>`).join("")}</div>
     <div class="f-items${f.role === "adc" ? " seven" : ""}">${f.items.map((id, i) => id && IT[id] ? `<button type="button" class="slot-i${isBoot(id) ? " boot" : ""}" data-dslot="${side}:${i}" aria-label="${esc(iname(id))}: değiştir" title="${esc(iname(id))}"><img src="${IT[id].img}" alt="">${chgBadge(ICHG[id] && ICHG[id].v)}</button>`
       : `<button type="button" class="slot-i empty" data-dslot="${side}:${i}" aria-label="Eşya ekle">${ic("plus")}</button>`).join("")}</div>
     ${st ? `<dl class="f-stats">
       <div><dt>Can</dt><dd>${n0(st.hp)}</dd></div>
-      ${(m => `<div><dt>${m ? "Yetenek G." : "Saldırı G."}</dt><dd>${n0(m ? st.ap : st.ad)}</dd></div>`)(st.t === "M" && st.ap > 0)}
+      ${(m => `<div><dt>${m ? "Yetenek G." : "Saldırı G."}</dt><dd>${n0(m ? st.ap : st.ad)}</dd></div>`)(st.ap > st.bad)}
       <div><dt>Zırh</dt><dd>${n0(st.ar)}</dd></div>
       <div><dt>Büyü D.</dt><dd>${n0(st.mr)}</dd></div>
       <div><dt>Saldırı H.</dt><dd>${st.as.toFixed(2).replace(".", ",")}</dd></div>
     </dl>` : `<p class="muted small">Bu şampiyonun taban değerleri henüz yok.</p>`}
     <div class="f-builds">
-      <div class="f-styles" role="group" aria-label="Hazır build">${P.map(p => `<button type="button" data-dbuild="${side}:${p.id}" aria-pressed="${f.build === p.id}" title="${esc(p.sub)}">${ic(p.ic)}${esc(p.lbl)}${p.wr != null ? ` <small>${pct(p.wr)}</small>` : ""}</button>`).join("") || '<span class="muted small">Bu koridor için build verisi yok.</span>'}</div>
-      <p class="f-bsub muted small">${cur ? `<b>${esc(cur.lbl)}</b> · ${esc(cur.sub)}` : "Elle seçilmiş eşyalar"} · ${f.role === "adc" ? "Alt koridor: çizme + 6 eşya" : f.role === "mid" ? "Orta: gelişmiş çizme alınabilir" : "Çizme + 5 eşya"}</p>
+      <div class="f-styles" role="group" aria-label="Hazır build">${P.map(p => `<button type="button" data-dbuild="${side}:${p.id}" aria-pressed="${f.build === p.id}" title="${esc(p.sub)}"${p.id.startsWith("s-") ? ' class="sty"' : ""}>${ic(p.ic)}${esc(p.lbl)}${p.wr != null ? ` <small>${pct(p.wr)}</small>` : ""}</button>`).join("") || '<span class="muted small">Bu şampiyon için build verisi yok.</span>'}</div>
+      <p class="f-bsub muted small">${cur ? `<b>${esc(cur.lbl)}</b> · ${esc(cur.sub)}` : "Elle seçilmiş eşyalar"} · ${f.role === "adc" ? "Alt koridor: çizme + 6 eşya" : f.role === "mid" ? "Orta: gelişmiş çizme alınabilir" : "Çizme + 5 eşya"}${f.swaps && f.swaps.length ? ` · <span class="gold-t">Karşı takıma göre: ${esc(f.swaps.map(([a, b]) => `${iname(a)} → ${iname(b)}`).join(", "))}</span>` : ""}</p>
+      ${ruP ? runeLine(ruP.ru, ruP.sp) : ""}
+      ${f.role === "sup" ? supPath(f.full || f.items, cur && cur.after) : ""}
     </div>
     <div class="f-acts"><button type="button" class="lnk" data-dclear="${side}">${ic("reset")}Yuvaları boşalt</button>${abl ? "" : `<span class="muted small">Yetenek verisi yok, ortalama alınıyor</span>`}</div>`;
 }
@@ -559,7 +751,7 @@ function ccSummary(X) {
 }
 const typeSplit = byT => { const P = byT.P || 0, M = byT.M || 0, T = byT.T || 0, s = Math.max(1, P + M + T); return { P: P / s, M: M / s, T: T / s }; };
 function renderDuel() {
-  $("#f-me").innerHTML = fighterHTML("me"); $("#f-en").innerHTML = fighterHTML("en");
+  $("#f-me").innerHTML = fighterHTML("me"); $("#f-en").innerHTML = fighterHTML("en"); renderTeam();
   $("#d-lvl").textContent = D.lvl;
   const r = simulate(D.me, D.en), out = $("#d-result");
   if (!r) { out.innerHTML = '<div class="empty">Bu eşleşme için taban değer verisi yok.</div>'; $("#d-recs").innerHTML = ""; return; }
@@ -604,50 +796,79 @@ function foeOf(r, side) {
   const bar = s.ar - s.baseAr, bmr = s.mr - s.baseMr;
   return { split: typeSplit(X.byT), s, tanky: s.bhp >= 900 || bar + bmr >= 110, squishy: s.bhp < 450 && bar < 35 && bmr < 35, heal: X.healed || 0 };
 }
-function reasonsFor(id, foe) {
-  const x = istat(id), out = []; let k = 1;
-  const P = Math.round(foe.split.P * 100), M = Math.round(foe.split.M * 100);
-  if ((x.mr || 0) > 0 && !(x.armor > 0)) { if (foe.split.M >= 0.5) out.push(["good", `Rakibin hasarının %${M}'i büyü`]); else if (foe.split.M < 0.25) { out.push(["bad", `Rakip çoğunlukla fiziksel vuruyor (%${P}); büyü direnci az işe yarar`]); k *= 0.35; } }
-  if ((x.armor || 0) > 0 && !(x.mr > 0)) { if (foe.split.P >= 0.5) out.push(["good", `Rakibin hasarının %${P}'i fiziksel`]); else if (foe.split.P < 0.25) { out.push(["bad", `Rakip çoğunlukla büyü hasarı veriyor (%${M}); zırh az işe yarar`]); k *= 0.35; } }
-  if (ANTI_TANK.has(id) || (x.armpen || 0) > 0 || (x.mpenp || 0) > 0) {
-    if (foe.tanky) out.push(["good", `Rakip dayanıklı (+${n0(foe.s.bhp)} can, ${n0(foe.s.ar)} zırh, ${n0(foe.s.mr)} büyü direnci)`]);
-    else if (foe.squishy && ANTI_TANK.has(id)) { out.push(["bad", "Rakip dayanıklı değil; bu eşya tanklara karşı alınır"]); k *= 0.6; }
+const TEAM_TXT = { ad: "Karşı takım çoğunlukla fiziksel hasar veriyor", ap: "Karşı takım çoğunlukla büyü hasarı veriyor" };
+/* Gerekçe + ağırlık: [çarpan, ek puan, [[iyi/kötü, metin]...]] — rakibin ham değerleri yazılmaz */
+function reasonsFor(id, foe, f) {
+  const x = istat(id), out = []; let k = 1, plus = 0;
+  const P = Math.round(foe.split.P * 100), M = Math.round(foe.split.M * 100), team = D.team;
+  if (isMrOnly(id)) {
+    if (foe.split.M >= 0.5) { out.push(["good", `Rakibin hasarının %${M}'i büyü`]); plus += 0.006; }
+    if (team === "ap") { out.push(["good", TEAM_TXT.ap]); plus += 0.008; }
+    if (team === "ad") { out.push(["bad", TEAM_TXT.ad + "; büyü direnci az işe yarar"]); k *= 0.4; }
+    else if (foe.split.M < 0.25 && team !== "ap") { out.push(["bad", `Rakip çoğunlukla fiziksel vuruyor (%${P}); büyü direnci az işe yarar`]); k *= 0.35; }
   }
-  if (ANTI_HEAL.has(id) && foe.heal >= 0.08 * foe.s.hp) out.push(["good", `Rakip dövüşte ${n0(foe.heal)} can yeniliyor (ağır yara)`]);
-  return [k, out];
+  if (isArmorOnly(id)) {
+    if (foe.split.P >= 0.5) { out.push(["good", `Rakibin hasarının %${P}'i fiziksel`]); plus += 0.006; }
+    if (team === "ad") { out.push(["good", TEAM_TXT.ad]); plus += 0.008; }
+    if (team === "ap") { out.push(["bad", TEAM_TXT.ap + "; zırh az işe yarar"]); k *= 0.4; }
+    else if (foe.split.P < 0.25 && team !== "ad") { out.push(["bad", `Rakip çoğunlukla büyü hasarı veriyor (%${M}); zırh az işe yarar`]); k *= 0.35; }
+  }
+  if (ANTI_TANK.has(id) || (x.armpen || 0) > 0 || (x.mpenp || 0) > 0) {
+    if (foe.tanky) { out.push(["good", "Rakip dayanıklı (çok can ve direnç): delme ve yüzde hasar işe yarar"]); plus += 0.006; }
+    else if (foe.squishy && ANTI_TANK.has(id)) { out.push(["bad", "Rakip dayanıklı değil; bu eşya tanklara karşı alınır"]); k *= 0.5; }
+  }
+  if (ANTI_HEAL.has(id)) {
+    if (foe.heal >= 0.08 * foe.s.hp) { out.push(["good", "Rakip dövüşte çok can yeniliyor: Ağır Yara işe yarar"]); plus += 0.008; }
+    else { out.push(["bad", "Rakip dövüşte az can yeniliyor; Ağır Yara burada az işe yarar"]); k *= 0.6; }
+  }
+  const R = BUILDS[f.c.slug] && BUILDS[f.c.slug][f.role];
+  if (R && R.v.some(v => v[1].includes(id))) { out.push(["good", `Oyuncuların ${ROLE_LONG[f.role]} için sık aldığı eşya`]); plus += 0.004; }
+  else if (R && (R.sit || []).includes(id)) { out.push(["good", "Oyuncuların duruma göre aldığı eşya"]); plus += 0.002; }
+  return [k, plus, out];
 }
-function weakestSlot(side) {
-  const f = D[side], o = other(side); let w = -1, wv = -1;
-  f.items.forEach((id, i) => { if (!id || isBoot(id)) return; const items = [...f.items]; items[i] = null; const v = trial(f, items, o); if (v > wv) { wv = v; w = i; } });
-  return w;
-}
-function slotFor(f, id, weak) {
+/* Bir eşya için en uygun yuva: çakışan yuva → boş yuva → korunmayan yuvalardan en az kayıp verdiren */
+const UNMODELED = new Set(["3157", "3026", "3139", "3102", "3814", "3053", "2065", "3222", "3190", "3107", "6673"]);
+function slotsFor(f, id) {
   const conflict = f.items.findIndex(x => x && x !== id && (isBoot(id) ? isBoot(x) : igrp(x).some(g => igrp(id).includes(g))));
-  if (conflict >= 0) return conflict;
-  const empty = f.items.indexOf(null); if (empty >= 0) return empty;
-  return weak;
+  if (conflict >= 0) return [conflict];
+  if (isBoot(id)) return [f.items.length - 1];
+  const empty = f.items.findIndex((x, i) => !x && i < f.items.length - 1); if (empty >= 0) return [empty];
+  // ilk 2 eşya (çekirdek) ve destek eşyası korunur; etkisi simülasyonda olmayan aktif/pasif eşyalar (Zhonya, Koruyucu Melek…) son çare
+  const core = f.items.filter(x => x && !isBoot(x) && !isSupItem(x)).slice(0, 2);
+  const free = f.items.map((x, i) => x && !isBoot(x) && !core.includes(x) && !isSupItem(x) ? i : -1).filter(i => i >= 0);
+  const plain = free.filter(i => !UNMODELED.has(f.items[i]));
+  return plain.length ? plain : free;
 }
 function bestItems(side, limit) {
   const f = D[side], o = other(side), base = simulate(D.me, D.en); if (!base) return [];
   const baseV = side === "me" ? base.score : 1 - base.score, foe = foeOf(base, side);
-  const weak = f.items.indexOf(null) < 0 ? weakestSlot(side) : -1;
-  const pool = buildPool(f.c, f.role);
-  return FINISHED().filter(i => pool.includes(i.id) && !f.items.includes(i.id)).map(i => {
-    const slot = slotFor(f, i.id, weak); if (slot < 0) return null; const items = [...f.items]; items[slot] = i.id;
-    if (blockOf({ ...f, items }, i.id, slot)) return null;
-    const gain = trial(f, items, o) - baseV; const [k, why] = reasonsFor(i.id, foe);
-    return { id: i.id, slot, out: f.items[slot], gain, adj: gain > 0 ? gain * k : gain, why };
+  return recPool(f).filter(id => !f.items.includes(id)).map(id => {
+    let best = null;
+    for (const slot of slotsFor(f, id)) { if (isSupItem(f.items[slot])) continue; const items = [...f.items]; items[slot] = id;
+      if (blockOf({ ...f, items }, id, slot)) continue;
+      const gain = trial(f, items, o) - baseV; if (!best || gain > best.gain) best = { slot, gain }; }
+    if (!best) return null;
+    const [k, plus, why] = reasonsFor(id, foe, f), v = best.gain + plus;
+    return { id, slot: best.slot, out: f.items[best.slot], gain: best.gain, adj: v > 0 ? v * k : v / Math.max(k, 0.2), why };
   }).filter(Boolean).sort((a, b) => b.adj - a.adj).slice(0, limit);
 }
 const gainTxt = g => (Math.abs(g) < 0.0005 ? "±0" : (g > 0 ? "+" : "−") + Math.abs(g * 100).toFixed(1).replace(".", ",")) + " puan";
+const TEAM_OPTS = [["ad", "Çoğu fiziksel"], ["bal", "Dengeli"], ["ap", "Çoğu büyü"]];
+function renderTeam() {
+  $("#d-team").innerHTML = `<span class="l">${ic("users")}Karşı takım</span><div class="seg sm" role="group" aria-label="Karşı takımın hasar türü">${TEAM_OPTS.map(([k, v]) => `<button type="button" data-team="${k}" aria-pressed="${D.team === k}">${v}</button>`).join("")}</div>
+    <span class="muted small">Savunma eşyaların ve öneriler buna göre değişir (ör. çoğu fiziksel: ${esc(iname("4401"))} yerine ${esc(iname("3143"))}).</span>`;
+}
 function renderRecs() {
-  const best = bestItems("me", 6);
-  $("#d-recs").innerHTML = `<h2>${ic("wand")}Bu rakibe karşı en etkili eşyalar</h2>
-    <p class="muted small">${esc(D.me.c.disp)} oyuncularının ${esc(ROLE_LONG[D.me.role] || "")} için aldığı eşyalar arasından; birlikte alınamayanlar ve bu rolde alınamayanlar ayıklandı. Dokun, ekle.</p>
-    ${best.length ? `<div class="rec-list">${best.map(x => `<button type="button" class="rec2" data-dadd="${x.id}:${x.slot}">${IT[x.id].img ? `<img src="${IT[x.id].img}" alt="">` : ""}
+  const best = bestItems("me", 12);
+  const row = x => `<button type="button" class="rec2" data-dadd="${x.id}:${x.slot}">${IT[x.id].img ? `<img src="${IT[x.id].img}" alt="">` : ""}
       <span class="rb"><span class="nm">${esc(iname(x.id))}</span>${x.out ? `<span class="muted small">${esc(iname(x.out))} yerine</span>` : ""}
-        ${x.why.length ? `<span class="whyl">${x.why.map(([t, s]) => `<span class="${t}">${esc(s)}</span>`).join("")}</span>` : ""}</span>
-      <span class="gain ${x.gain >= 0.0005 ? "good" : x.gain <= -0.0005 ? "bad" : ""}">${gainTxt(x.gain)}</span></button>`).join("")}</div>` : '<div class="empty">Eklenebilecek eşya kalmadı.</div>'}`;
+        ${x.why.length ? `<span class="whyl">${x.why.slice(0, 3).map(([t, s]) => `<span class="${t}">${esc(s)}</span>`).join("")}</span>` : ""}</span>
+      <span class="gain ${x.gain >= 0.0005 ? "good" : x.gain <= -0.0005 ? "bad" : ""}">${gainTxt(x.gain)}</span></button>`;
+  $("#d-recs").innerHTML = `<h2>${ic("wand")}Bu rakibe karşı en etkili eşyalar</h2>
+    <p class="muted small">${esc(D.me.c.disp)} için ${esc(ROLE_LONG[D.me.role] || "")}: oyuncuların aldığı eşyalar ve şampiyonun tarzına uyan eşyalar arasından. Birlikte alınamayanlar, bu rolde alınamayanlar ve tarza uymayanlar (ör. tanka kritik) ayıklandı. İlk 2 eşya ve destek eşyası yerinde kalır. Puan: düello simülasyonundaki fark. Dokun, ekle.</p>
+    ${best.length && best[0].gain <= 0.0005 ? `<p class="muted small">Mevcut eşyalar bu rakibe karşı zaten iyi; aşağıdakiler eşdeğer ya da daha zayıf seçenekler.</p>` : ""}
+    ${best.length ? `<div class="rec-list">${best.slice(0, 6).map(row).join("")}</div>
+      ${best.length > 6 ? `<details class="more"><summary>${best.length - 6} öneri daha</summary><div class="rec-list">${best.slice(6).map(row).join("")}</div></details>` : ""}` : '<div class="empty">Eklenebilecek eşya kalmadı.</div>'}`;
 }
 function renderCounters(r) {
   const en = D.en.c, role = r ? r.role : D.en.role;
@@ -674,7 +895,7 @@ function openItemPicker(side, slot) {
 function drawItemPicker() {
   const f = D[ipSide], o = other(ipSide), q = key($("#ip-q").value);
   const base = simulate(D.me, D.en), baseV = base ? (ipSide === "me" ? base.score : 1 - base.score) : 0;
-  const pool = new Set(buildPool(f.c, f.role));
+  const pool = new Set(recPool(f));
   const rows = (q ? ILIST : FINISHED()).filter(i => (q || ipCat === "all" || (ipCat === "rec" ? pool.has(i.id) : i.cat === ipCat)) && (!q || key(i.n + " " + i.en).includes(q)));
   const scored = rows.map(i => { const why = blockOf(f, i.id, ipSlot); if (why) return { i, why, g: 0 };
     const items = [...f.items]; items[ipSlot] = i.id; return { i, why: null, g: base ? trial(f, items, o) - baseV : 0 }; })
@@ -696,7 +917,12 @@ function setItem(side, slot, id) {
   renderDuel();
 }
 document.getElementById("v-ana").addEventListener("click", e => {
-  const t = e.target.closest("[data-dpick],[data-dslot],[data-dbuild],[data-drole],[data-dclear],[data-dadd],[data-dme],[data-lvl]"); if (!t) return;
+  const t = e.target.closest("[data-dpick],[data-dslot],[data-dbuild],[data-drole],[data-dclear],[data-dadd],[data-dme],[data-lvl],[data-team]"); if (!t) return;
+  if (t.dataset.team) { const v = t.dataset.team; if (v === D.team) return; const before = D.prev && D.prev.score; D.team = v;
+    // savunma eşyaları karşı takıma göre değişir (yalnızca senin tarafın)
+    const f = D.me; const [items, sw] = swapDef(f.items, f.c, f.role, v); f.items = items; if (f.full) f.full = swapDef(f.full, f.c, f.role, v)[0]; f.swaps = sw;
+    logChange("me", sw.length ? `karşı takıma göre ${sw.map(([a, b]) => `${esc(iname(a))} yerine <b>${esc(iname(b))}</b>`).join(", ")} aldı{s}` : `karşı takımı <b>${esc(TEAM_OPTS.find(x => x[0] === v)[1].toLocaleLowerCase("tr"))}</b> seçti{s}`, before);
+    renderDuel(); return; }
   if (t.dataset.dpick) { const side = t.dataset.dpick; openPicker(side === "me" ? "Senin şampiyonun" : "Rakip şampiyon", c => { if (!c) return; D[side] = fighter(side, c); D.log = []; D.prev = null; renderDuel(); }); }
   else if (t.dataset.dslot) { const [s, i] = t.dataset.dslot.split(":"); openItemPicker(s, +i); }
   else if (t.dataset.drole) { const [s, r] = t.dataset.drole.split(":"); const f = D[s]; if (f.role === r) return; const before = D.prev && D.prev.score;
@@ -736,27 +962,63 @@ $("#c-roles").addEventListener("click", e => { const b = e.target.closest("[data
 $("#c-q").addEventListener("input", renderGrid);
 segSet("#c-sort", "s", cSort);
 $("#c-sort").addEventListener("click", e => { const b = e.target.closest("[data-s]"); if (!b) return; cSort = b.dataset.s; setPref("rk-lol-csort", cSort); segSet("#c-sort", "s", cSort); renderGrid(); });
-const ccard = (c, w) => `<button class="ccard" type="button" ${champBtnAttrs(c)}>${por(c)}<span class="nm">${esc(c.disp)}</span><span class="wr">${pct(w)}</span></button>`;
+const cst = (w, pr) => `<span class="cst"><span title="Kazanma oranı">Kazanma <b>${pct(w)}</b></span><span title="Bu koridorda seçilme oranı">Seçilme <b>${pct(pr)}</b></span></span>`;
+const ccard = (c, w, pr) => `<button class="ccard" type="button" ${champBtnAttrs(c)}>${por(c)}<span class="nm">${esc(c.disp)}</span>${cst(w, pr)}</button>`;
+/* Meta şampiyonlar: koridorda en az %2,5 seçilen ve %50,5 üstü kazananlar; kazanma ve seçilme birlikte puanlanır */
+const META_PR = 2.5, META_WR = 50.5;
+function metaPicks(role, n) {
+  return LIST.map(c => { const x = c.rs[role]; if (!x || x[1] < META_PR || x[0] < META_WR) return null; return { c, wr: x[0], pr: x[1], s: (x[0] - 50) / 1.2 + Math.log2(x[1] / META_PR) }; })
+    .filter(Boolean).sort((a, b) => b.s - a.s).slice(0, n);
+}
+function metaHTML() {
+  const roles = cRole === "all" ? ROLE_ORDER : [cRole];
+  const rows = roles.map(r => { const m = metaPicks(r, cRole === "all" ? 5 : 10); return m.length ? `<div class="mrow"><span class="mr-l">${roleB(r)}</span><div class="mcards">${m.map(x =>
+    `<button class="mcard" type="button" ${champBtnAttrs(x.c)}>${por(x.c, "sm")}<span class="mb"><span class="nm">${esc(x.c.disp)}</span>${cst(x.wr, x.pr)}</span></button>`).join("")}</div></div>` : ""; }).join("");
+  if (!rows) return "";
+  return `<section class="card metabox"><h2 class="th">${ic("star")}Meta şampiyonlar<small>Yama ${esc(STATS_META ? STATS_META.patch : "–")}</small></h2>
+    <p class="muted small" style="margin:0 0 10px">Bu yamada hem çok seçilen (koridorda en az %2,5) hem de kazanma oranı %50,5'in üstünde olanlar; kazanma ve seçilme birlikte puanlanır. Kaynak: u.gg, Dünya, Zümrüt+.</p>${rows}</section>`;
+}
 function renderGrid() {
   const q = key($("#c-q").value);
+  const rOf = c => cRole === "all" ? c.main : cRole;
   const wrOf = c => { if (cRole === "all") return c.tier === "?" ? null : c.wr; const x = c.rs[cRole]; return x && x[1] >= MIN_PR ? x[0] : null; };
+  const prOf = c => { const x = c.rs[rOf(c)]; return x ? x[1] : null; };
   const rows = LIST.filter(c => (cRole === "all" || c.roles.includes(cRole)) && (!q || key(c.disp).includes(q) || key(c.prof.en).includes(q)));
   const out = $("#c-grid");
   if (!rows.length) { out.innerHTML = '<div class="empty">Bulunamadı.</div>'; return; }
-  if (cSort === "az") { out.innerHTML = `<div class="cgrid">${rows.sort((a, b) => a.disp.localeCompare(b.disp, "tr")).map(c => ccard(c, wrOf(c))).join("")}</div>`; return; }
+  const legend = `<p class="muted small legend">Kartlarda <b>Kazanma</b>: kazanma oranı, <b>Seçilme</b>: ${cRole === "all" ? "ana koridorundaki" : "bu koridordaki"} seçilme oranı. Kademe kazanma oranına göre: S %52 ve üstü · A %51 · B %49,5 · C %48 · D %48'in altı.</p>`;
+  if (cSort === "az") { out.innerHTML = legend + `<div class="cgrid">${rows.sort((a, b) => a.disp.localeCompare(b.disp, "tr")).map(c => ccard(c, wrOf(c), prOf(c))).join("")}</div>`; return; }
   const groups = {}; rows.forEach(c => { const t = tierOf(wrOf(c)); (groups[t] ||= []).push(c); });
-  out.innerHTML = ["S", "A", "B", "C", "D", "?"].filter(t => groups[t]).map(t => `<section class="tsec"><h2 class="th"><span class="tier big" data-t="${t}">${t}</span>${TIER_TXT[t]}<small>${groups[t].length}</small></h2>
-    <div class="cgrid">${groups[t].sort((a, b) => (wrOf(b) || 0) - (wrOf(a) || 0) || a.disp.localeCompare(b.disp, "tr")).map(c => ccard(c, wrOf(c))).join("")}</div></section>`).join("")
+  out.innerHTML = (q ? "" : metaHTML()) + legend + ["S", "A", "B", "C", "D", "?"].filter(t => groups[t]).map(t => `<section class="tsec"><h2 class="th"><span class="tier big" data-t="${t}">${t}</span>${TIER_TXT[t]}<small>${groups[t].length}</small></h2>
+    <div class="cgrid">${groups[t].sort((a, b) => (wrOf(b) || 0) - (wrOf(a) || 0) || a.disp.localeCompare(b.disp, "tr")).map(c => ccard(c, wrOf(c), prOf(c))).join("")}</div></section>`).join("")
     + `<p class="muted small">Kademe, ${cRole === "all" ? "her şampiyonun ana koridorundaki" : ROLE_LONG[cRole] + " için"} kazanma oranına göre (u.gg, Dünya, Zümrüt+, yama ${esc(STATS_META ? STATS_META.patch : "–")}). Koridorda %0,5'ten az seçilenler "?" grubunda.</p>`;
 }
-
 /* ===================================================================
  *  PROFİL — sekmeli: Build · Yetenekler · Eşleşmeler · Oynanış
  * =================================================================== */
 let pRole = null, pSlug = null, pTab = "build";
 function pickRow(c, wr, g) {
   const T = EDGE_TXT(wr);
-  return `<button class="pick" type="button" ${champBtnAttrs(c)}>${por(c, "sm")}<span class="nm">${esc(c.disp)}</span><span class="tag ${T[0]}">${T[1]}</span><span class="rt">${pct(wr)}<br><small>${n0(g)} maç</small></span></button>`;
+  return `<button class="pick" type="button" ${champBtnAttrs(c)}>${por(c, "sm")}<span class="nm">${esc(c.disp)}${g < FEW_G ? ' <span class="few" title="300\'den az maç: oran oynak olabilir">az veri</span>' : ""}</span><span class="tag ${T[0]}">${T[1]}</span><span class="rt">${pct(wr)}<br><small>${n0(g)} maç</small></span></button>`;
+}
+const FEW_G = 300;
+/* İstatistik sekmesi: koridor başına oranlar, eşya seçeneklerinin kazanma oranları (u.gg) */
+function statsTab(c) {
+  const rows = ROLE_ORDER.filter(r => c.rs[r] && c.rs[r][3] >= 50).sort((a, b) => c.rs[b][3] - c.rs[a][3]);
+  const B = BUILDS[c.slug] || {};
+  const optRow = (l, list) => list && list.length ? `<div class="opt"><span class="l">${l}</span><div class="irow">${list.map(([id, w, g]) => IT[id] ? `<span class="optc">${itile(id)}<span class="ow ${w >= 52 ? "good" : w < 48 ? "bad" : ""}">${pct(w)}</span><small>${n0(g)} maç</small></span>` : "").join("")}</div></div>` : "";
+  const roleBlock = r => { const R = B[r]; if (!R) return "";
+    const v = R.v.map(x => `<li><b>${esc((VAR_P[x[0]] || ["", x[0]])[1])}</b> çekirdeği (ilk 3 eşya): ${esc(x[1].slice(0, 3).map(iname).join(" › "))}${x[2] != null ? ` · ${pct(x[2])} kazanma` : ""}${x[3] ? ` · ${n0(x[3])} maç` : ""}</li>`).join("");
+    return `<div class="card"><h2>${roleB(r)} ${esc(ROLE_LONG[r])}</h2>
+      <ul class="howto" style="margin:0 0 10px;padding-left:18px">${v}${R.stw ? `<li><b>Başlangıç</b> (${esc((R.start || []).map(iname).join(" + ") || "–")}): ${pct(R.stw[0])} kazanma · ${n0(R.stw[1])} maç</li>` : ""}</ul>
+      ${R.opt ? optRow("4. eşya", R.opt[0]) + optRow("5. eşya", R.opt[1]) + optRow("6. eşya", R.opt[2]) : '<p class="muted small" style="margin:0">Eşya seçeneklerinin kazanma oranı bir sonraki veri güncellemesinde gelir.</p>'}</div>`; };
+  return `<div class="card"><h2>${ic("chart")}Koridorlara göre</h2>
+    <div class="tblw"><table class="stbl"><thead><tr><th>Koridor</th><th>Kademe</th><th>Kazanma</th><th>Seçilme</th><th>Yasaklanma</th><th>Maç</th></tr></thead><tbody>
+    ${rows.map(r => { const x = c.rs[r], t = tierOf(x[1] >= MIN_PR ? x[0] : null); return `<tr><th>${esc(ROLE_LONG[r])}</th><td><span class="tier" data-t="${t}">${t}</span></td><td>${pct(x[0])}</td><td>${pct(x[1])}</td><td>${pct(x[2])}</td><td>${n0(x[3])}${x[3] < 1000 ? ' <span class="few">az veri</span>' : ""}</td></tr>`; }).join("")}
+    </tbody></table></div>
+    <p class="muted small" style="margin:8px 0 0">Yasaklanma oranı şampiyonun tamamı içindir. Kademe: S %52 ve üstü · A %51 · B %49,5 · C %48 · D altı; koridorda %0,5'ten az seçilirse "?".</p></div>
+    ${rolesOf(c).map(roleBlock).join("")}
+    <p class="muted small" style="margin:0">Kaynak: u.gg, Dünya, Zümrüt+ (Master+ satırı Master ve üstü). Eşya seçenekleri: o sırada en çok alınan eşyalar ve kazanma oranları; az maçlı seçenekler gösterilmez.</p>`;
 }
 const SLOT_NAME = { P: "Pasif", Q: "Q", W: "W", E: "E", R: "Ulti" };
 const CC_NAME = { hard: "Sersemletme / etkisiz bırakma", air: "Havaya kaldırma", root: "Sabitleme", silence: "Susturma" };
@@ -807,8 +1069,9 @@ function renderProfile(slug) {
   const board = pRole ? (MU[pRole][c.slug] || []).filter(x => BYSLUG[x[0]] && BYSLUG[x[0]].roles.includes(pRole)).map(([s, w, g]) => ({ o: BYSLUG[s], w, g })) : [];
   const strong = board.filter(x => x.w >= 50).sort((a, b) => b.w - a.w), weak = board.filter(x => x.w < 50).sort((a, b) => a.w - b.w);
   const ch = CHG[c.slug];
-  const tabs = [["build", "Build"], ["yetenek", "Yetenekler"], ["eslesme", "Eşleşmeler"], ["oyna", "Oynanış"]];
+  const tabs = [["build", "Build"], ["istat", "İstatistik"], ["yetenek", "Yetenekler"], ["eslesme", "Eşleşmeler"], ["oyna", "Oynanış"]];
   let body = "";
+  if (pTab === "istat") body = statsTab(c);
   if (pTab === "build") body = `<div class="card" id="pf-build">${buildCard(c)}</div>`;
   if (pTab === "yetenek") body = `<div class="card"><div class="abil">${(pr.ab || []).map(a => {
     const cp = ch && ch.c.find(p => p[1] === a[1]); const d = cp ? cp[3].reduce((x, l) => x + l[1], 0) : null;
@@ -817,7 +1080,7 @@ function renderProfile(slug) {
   if (pTab === "eslesme") body = br.length ? `<div class="seg sm" id="pf-roles">${br.map(r => `<button type="button" data-r="${r}" aria-pressed="${r === pRole}">${ROLE_LONG[r]}</button>`).join("")}</div>
     <div class="grid2"><div class="card"><h2 class="good-h">Rahat ettiği rakipler <small>${strong.length}</small></h2><div class="list">${strong.map(x => pickRow(x.o, x.w, x.g)).join("") || '<div class="empty">Kayıt yok.</div>'}</div></div>
     <div class="card"><h2 class="bad-h">Zorlandığı rakipler <small>${weak.length}</small></h2><div class="list">${weak.map(x => pickRow(x.o, x.w, x.g)).join("") || '<div class="empty">Kayıt yok.</div>'}</div></div></div>
-    <p class="muted small" style="margin:0">Yüzde: ${esc(c.disp)}'in bu rakibe karşı kazanma oranı (u.gg, Dünya, Zümrüt+). Yalnızca yeterli maçı olan eşleşmeler gösterilir.</p>`
+    <p class="muted small" style="margin:0">Yüzde: ${esc(c.disp)}'in bu rakibe karşı kazanma oranı (u.gg, Dünya, Zümrüt+). En az 100 maçı olan eşleşmeler gösterilir; 300'den az maçlılar "az veri" diye işaretli.</p>`
     : '<div class="empty">Bu şampiyon için eşleşme verisi yok.</div>';
   if (pTab === "oyna") {
     const at = (pr.tip && pr.tip[0]) || [], et = (pr.tip && pr.tip[1]) || [];
@@ -834,7 +1097,7 @@ function renderProfile(slug) {
       <h1>${esc(c.disp)}</h1>${pr.t ? `<div class="title">${esc(pr.t)}</div>` : ""}
       <div class="prof-meta">${c.roles.map(roleB).join("")}<span class="chip ${c.dmg.toLowerCase()}">${DMG[c.dmg]}</span>${(pr.cls || []).map(x => `<span class="chip">${esc(CLS_TR[x] || x)}</span>`).join("")}${pr.d ? `<span class="chip">Zorluk <span class="diff">${[1, 2, 3].map(i => `<i class="${i <= pr.d ? "on" : ""}"></i>`).join("")}</span></span>` : ""}</div>
     </div>
-    <div class="ph-kpi"><span class="tier big" data-t="${c.tier}">${c.tier}</span><div><b>${pct(c.wr)}</b><span>kazanma</span></div><div><b>${pct(c.pr)}</b><span>seçilme</span></div><div><b>${pct(c.br)}</b><span>yasaklanma</span></div></div>
+    <div class="ph-kpi" title="${esc(ROLE_LONG[c.main])} için, u.gg Dünya Zümrüt+"><span class="tier big" data-t="${c.tier}" title="Kademe (kazanma oranına göre)">${c.tier}</span><div><b>${pct(c.wr)}</b><span>kazanma oranı</span></div><div><b>${pct(c.pr)}</b><span>seçilme oranı</span></div><div><b>${pct(c.br)}</b><span>yasaklanma oranı</span></div></div>
     <div class="ph-cta"><button class="btn gold" type="button" id="pf-duel">${ic("duel")}Düelloda dene</button></div>
   </div>
   ${ch ? `<button type="button" class="chstrip" data-v="${ch.v}" data-chg="${c.slug}">${chgBadge(ch.v)}<span>Yama ${esc(NOTES.patch || "")}: <b>${esc(VMARK[ch.v][1])}</b> · ${ch.c.length ? esc(ch.c.map(p => p[0] || "Genel").join(", ")) : "yeni şampiyon"}</span><span class="go">Ayrıntı ›</span></button>` : ""}

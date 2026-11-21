@@ -210,6 +210,34 @@ function luYT(e){
   return "https://www.youtube.com/results?search_query="+encodeURIComponent(q);
 }
 const ytSearch = q => "https://www.youtube.com/results?search_query="+encodeURIComponent(q);
+/* Doğrudan video: kayıttaki v/t (bölüm başlangıcı), yoksa ajan+harita genel videosu (LU.vid) */
+const VIDS = LU.vids || {};
+const fmtT = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+function luVideo(e){
+  if(e.v&&VIDS[e.v]) return {id:e.v, t:e.t||0, exact:true};
+  const g=(LU.vid||{})[e.ag+":"+e.map]; return g&&VIDS[g] ? {id:g, t:0, exact:false} : null;
+}
+const ytWatch = (id,t) => `https://www.youtube.com/watch?v=${encodeURIComponent(id)}${t?`&t=${t}s`:""}`;
+function vidHTML(v, note){
+  const m=VIDS[v.id];
+  return `<div class="lu-vid">
+    <button type="button" class="vthumb" data-play="${esc(v.id)}" data-t="${v.t||0}" aria-label="Videoyu burada oynat${v.t?`, ${fmtT(v.t)} anından`:""}">
+      <img src="https://i.ytimg.com/vi/${esc(v.id)}/hqdefault.jpg" alt="" loading="lazy" width="480" height="360">
+      <span class="vplay">${ic("play")}</span>${v.t?`<span class="vtime">${fmtT(v.t)}'den başlar</span>`:""}
+    </button>
+    <div class="vmeta"><span class="muted small">${esc(note)}</span>
+      <span class="small"><b>${esc(m[0])}</b> · ${esc(m[1])}</span>
+      <a class="small" href="${esc(ytWatch(v.id,v.t))}" target="_blank" rel="noopener">${ic("link")}YouTube'da aç</a></div>
+  </div>`;
+}
+/* Küçük resme dokununca video aynı yerde açılır (çerezsiz YouTube oynatıcısı) */
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-play]"); if(!b) return;
+  const f=document.createElement("iframe");
+  f.src=`https://www.youtube-nocookie.com/embed/${encodeURIComponent(b.dataset.play)}?autoplay=1&rel=0&start=${+b.dataset.t||0}`;
+  f.title="Lineup videosu"; f.allow="autoplay; encrypted-media; picture-in-picture; fullscreen"; f.allowFullscreen=true; f.className="vframe";
+  b.replaceWith(f);
+});
 
 /* ===================================================================
  *  ANA EKRAN — Lineup (ajan, harita, hedef nokta) · Duo (ikili seçim)
@@ -286,13 +314,15 @@ function luCard(e,i){
       ${how?`<div><dt>${ic("bolt")}${place?"Nasıl kur":"Nasıl at"}</dt><dd><p>${esc(how)}</p></dd></div>`:""}
       <div><dt>${ic("spark")}Ne işe yarar</dt><dd><p>${esc(e.does)}</p></dd></div>
     </dl>
-    <div class="lu-yt"><a class="btn" href="${esc(luYT(e))}" target="_blank" rel="noopener">${ic("play")}Videoda izle</a>
-      <span class="muted small">${e.type==="lineup"?"Kesin nişan noktası, şarj ve sekme ayarı için videoyla doğrula.":"Tam yerini görmek için videoya bak."}</span></div></div>`:""}
+    ${(v=>v ? vidHTML(v, v.exact ? (e.type==="lineup"?"Videoda tam nişan noktası, şarj ve sekme ayarı görünür; video bu kaydın başladığı andan açılır.":"Videoda tam kurulum yeri görünür; video bu kaydın başladığı andan açılır.") : `${AG[e.ag].n} · ${G.maps[e.map].n} için genel video; bu kayıt videonun bölümlerinden birinde.`)
+      : `<div class="lu-yt"><a class="btn" href="${esc(luYT(e))}" target="_blank" rel="noopener">${ic("play")}YouTube'da ara</a>
+      <span class="muted small">Bu kayıt için doğrulanmış video yok; arama sonuçları açılır.</span></div>`)(luVideo(e))}</div>`:""}
   </li>`;
 }
 function luList(S){
   const A=AG[H.la], M=G.maps[H.lm];
-  if(!S.onMap.length) return `<div class="empty">${esc(M.n)} için ${esc(A.n)} kaydı henüz yok. <a href="${esc(ytSearch(`${A.n} ${M.n} lineups`))}" target="_blank" rel="noopener">YouTube'da ara</a></div>`;
+  if(!S.onMap.length){ const g=(LU.vid||{})[H.la+":"+H.lm];
+    return `<div class="empty">${esc(M.n)} için ${esc(A.n)} kaydı henüz yok.${g&&VIDS[g]?"":` <a href="${esc(ytSearch(`${A.n} ${M.n} lineups`))}" target="_blank" rel="noopener">YouTube'da ara</a>`}</div>${g&&VIDS[g]?vidHTML({id:g,t:0},`${A.n} · ${M.n} için video rehberi`):""}`; }
   if(!S.spot) return `<div class="empty">Bu tarafta kayıt yok.</div>`;
   const other=H.ls==="atk"?"def":"atk", nOther=S.onMap.filter(e=>e.side===other).length;
   return `<h2 class="lu-h">${ic("target")}${esc(S.spot.pos.n)} <small>${S.spot.rows.length} kayıt · ${esc(SIDE_TXT[H.ls])}</small></h2>
@@ -440,22 +470,42 @@ $("#a-maps").addEventListener("click",e=>{const b=e.target.closest("[data-m]");i
 $("#a-q").addEventListener("input",renderGrid);
 segSet($("#a-sort"),"s",aSort);
 $("#a-sort").addEventListener("click",e=>{const b=e.target.closest("[data-s]");if(!b)return;aSort=b.dataset.s;setPref("rk-val-asort",aSort);segSet($("#a-sort"),"s",aSort);renderGrid()});
-const wrOn = (a,m) => m==="all" ? a.wr : (MAPSTAT[m]&&MAPSTAT[m][a.id] ? MAPSTAT[m][a.id][0] : null);
+const statOn = (a,m) => m==="all" ? (a.wr!=null?[a.wr,a.pr,a.games]:null) : (MAPSTAT[m]&&MAPSTAT[m][a.id] || null);
+const wrOn = (a,m) => { const s=statOn(a,m); return s ? s[0] : null; };
+/* Meta ajanlar: hem çok seçilen hem ortalamanın üstünde kazanan ajanlar.
+ * Koşul: seçilme oranı ≥ %2 ve kazanma oranı, seçilme ağırlıklı ortalamadan en fazla 0,3 puan düşük.
+ * Puan = seçilme × (kazanma − ortalama + 1,5); en yüksek 6 ajan. */
+function metaAgents(m){
+  const rows=ALIST.map(a=>({a,s:statOn(a,m)})).filter(x=>x.s&&x.s[1]!=null);
+  const tot=rows.reduce((t,x)=>t+x.s[1],0); if(!tot) return {avg:null,list:[]};
+  const avg=rows.reduce((t,x)=>t+x.s[0]*x.s[1],0)/tot;
+  const list=rows.filter(x=>x.s[1]>=2&&x.s[0]>=avg-.3).map(x=>({...x,sc:x.s[1]*(x.s[0]-avg+1.5)})).sort((p,q)=>q.sc-p.sc).slice(0,6);
+  return {avg,list};
+}
+function metaHTML(T){
+  const {avg,list}=metaAgents(aMap); if(!list.length) return "";
+  const where=aMap==="all"?"tüm haritalarda":`${G.maps[aMap].n} haritasında`;
+  return `<section class="meta-box card"><h2 class="th">${ic("trophy")}Meta ajanlar <small>${esc(where)}</small></h2>
+    <p class="muted small">Hem çok seçilen (seçilme %2 ve üstü) hem de ortalamanın (%${dec(avg)}) üstünde ya da çok yakınında kazanan ajanlar; ikisinin birleşimine göre sıralı.</p>
+    <div class="meta-row">${list.map(({a,s})=>`<button type="button" class="mcardA" data-go="a-${a.id}">${por(a,"sm")}<span class="mt"><b>${esc(a.n)}</b><small>${ROLES[a.r]?esc(ROLES[a.r].n):""}</small></span>
+      <span class="mn">${tierB(T[a.id])}<span><i>Kazanma</i>${pct(s[0])}</span><span><i>Seçilme</i>${pct(s[1])}</span></span></button>`).join("")}</div></section>`;
+}
 function renderGrid(){
   const q=key($("#a-q").value), wrOf=a=>wrOn(a,aMap), T=aMap==="all"?TIER:tiersFor(wrOf);
   const rows=ALIST.filter(a=>(aRole==="all"||a.r===aRole)&&(!q||key(a.n).includes(q)));
-  const card=a=>`<button class="ccard" type="button" data-go="a-${a.id}">${por(a)}<span class="nm">${esc(a.n)}</span><span class="wr">${wrOf(a)!=null?tierB(T[a.id])+pct(wrOf(a)):"–"}</span></button>`;
+  const card=a=>{ const s=statOn(a,aMap); return `<button class="ccard" type="button" data-go="a-${a.id}" title="${s?`Kademe ${T[a.id]||"?"} · kazanma %${dec(s[0])} · seçilme %${dec(s[1])}`:""}">${por(a)}<span class="nm">${esc(a.n)}</span>${s?`<span class="wr">${tierB(T[a.id])}<span class="kv"><i>Kaz.</i>${pct(s[0])}</span></span><span class="pr"><i>Seçilme</i>${pct(s[1])}</span>`:`<span class="wr">Verisi yok</span>`}</button>`; };
   const byWr=(x,y)=>(wrOf(y)??-1)-(wrOf(x)??-1)||x.n.localeCompare(y.n,"tr");
   const out=$("#a-grid");
   if(!rows.length){ out.innerHTML='<div class="empty">Bulunamadı.</div>'; return; }
-  if(aSort==="az"){ out.innerHTML=`<div class="cgrid">${rows.map(card).join("")}</div>`; return; }
+  const head=(!q&&aRole==="all"?metaHTML(T):"")+`<p class="a-legend muted small">${tierB("S")} Kademe (kazanma oranına göre S en güçlü, D en zayıf) · <b>Kaz.</b> kazanma oranı · <b>Seçilme</b> maçların yüzde kaçında seçildiği</p>`;
+  if(aSort==="az"){ out.innerHTML=head+`<div class="cgrid">${rows.map(card).join("")}</div>`; return; }
   if(aSort==="tier"){ const g={}; rows.forEach(a=>{(g[T[a.id]||"?"]||=[]).push(a)});
-    out.innerHTML=["S","A","B","C","D","?"].filter(t=>g[t]).map(t=>`<section class="tsec"><h2 class="th"><span class="tier big" data-t="${t}">${t}</span>${TIER_TXT[t]}<small>${g[t].length}</small></h2><div class="cgrid">${g[t].sort(byWr).map(card).join("")}</div></section>`).join(""); return; }
-  out.innerHTML=ROLE_ORDER.map(r=>{ const g=rows.filter(a=>a.r===r); if(!g.length) return "";
+    out.innerHTML=head+["S","A","B","C","D","?"].filter(t=>g[t]).map(t=>`<section class="tsec"><h2 class="th"><span class="tier big" data-t="${t}">${t}</span>${TIER_TXT[t]}<small>${g[t].length}</small></h2><div class="cgrid">${g[t].sort(byWr).map(card).join("")}</div></section>`).join(""); return; }
+  out.innerHTML=head+ROLE_ORDER.map(r=>{ const g=rows.filter(a=>a.r===r); if(!g.length) return "";
     return `<section class="tsec"><h2 class="rh" style="--rc:var(--r-${r})">${mk(ROLES[r].img)}${esc(ROLES[r].n)}<small>${g.length}</small></h2><div class="cgrid">${g.sort(byWr).map(card).join("")}</div></section>`; }).join("");
 }
 const srcLabel = () => ST ? `${ST.queue||"Rekabetçi"} · ${ST.rank||""} · ${ST.act||""} · ${ST.src} (${fmtDate(ST.date)})` : "";
-$("#a-src").textContent = ST ? `Oranlar: ${srcLabel()}. Kademe, kazanma oranına göre yüzdelik dilimdir.` : "Kazanma oranı verisi şu an yok.";
+$("#a-src").textContent = ST ? `Oranlar: ${srcLabel()}. Kademe, kazanma oranına göre yüzdelik dilimdir (en iyi %15 S, sonraki %25 A, %30 B, %20 C, son %10 D).` : "Kazanma oranı verisi şu an yok.";
 
 /* ===================================================================
  *  PROFİL — sekmeli: Yetenekler · Haritalar · Oynanış

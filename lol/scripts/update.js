@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
  * Rift Kontra — League of Legends (PC) veri güncelleyici
- * Kullanım: node lol/scripts/update.js [--full] [--skip-ugg] [--skip-wiki]
+ * Kullanım: node lol/scripts/update.js [--full] [--skip-ugg] [--skip-wiki] [--builds]  (--builds: u.gg buildlerini ve eşleşmeleri hemen yeniler)
  *   (depo kökünden ya da herhangi bir yerden çalışır; tüm yollar lol/ klasörüne göredir)
  *
  * Adımlar (her biri kendi sağlamlık kontrolünden geçer; kontrolü geçemeyen veri yazılmaz, eskisi korunur):
@@ -353,6 +353,10 @@ function parseOverview(ov, items, rk) {
       rs: [rune[2], rune[3]], ru: (rune[4] || []).map(String),
       sp: (o[1] && o[1][2] || []).map(String), so: (o[4] && o[4][2] || []).join(""), mx: o[4] ? o[4][3] : "",
       sit,
+      // 4., 5. ve 6. eşya seçenekleri: [eşya, kazanma %, maç] (en çok alınan 5, en az 20 maç)
+      opt: (o[5] || []).slice(0, 3).map(sl => (sl || []).filter(x => isFin(String(x[0])) && !isBoot(String(x[0])) && x[2] >= 20).sort((a, b) => b[2] - a[2]).slice(0, 5).map(([id, w, g]) => [String(id), +(w / g * 100).toFixed(1), g])),
+      // başlangıç eşyalarının kazanma oranı ve maç sayısı
+      stw: o[2] && o[2][0] ? [+(o[2][1] / o[2][0] * 100).toFixed(1), o[2][0]] : null,
     };
   }
   return out;
@@ -412,7 +416,7 @@ async function updateBuilds(champs, items, stats, prevB, prevMU) {
 /* Eşleşmeleri birleştir: u.gg sayaçları (en iyi/en kötü 10) + sıralama dosyasındaki en kötü 10 (iki yönlü) */
 function mergeMatchups(worst, MUc, prev) {
   const MU = { top: {}, jg: {}, mid: {}, adc: {}, sup: {} };
-  const put = (r, a, b, wr, g) => { if (!MU[r] || !a || !b || a === b || g < 250) return; const m = (MU[r][a] ||= {}); if (!m[b] || m[b][1] < g) m[b] = [wr, g]; };
+  const put = (r, a, b, wr, g) => { if (!MU[r] || !a || !b || a === b || g < 100) return; /* 100–300 maç arası arayüzde "az veri" diye işaretlenir */ const m = (MU[r][a] ||= {}); if (!m[b] || m[b][1] < g) m[b] = [wr, g]; };
   for (const r in worst) for (const a in worst[r]) for (const [b, wr, g] of worst[r][a]) { put(r, a, b, wr, g); put(r, b, a, +(100 - wr).toFixed(2), g); }
   for (const a in MUc) for (const r in MUc[a]) for (const [b, wr, g] of MUc[a][r]) { put(r, a, b, wr, g); put(r, b, a, +(100 - wr).toFixed(2), g); }
   const out = {}; let n = 0;
@@ -510,7 +514,7 @@ async function updateNotes(ver, champs, items) {
       writeGlobal("stats.js", "LOL_STATS", stats, "Kazanma/seçilme/yasaklanma oranları (Dünya, Zümrüt+), kaynak: u.gg");
       log("istatistik", stats.patch, n, "şampiyon,", total, "maç");
       const statsChanged = !prevBuilds || prevBuilds.patch !== stats.patch;
-      if (statsChanged || FULL || hoursSince("buildsAt") > 20) {
+      if (statsChanged || FULL || args.has("--builds") || hoursSince("buildsAt") > 20) {
         try {
           const { B, MUc } = await updateBuilds(champs, items, stats, prevBuilds, prevMU);
           builds = { patch: stats.patch, c: B };

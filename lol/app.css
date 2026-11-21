@@ -294,3 +294,55 @@ main{padding-block:22px 48px}
 .ipb .why-off{font-size:10px;line-height:1.2;color:var(--bad)}
 .stl.rules li{color:var(--muted)}
 @media (max-width:760px){.fighter.en .f-roles{justify-content:flex-start}.fighter.en .f-bsub{text-align:left}}
+
+/* ---- Karşı takım seçimi, koridor uyarlaması, tarz buildleri, rün satırı ---- */
+.teamrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.teamrow .l{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700}
+.teamrow .l .ic{color:var(--gold)}
+.f-roles button.nod{border-style:dashed}
+.f-roles button.nod[aria-pressed="true"]{border-style:solid}
+.adapt{font-size:11px;font-weight:600;color:var(--gold);border:1px dashed var(--gold);border-radius:6px;padding:0 5px}
+.f-styles button.sty,.vtabs button.sty{border-style:dashed}
+.f-styles button.sty[aria-pressed="true"],.vtabs button.sty[aria-selected="true"]{border-style:solid}
+.f-rune{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px}
+.fighter.en .f-rune{justify-content:flex-end}
+.f-rune img{border-radius:50%;background:#0b0f18;display:block;width:22px;height:22px}
+.f-rune .ks{width:30px;height:30px}
+.f-rune .minor{display:flex;gap:2px}
+.f-rune .tree{width:18px;height:18px;opacity:.85;margin-left:4px}
+.f-rune .rn{font-weight:600}
+.f-rune .sps{display:flex;gap:3px;margin-left:4px}
+.f-rune .sps .spi{width:24px;height:24px;border-radius:5px}
+.f-sup{display:grid;gap:3px;padding:8px 10px;border-radius:10px;background:var(--surface-2);font-size:13px;line-height:1.4}
+.f-sup .l{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.f-sup .muted{font-size:12px}
+details.more{margin-top:8px}
+details.more summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--teal);padding:6px 0}
+details.more .rec-list{margin-top:6px}
+/* Şampiyon kartı: etiketli oranlar */
+.cst{display:grid;gap:0;font-size:10px;color:var(--muted);line-height:1.35;text-align:center}
+.cst b{font-family:var(--f-mono);font-size:11px;color:var(--fg);font-weight:600}
+.legend{display:block;margin:0 0 12px}
+.metabox{margin-bottom:18px}
+.mrow{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.mrow:first-of-type{border-top:0}
+.mcards{display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin;padding-bottom:2px}
+.mcard{display:flex;align-items:center;gap:8px;flex:none;padding:6px 10px 6px 6px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;color:var(--fg);text-align:left}
+.mcard:hover{border-color:var(--gold)}
+.mcard .mb{display:grid;gap:1px}
+.mcard .nm{font-size:13px;font-weight:600;white-space:nowrap}
+.mcard .cst{text-align:left}
+@media (max-width:560px){.mrow{grid-template-columns:minmax(0,1fr)}}
+.few{font-size:10px;font-weight:600;color:var(--even);border:1px solid currentColor;border-radius:5px;padding:0 4px;white-space:nowrap}
+/* İstatistik sekmesi */
+.tblw{overflow-x:auto}
+.stbl{width:100%;border-collapse:collapse;font-size:14px}
+.stbl th,.stbl td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.stbl thead th{font-size:12px;color:var(--muted);font-weight:600}
+.stbl td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.opt{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px;align-items:start;margin-top:8px}
+.opt .l{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:18px}
+.optc{display:grid;justify-items:center;gap:1px}
+.optc .ow{font-family:var(--f-mono);font-size:12px;font-weight:600}
+.optc small{font-size:10px;color:var(--muted)}
+@media (max-width:560px){.opt{grid-template-columns:minmax(0,1fr)}.opt .l{padding-top:0}}

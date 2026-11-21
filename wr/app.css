@@ -261,3 +261,40 @@ main{padding-block:22px 48px}
 .ipb.off:hover{border-color:transparent}
 .ipb .why-off{font-size:10px;line-height:1.2;color:var(--bad)}
 @media (max-width:760px){.fighter.en .f-roles{justify-content:flex-start}.fighter.en .f-btabs{justify-self:start}.fighter.en .f-bsub{text-align:left}}
+
+/* Stil seçimi, rün sayfası, karşı takım (düello + profil) */
+.f-stylesel,.f-team{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.fighter.en .f-stylesel{justify-content:flex-end}
+.f-stylesel .lbl,.f-team .lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:2px}
+.f-stylesel button,.f-team button{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:32px}
+.f-stylesel button[aria-pressed="true"]{color:var(--fg);border-color:var(--gold);background:var(--gold-soft)}
+.f-team button[aria-pressed="true"]{color:var(--fg);border-color:var(--teal);background:var(--teal-soft)}
+.f-stylesel .ic,.f-team .ic{width:14px;height:14px}
+.f-team{padding-top:8px;border-top:1px dashed var(--line)}
+.f-runes{display:flex;align-items:center;gap:8px}
+.fighter.en .f-runes{justify-content:flex-end}
+.f-runes img{border-radius:50%;background:#0b0f18;display:block}
+.f-runes .ks{width:32px;height:32px}
+.f-runes .minor{display:flex;gap:3px}
+.f-runes .minor img{width:22px;height:22px}
+.f-runes .rn{font-size:13px;font-weight:600}
+.rec-list:not(.open)>.rec2:nth-child(n+7){display:none}
+.rec-more{margin-top:10px}
+.swaps{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.swap{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.swap .sw-l{font-size:11px;line-height:1.7;color:var(--muted);text-align:center}
+.swap .sw-l .ic{width:12px;height:12px;vertical-align:-2px;margin-right:3px}
+@media (max-width:760px){.fighter.en .f-stylesel,.fighter.en .f-runes{justify-content:flex-start}}
+/* Şampiyon listesi: etiketli oranlar, kademe kuralı, meta şampiyonlar */
+.ccard .wr b{color:var(--fg);font-weight:600}
+.ccard .wr.pr{margin-top:-3px}
+.th .trule{font-family:var(--f-body,inherit);font-size:12px;font-weight:500;color:var(--muted);margin-left:2px}
+.c-legend{display:flex;gap:6px;align-items:flex-start;margin:0 0 14px;line-height:1.45}
+.c-legend .ic{flex:none;width:15px;height:15px;margin-top:2px}
+.meta-sec{margin-bottom:20px;padding:14px;border:1px solid var(--gold);border-radius:14px;background:linear-gradient(180deg,var(--gold-soft),transparent 70%)}
+.meta-sec .th .ic{color:var(--gold)}
+.meta-row{display:grid;grid-template-columns:72px 1fr;gap:10px;align-items:center}
+.meta-row+.meta-row{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.meta-row:only-child,.meta-sec .meta-row:not(:has(.meta-r)){grid-template-columns:1fr}
+.meta-r{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+@media (max-width:560px){.meta-row{grid-template-columns:1fr;gap:6px}}

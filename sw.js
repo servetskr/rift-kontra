@@ -2,7 +2,7 @@
  * - Görseller: önce önbellek (değişmez dosyalar)
  * - Sayfa, kod ve veriler: önce ağ, ağ yoksa önbellek (her yamada yeni veri hemen gelsin)
  */
-const CACHE = "rk-v10";
+const CACHE = "rk-v11";
 self.addEventListener("install", e => self.skipWaiting());
 self.addEventListener("activate", e => e.waitUntil(
   caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())
