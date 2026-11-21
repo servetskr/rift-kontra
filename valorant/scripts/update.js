@@ -81,6 +81,10 @@ async function saveImage(url, file, state) {
 
 /* ---------- 1. Oyun verisi (valorant-api.com) ---------- */
 const SLOT = { Passive: "P", Ability1: "Q", Ability2: "E", Grenade: "C", Ultimate: "X" };
+/* API'nin yuvası oyundaki tuşla uyuşmayan ajanlar (yuva tuşu → oyundaki tuş).
+ * Deadlock: Barrier Mesh API'de Grenade ama oyunda E, GravNet API'de Ability2 ama oyunda C.
+ * Phoenix: Hot Hands API'de Ability1 ama oyunda E, Curveball API'de Ability2 ama oyunda Q. */
+const KEY_FIX = { deadlock: { C: "E", E: "C" }, phoenix: { Q: "E", E: "Q" } };
 async function updateGame(state, prev) {
   const [agents, weapons, gear, maps] = [await api("/agents?language=tr-TR&isPlayableCharacter=true"), await api("/weapons?language=tr-TR"), await api("/gear?language=tr-TR"), await api("/maps?language=tr-TR")];
   // Ajanlar
@@ -94,7 +98,8 @@ async function updateGame(state, prev) {
     const ab = [];
     for (const b of a.abilities) {
       if (!SLOT[b.slot] || !b.displayName) continue;
-      ab.push({ k: SLOT[b.slot], n: titleTR(b.displayName), d: richTR(b.description), img: b.displayIcon ? await saveImage(b.displayIcon, `abil/${id}-${SLOT[b.slot].toLowerCase()}.png`, state) : null });
+      const k = (KEY_FIX[id] || {})[SLOT[b.slot]] || SLOT[b.slot];
+      ab.push({ k, n: titleTR(b.displayName), d: richTR(b.description), img: b.displayIcon ? await saveImage(b.displayIcon, `abil/${id}-${k.toLowerCase()}.png`, state) : null });
     }
     ab.sort((x, y) => "PQECX".indexOf(x.k) - "PQECX".indexOf(y.k));
     A[id] = {
