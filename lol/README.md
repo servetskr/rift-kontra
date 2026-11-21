@@ -2,9 +2,10 @@
 
 League of Legends için Türkçe düello hesaplayıcı, kontra seçici, eşya rehberi ve yama özeti. Adres: **https://servetskr.github.io/rift-kontra/lol/**
 
-- **Düello (ana ekran):** Kendi şampiyonunu ve rakibi, seviyeyi (1–18) ve 6 eşya yuvasını seç. Tarz düğmeleri (Tank, Büyücü, Nişancı, Dövüşçü, Suikastçı) oyuncuların gerçekten kullandığı buildleri yükler; "?" işaretli olanlar deneyseldir. Güç dengesi, karar, 4 ölçüm (▲/▼ farkla), değişiklik günlüğü ("Rakip X aldı → avantajın −5 puan"), **Dövüştür** canlandırması (can, kalkan ve kitle kontrolü zaman çizelgesi), bu rakibe karşı en etkili eşyalar ve en iyi kontra seçimleri.
+- **Düello (ana ekran):** Kendi şampiyonunu ve rakibi, koridoru, seviyeyi (1–18) ve eşya yuvalarını seç. Hazır build düğmeleri o koridordaki oyuncu buildlerini yükler (u.gg: en çok tercih edilen, en yüksek kazanan, Master+; kazanma oranıyla), ayrıca **Karma** (hasar + dayanıklılık) ve **Bu rakibe göre** (düello rakibine karşı tamamlanan) buildler. Güç dengesi, karar, 4 ölçüm (▲/▼ farkla), değişiklik günlüğü, rakibin hasar türü dağılımı, bu rakibe karşı en etkili eşyalar (hangi eşyanın yerine, neden: "rakibin hasarının %70'i büyü", "rakip dayanıklı"…) ve en iyi kontra seçimleri.
+- **Rol ve eşya kuralları:** alt koridor çizme + 6 eşya, diğer roller çizme + 5 eşya; gelişmiş (3. kademe) çizmeler yalnızca orta koridor; destek eşyası yalnızca destek; aynı gruptan tek eşya (wiki `itemlimit`: zırh delme, can simidi, Büyülü Kılıç, Hydra, durağanlık…; `data/item-limits.json`). Alınamayan eşyalar seçicide soluk ve nedeniyle görünür; buildler bu kurallara göre düzenlenir.
 - **Şampiyonlar:** Koridora göre kazanma oranıyla S→D kademe grupları ya da A–Z; profilde Build · Yetenekler · Eşleşmeler · Oynanış sekmeleri ve yama değişikliği şeridi.
-- **Eşyalar:** Kategoriye göre simgeler (Fiziksel, Büyü, Savunma, Destek, Çizmeler, Başlangıç, Ara eşyalar); dokununca sayılar, Türkçe etki metni, yapımı ve kimlerin aldığı.
+- **Eşyalar:** Kategoriye göre simgeler (Fiziksel, Büyü, Savunma, Destek, Çizmeler, Başlangıç, Ara eşyalar); dokununca sayılar, Türkçe etki metni, yapımı ve alım kuralları (birlikte alınamadığı eşyalar, rol kısıtı).
 - **Yama:** Resmi Türkçe yama notlarından güçlendirme / zayıflatma / dengeleme işaretleri; yetenek bazında eski → yeni değerler.
 
 ## Düello hesabı
@@ -34,7 +35,7 @@ Tam güncelleme yaklaşık **10 dakika** sürer (u.gg'ye şampiyon başına 2 is
 | Veri | Ne zaman yenilenir | Kaynak |
 |---|---|---|
 | Sürüm (yama), Türkçe şampiyon/yetenek/eşya/rün/büyü adları ve açıklamaları, görseller | Her çalışmada (görseller yalnızca yeni/eksikse indirilir) | Riot Data Dragon `tr_TR` |
-| Taban değerler, saldırı hızı oranı | Yeni yamada veya 20 saatte bir | LoL Wiki `Module:ChampionData/data` (CC BY-SA 4.0) |
+| Taban değerler, saldırı hızı oranı; birlikte alınamayan eşya grupları | Yeni yamada veya 20 saatte bir | LoL Wiki `Module:ChampionData/data`, `Module:ItemData/data` (CC BY-SA 4.0) |
 | Yetenek hasarı, oranlar, bekleme, kalkan, kitle kontrolü süreleri | Yeni yamada veya 3 günde bir | LoL Wiki şampiyon sayfaları (CC BY-SA 4.0) |
 | Kazanma / seçilme / yasaklanma oranları | Her çalışmada | u.gg herkese açık istatistik dosyaları (Dünya, Zümrüt+) |
 | Buildler (koridor başına en çok tercih edilen, en yüksek kazanan, Master+), başlangıç, çizme, rün, büyü, yetenek sırası, durumsal eşyalar | Yeni oran yamasında veya 20 saatte bir | u.gg |

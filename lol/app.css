@@ -262,3 +262,33 @@ main{padding-block:22px 48px}
 .f-stats dd{white-space:nowrap}
 .brand b{white-space:nowrap}
 @media (min-width:761px) and (max-width:1020px){.bar .patch{display:none}nav.tabs{margin-left:8px}nav.tabs a{padding:8px 9px;gap:5px}}
+
+/* Alt koridor: çizme + 6 eşya (7 yuva); çizme yuvası ayrık görünür */
+.f-items.seven{grid-template-columns:repeat(7,minmax(0,1fr))}
+.slot-i.boot{outline:1px dashed var(--gold);outline-offset:-3px}
+/* Koridor ve hazır build seçimi */
+.f-roles{display:flex;flex-wrap:wrap;gap:6px}
+.fighter.en .f-roles{justify-content:flex-end}
+.f-roles button{padding:5px 11px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;min-height:32px}
+.f-roles button[aria-pressed="true"]{color:var(--fg);border-color:var(--teal);background:var(--teal-soft)}
+.f-builds{display:grid;gap:8px;min-width:0}
+.f-styles button small{font-family:var(--f-mono);font-size:11px;color:var(--good);font-weight:600}
+.f-styles button.busy{opacity:.6}
+.f-bsub{margin:0;line-height:1.4}
+.fighter.en .f-bsub{text-align:right}
+/* Öneri listesi: eşya + gerekçe + puan */
+.rec-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.rec2{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:start;text-align:left;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;color:var(--fg)}
+.rec2:hover{border-color:var(--gold)}
+.rec2 img{width:44px;height:44px;border-radius:9px}
+.rec2 .rb{display:grid;gap:2px;min-width:0}
+.rec2 .nm{font-weight:600;font-size:14px;line-height:1.25}
+.rec2 .whyl{display:grid;gap:2px;margin-top:2px}
+.rec2 .whyl span{font-size:12px;line-height:1.35}
+.rec2 .whyl .good{color:var(--good)}
+.rec2 .whyl .bad{color:var(--bad)}
+.ipb.off{opacity:.45;cursor:not-allowed}
+.ipb.off:hover{border-color:transparent}
+.ipb .why-off{font-size:10px;line-height:1.2;color:var(--bad)}
+.stl.rules li{color:var(--muted)}
+@media (max-width:760px){.fighter.en .f-roles{justify-content:flex-start}.fighter.en .f-bsub{text-align:left}}

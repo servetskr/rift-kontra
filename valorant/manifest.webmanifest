@@ -1,7 +1,7 @@
 {
   "name": "Rift Kontra · VALORANT",
   "short_name": "Kontra VAL",
-  "description": "VALORANT Türkçe düello hesaplayıcı, ajan ve silah rehberi",
+  "description": "VALORANT Türkçe lineup ve kurulum rehberi, ikili seçimi, ajan ve silah rehberi",
   "lang": "tr",
   "start_url": "./",
   "scope": "./",

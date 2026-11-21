@@ -277,6 +277,24 @@ async function updateItemIcons(itemEn, prev) {
   return icons;
 }
 
+/* ---------- 5b. En popüler çekirdek buildler (riftpatchnotes.com şampiyon sayfaları) ---------- */
+const { parseCores } = require("./rpn.js");
+async function updateCores(slugMap, prev) {
+  const list = await get("https://www.riftpatchnotes.com/winrates");
+  const rpn = [...new Set([...list.matchAll(/href="\/champion\/([a-z0-9-]+)"/g)].map(m => m[1]))];
+  const out = { c: { ...((prev && prev.c) || {}) } }; let ok = 0, miss = 0;
+  for (const r of rpn) {
+    const slug = slugMap[canon(r)]; if (!slug) { miss++; continue; }
+    try { const x = parseCores(await get(`https://www.riftpatchnotes.com/champion/${r}`, { tries: 3 })); if (Object.keys(x).length) { out.c[slug] = x; ok++; } }
+    catch (e) { problems.push("çekirdek " + r + ": " + e.message); }
+    await sleep(700);
+  }
+  if (ok < 80) throw new Error(`çekirdek build verisi eksik (${ok} şampiyon, ${miss} eşleşmedi)`);
+  log("çekirdek buildler:", ok, "şampiyon");
+  out.c = Object.fromEntries(Object.keys(out.c).sort().map(k => [k, out.c[k]]));
+  return out;
+}
+
 /* ---------- 6. Wild Rift taban değerleri ve eşya sayıları (LoL Wiki, CC BY-SA) ---------- */
 const { parseLua } = require("./lua.js");
 async function wikiModule(title) {
@@ -304,8 +322,14 @@ async function updateWiki(slugMap) {
   for (const name in I) {
     const it = I[name]; if (!it || typeof it !== "object" || !it.stats) continue;
     const m = Object.keys(it.menu || {}).filter(k => it.menu[k] === true).map(k => WIKI_MENU[k]).filter(Boolean);
+    if (it.modes && it.modes.classic_5v5 === false) continue; // yalnızca ARAM vb. modlarda
     const boot = Array.isArray(it.type) && it.type.includes("Boots");
-    item[kebab(name)] = { n: name, s: it.stats, m: boot ? ["bot"] : m, t: it.tier || 0, c: it.buy || 0 };
+    const o = { n: name, s: it.stats, m: boot ? ["bot"] : m, t: it.tier || 0, c: it.buy || 0 };
+    // Birlikte alınamayan item grupları (ör. "Anti-armor", "Lifeline", "Active": yalnızca bir aktif item)
+    const g = [it.itemlimit, it.itemlimit2].filter(x => typeof x === "string" && x).map(x => x.toLowerCase());
+    if (g.length) o.g = g;
+    if (typeof it.limit === "string" && /ranged/i.test(it.limit)) o.ro = 1; // yalnızca menzilli şampiyonlar
+    item[kebab(name)] = o;
   }
   const nc = Object.keys(champ).length, ni = Object.keys(item).length;
   if (nc < 120 || ni < 120) throw new Error(`Wiki verisi eksik (${nc} şampiyon, ${ni} eşya)`);
@@ -387,6 +411,13 @@ async function updateAbilities(names, prev) {
       if (e instanceof Blocked) log("ATLANDI:", e.message, "— eşleşmeler yerel çalıştırmayla güncellenir (scripts/yerel-guncelle.cmd)");
       else { failed = true; problems.push(e.message); }
     }
+  }
+
+  // 3a. en popüler 3 çekirdek build (kazanma/seçilme oranlı): yeni yamada ya da 20 saatte bir
+  const coreAge = prevMeta.coresAt ? (now - new Date(prevMeta.coresAt)) / 36e5 : 99;
+  if (!args.has("--skip-cores") && (patchChanged || coreAge > 20 || args.has("--full") || !fs.existsSync(path.join(DATA, "cores.js")))) {
+    try { writeGlobal("cores.js", "WR_CORES", await updateCores(slugMap, readGlobal("cores.js", "WR_CORES")), "En popüler çekirdek buildler (Elmas+, CN), kaynak: riftpatchnotes.com"); prevMeta.coresAt = now.toISOString(); }
+    catch (e) { problems.push("çekirdek buildler: " + e.message); }
   }
 
   // 3b. taban değerler + eşya sayıları: günde bir ya da yeni yamada

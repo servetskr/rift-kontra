@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Rift Kontra · VALORANT eşleşme rehberi</title>
-<meta name="description" content="VALORANT için Türkçe ajan eşleşme rehberi: iki ajanın yetenekleri birbirini nasıl etkiler, arkadaşınla hangi ikiliyi seçmelisin, birlikte kazanma oranları. Ajanlar, silahlar, haritalar ve yama notları. Her yamada otomatik güncellenir.">
+<title>Rift Kontra · VALORANT lineup ve kurulum rehberi</title>
+<meta name="description" content="VALORANT için Türkçe lineup ve kurulum rehberi: ajanı ve haritayı seç, hedef noktaya dokun, nerede durup nereye atacağını gör. Arkadaşınla hangi ikiliyi seçmelisin, birlikte kazanma oranları; ajanlar, silahlar, haritalar ve yama notları.">
 <meta property="og:title" content="Rift Kontra · VALORANT">
-<meta property="og:description" content="VALORANT Türkçe yetenek eşleşmeleri, ikili seçimi, ajan ve silah rehberi. Her yamada otomatik güncellenir.">
+<meta property="og:description" content="VALORANT Türkçe lineup ve kurulumlar, ikili seçimi, ajan ve silah rehberi.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0c131d">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -105,19 +105,19 @@ input::placeholder{color:var(--muted)}
 
 <main class="wrap">
 
-<!-- EŞLEŞME: tek amaç — iki ajanın yetenekleri nasıl etkileşir (VS) ya da arkadaşınla hangi ikili (Duo) -->
+<!-- ANA SAYFA: Lineup (ajan → harita → hedef nokta → o noktaya atılan lineup ve kurulumlar) ya da Duo (arkadaşınla hangi ikili) -->
 <section class="view" id="v-ana">
   <div class="seg mode" id="h-mode" role="group" aria-label="Mod">
-    <button type="button" data-hm="vs"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l6 6M19 5l-6 6M5 19l4-4M19 19l-4-4"/></svg>VS</button>
+    <button type="button" data-hm="lu"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6"/></svg>Lineup</button>
     <button type="button" data-hm="duo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c.5-3.5 3-5.5 6-5.5s5.5 2 6 5.5"/><path d="M16 5a3 3 0 0 1 0 6M18 14.5c1.8.7 3 2.6 3 5"/></svg>Duo</button>
   </div>
-  <div class="arena">
+  <div class="arena" id="h-arena" hidden>
     <div class="fighter me" id="f-me"></div>
     <div class="vs-col">
-      <span class="vs" id="h-vs">VS</span>
-      <button type="button" class="btn icon" id="h-swap" aria-label="Tarafları değiştir" title="Tarafları değiştir"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg></button>
+      <span class="vs" id="h-vs">+</span>
+      <button type="button" class="btn icon" id="h-swap" aria-label="Ajanları değiştir" title="Ajanları değiştir"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg></button>
     </div>
-    <div class="fighter en" id="f-en"></div>
+    <div class="fighter fr" id="f-en"></div>
   </div>
   <div class="seg sm scrollx" id="h-map" aria-label="Harita" hidden></div>
   <div id="h-out" class="view" aria-live="polite"></div>
@@ -158,7 +158,7 @@ input::placeholder{color:var(--muted)}
 
 <footer><div class="wrap">
   <p id="footFresh"></p>
-  <p>Kaynaklar: valorant-api.com (Türkçe ajan, silah ve harita verisi) · playvalorant.com resmi Türkçe yama notları · blitz.gg (Rekabetçi oranlar) · vstats.gg (ikili oranları) · VALORANT Wiki (yetenek etkileşimleri). Uyum puanı bir tahmindir; birlikte kazanma oranı ölçülmüş veridir.</p>
+  <p>Kaynaklar: valorant-api.com (Türkçe ajan, silah, harita, mini harita ve bölge adları) · playvalorant.com resmi Türkçe yama notları · blitz.gg (Rekabetçi oranlar) · vstats.gg (ikili oranları) · VALORANT Wiki (yetenek etkileşimleri). Lineup ve kurulumlar elle seçilir, konumlar bölge düzeyindedir; kesin nişan için videoya bakın. Uyum puanı bir tahmindir; birlikte kazanma oranı ölçülmüş veridir.</p>
   <p>Hayran yapımıdır; Riot Games ile bağlantılı değildir. <a href="https://github.com/servetskr/rift-kontra" target="_blank" rel="noopener">GitHub</a></p>
 </div></footer>
 
@@ -170,6 +170,7 @@ input::placeholder{color:var(--muted)}
 <script src="data/notes.js"></script>
 <script src="data/duos.js"></script>
 <script src="data/interactions.js"></script>
+<script src="data/lineups.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

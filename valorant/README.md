@@ -1,21 +1,31 @@
 # Rift Kontra · VALORANT
 
-VALORANT için Türkçe ajan eşleşme rehberi: iki ajanın yetenekleri birbirini nasıl etkiler (VS), arkadaşınla hangi ikiliyi seçmelisin (Duo); ajan ve silah rehberi. Wild Rift sürümüyle (`../wr/`) aynı tasarım dilini kullanır.
+VALORANT için Türkçe lineup ve kurulum rehberi (Lineup), arkadaşınla hangi ikiliyi seçmelisin (Duo); ajan ve silah rehberi. Wild Rift sürümüyle (`../wr/`) aynı tasarım dilini kullanır.
 
 ## Ekranlar
 
-- **Eşleşme** (ana sayfa), iki mod:
-  - **VS**: senin ajanın ve rakip ajan. "Senin elinde" ve "Rakibin elinde" listeleri: hangi yetenek hangi yeteneği etkiler (simgelerle), sonuç türü (Kapatır · Zayıflatır · Kaçar · Gösterir) ve tek satırlık açıklama. Altta "Nasıl oynanır": o rakibe karşı kısa öneriler; yetenekler doğrudan etkileşmiyorsa role göre genel öneri.
+- **Lineup** (ana sayfa), iki mod:
+  - **Lineup**: ajan → harita (önce rekabetçi havuz, sonra havuz dışı) → Saldırı/Savunma → mini haritada hedef noktaya dokun. O noktaya atılan lineup'lar ve kurulumlar listelenir: yetenek (simge ve resmi Türkçe ad), tür (Lineup · Kurulum · Duman), **Nerede dur**, **Nereye nişan al / Nereye kur**, **Nasıl at / Nasıl kur**, **Ne işe yarar** ve **Videoda izle** (İngilizce ajan, yetenek, harita ve bölge adlarıyla kurulmuş YouTube araması). Haritada seçili kaydın durulacak yeri (turkuaz daire), hedefi (altın nokta) ve aradaki çizgi; kurulumlarda baktığı yer kesikli çizgiyle çizilir. Durma noktasına dokunmak o kaydı açar. Seçimler tarayıcıda hatırlanır.
   - **Duo**: sen ve arkadaşın (isteğe bağlı harita). Uyum puanı (tahmin), birlikte kazanma oranı (ölçülmüş), aradaki kombolar ve ajanın için en iyi eşler (birlikte en çok kazananlar · en iyi kombolar). Seçimler tarayıcıda hatırlanır.
-- **Ajanlar**: role ya da kademeye göre ızgara, harita filtresi. Profil: Yetenekler · Haritalar · Oynanış (rol önerileri, Kontralar, İyi eşler, "bu ajana karşı" önerileri).
+- **Ajanlar**: role ya da kademeye göre ızgara, harita filtresi. Profil: Yetenekler · Haritalar · Oynanış (rol önerileri, Kontralar, İyi eşler, "bu ajana karşı" önerileri). Lineup kaydı olan ajanlarda profilden "Lineup'ları gör", diğerlerinde "Duo'da dene".
 - **Cephanelik**: silahlar (fiyat, atış hızı, şarjör, menzile göre hasar, kaç mermi tablosu), kalkanlar ve Haritalar sekmesi (rekabetçi havuz, saldırı/savunma dengesi, en çok kazandıran ajanlar).
 - **Yama**: son üç resmi Türkçe yama notundan değişen ajan, silah ve haritalar; eski → yeni değerler.
 
-## Eşleşme modeli
+## Lineup verisi
 
-**Yetenek etkileşimleri** (`data/interactions.js`, elle hazırlanır, güncelleyici dokunmaz):
+**Kayıtlar** (`data/lineups.js`, `window.VAL_LINEUPS`, elle hazırlanır, güncelleyici dokunmaz). Açık bir lineup veri seti olmadığı için liste elle yazılır ve yalnızca yaygın, standart kurulumlar girilir (Cypher, Killjoy, Deadlock, Vyse, Chamber, Sage kurulumları; Sova, Brimstone, Viper, Fade, KAY/O, Gekko atışları; Brimstone dumanları). Dosyanın başındaki yorum alanları anlatır: `ag`, `ab` (tuş), `map`, `side` (`atk`/`def`), `type` (`lineup`/`setup`/`smoke`), `to` (hedef bölge), isteğe bağlı `from` (durulacak bölge) ve `look` (kurulumun baktığı bölge), `title`, `stand`, `aim`, `does`, isteğe bağlı `how` ve `yt`. `abil` sözlüğü her yeteneğin İngilizce adını (video araması için) ve varsayılan "nasıl atılır/kurulur" anlatımını tutar.
+
+**Konumlar bölge düzeyindedir.** `to`/`from`/`look` değerleri valorant-api.com bölge adlarının İngilizce anahtarıdır (`"B Main"`); `"X~Y"` iki bölgenin ortası (ör. bir kapı), `"X~Y@0.3"` X'ten Y'ye %30. Piksel hassasiyetinde nişan noktası uydurulmaz: metinler bölge ve tarif düzeyindedir, kesin nişan, şarj ve sekme ayarı için her kayıtta video araması vardır. Rekabetçi havuzdaki Corrode ve Summit için henüz kayıt yoktur (arayüz YouTube aramasına yönlendirir).
+
+**Mini harita koordinatları**: güncelleyici her haritanın `displayIcon` görselini `img/minimap/{harita}.png` olarak indirir ve bölgeleri (`callouts`) `data/game.js` içinde `maps.{harita}.cl` olarak yazar: `k` İngilizce anahtar, `s`/`r` Türkçe üst bölge ve bölge adı, `x`/`y` mini harita üzerinde 0–1 oranı. Dönüşüm valorant-api.com'un katsayılarıyladır: `x = oyunY · xMultiplier + xScalarToAdd`, `y = oyunX · yMultiplier + yScalarToAdd` (sol üst köşe 0,0). Bir haritada 10'dan az geçerli bölge varsa o harita atlanır; toplamda 8'den az harita mini harita verisi alırsa adım başarısız olur.
+
+Yeni kayıt eklerken: bölge anahtarını `data/game.js`'teki `cl` listesinden al, metni Türkçe ve bölge düzeyinde yaz, emin olmadığın nişan ayrıntısını yazma. Harita güncellemesinden sonra o haritanın kayıtlarını gözden geçir.
+
+## Duo modeli
+
+**Yetenek etkileşimleri** (`data/interactions.js`, elle hazırlanır, güncelleyici dokunmaz; Duo kombolarında ve profildeki Kontralar listesinde kullanılır):
 - Her yeteneğe mekanik etiketleri verilir (ör. `suppress` bastırma, `tether` bağlama, `dash` atılma, `tp` ışınlanma, `intang` dokunulmazlık, `vuln` kırılganlık, `trap` Gözcü kurulumu, `icpt` Veto'nun Tehditsavar'ının vurabildiği teçhizat).
-- VS kuralları etiket çiftleridir: "bastırma → Gözcü kurulumları kapanır", "bağlama → atılma işe yaramaz, ışınlanma kırar", "yavaşlatma → atılma kısalır", "dokunulmazlık → etkilere bağışık", "Evrim → zayıflatmalara bağışık, anlık isabetli yetenek silahları hariç" gibi. Kurallara ek olarak tek bir çifte özel birkaç doğrulanmış etkileşim vardır (ör. Fake At klonu Dikenli Çit'i tetikler).
+- Karşılaştırma kuralları etiket çiftleridir: "bastırma → Gözcü kurulumları kapanır", "bağlama → atılma işe yaramaz, ışınlanma kırar", "yavaşlatma → atılma kısalır", "dokunulmazlık → etkilere bağışık", "Evrim → zayıflatmalara bağışık, anlık isabetli yetenek silahları hariç" gibi. Kurallara ek olarak tek bir çifte özel birkaç doğrulanmış etkileşim vardır (ör. Fake At klonu Dikenli Çit'i tetikler).
 - Mekanikler VALORANT Wiki'nin durum etkisi, hareket, bağışıklık ve Tehditsavar etkileşim tablosu sayfalarından ve oyun içi Türkçe açıklamalardan alınmıştır (yama 13.10). Yeni çıkan ajanlarda (`fresh`) yalnızca resmi açıklamadaki etkiler kullanılır ve arayüz bunu belirtir.
 
 **Uyum puanı** (0–100, tahmin): 30 + rol dengesi (farklı roller +12, aynı rol −8, birisi Kontrol Uzmanıysa +4) + kombo puanları (en fazla 50). Kombolar da etiket kurallarıdır: kırılganlık + alan hasarı, tutma + alan hasarı, kör etme/sersemletme + giriş, bilgi + hasar, Armoni, Kuvvet İşareti, iyileştirme, diriliş. Maç verisi değildir; arayüzde "tahmin" diye yazar.
@@ -26,7 +36,8 @@ VALORANT için Türkçe ajan eşleşme rehberi: iki ajanın yetenekleri birbirin
 
 | Veri | Kaynak |
 | --- | --- |
-| Ajanlar, yetenekler, roller, silahlar, kalkanlar, haritalar, görseller (tr-TR) | [valorant-api.com](https://valorant-api.com) |
+| Ajanlar, yetenekler, roller, silahlar, kalkanlar, haritalar, mini haritalar ve bölge adları, görseller (tr-TR) | [valorant-api.com](https://valorant-api.com) |
+| Lineup ve kurulumlar | Elle (`data/lineups.js`); doğrulama için kayıt başına YouTube araması |
 | Yama değişiklikleri | [playvalorant.com/tr-tr](https://playvalorant.com/tr-tr/news/tags/patch-notes/) resmi Türkçe yama notları |
 | Ajan kazanma/seçilme oranları, harita bazlı oranlar, rekabetçi harita havuzu | [blitz.gg](https://blitz.gg/valorant/stats/agents) (Rekabetçi, Elmas+, güncel bölüm) |
 | İkili (aynı takım) kazanma oranları, tüm haritalar ve havuzdaki her harita | [vstats.gg](https://www.vstats.gg/agents) (sitenin kendi statik dosyaları `statistics/{bölüm}/ALL/{harita}/duo.json.gz`; Elmas+ rütbe grupları toplanır) |
@@ -39,6 +50,7 @@ Erişim engellenirse (403) oranlar atlanır, eski veri korunur; arayüz oranlar 
 ```
 node valorant/scripts/update.js          # olağan çalışma (~1 dk)
 node valorant/scripts/update.js --full   # oyun verisini ve görselleri zorla yenile
+node valorant/scripts/update.js --game   # yalnızca oyun verisini (mini haritalar dahil) yenile; oranlar, ikililer, yama notları atlanır
 ```
 
 - Oyun sürümü her çalışmada okunur; sürüm değiştiyse, veri 7 günden eskiyse ya da `--full` verilirse ajan/silah/harita verisi ve görseller yenilenir (`data/state.json` sayesinde değişmeyen görseller yeniden indirilmez).

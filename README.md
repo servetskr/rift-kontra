@@ -32,11 +32,14 @@ Elle başlatmak: GitHub'da **Actions → Verileri güncelle → Run workflow** (
 | Kazanma / seçilme / yasaklanma oranları, yama numarası | Her çalışmada | riftpatchnotes.com (CN, Challenger+) |
 | Şampiyon profilleri, yetenek açıklamaları, görseller | Yeni yamada veya 7 günde bir | wildrift.leagueoflegends.com/tr-tr |
 | Eşleşme puanları, buildler, oyun içi simgeler | 20 saatte bir (yalnızca yerelden) | wildriftcore.com (CN) |
+| En çok oynanan 3 çekirdek build, kazanma ve seçilme oranıyla ("En çok kazananlar") | Yeni yamada veya 20 saatte bir | riftpatchnotes.com (CN, Elmas+) |
 | Yama değişiklikleri (yetenek bazında, buff/nerf işaretli) | Her çalışmada | Resmi Türkçe yama notları |
-| Taban değerler, item sayıları | Günde bir | LoL Wiki (CC BY-SA 4.0) |
+| Taban değerler, item sayıları, birlikte alınamayan item grupları | Günde bir | LoL Wiki (CC BY-SA 4.0) |
 | Yetenek hasarları, bekleme süreleri, kalkanlar, kitle kontrolü | Yeni yamada veya haftada bir | LoL Wiki WR sayfaları (CC BY-SA 4.0) |
 
-Elle bakılan dosyalar: `wr/data/curated.js` (şampiyon ipuçları), `wr/data/items.js` (Türkçe eşya adları ve etkileri).
+Elle bakılan dosyalar: `wr/data/curated.js` (şampiyon ipuçları), `wr/data/items.js` (Türkçe eşya adları ve etkileri; LoL Wiki WR eşya verisine göre).
+
+**Wild Rift düellosunda build kuralları:** tek çizme; aynı gruptan tek item (zırh delme, can simidi, aktif item, Büyülü Kılıç…); destek görev itemı yalnızca destek koridorunda; yalnızca menzilli itemlar. Oyuncu buildlerinde bu kurala uymayan item varsa aynı koridorun diğer buildlerinden yasal bir itemla değiştirilir. Her şampiyon için koridor seçilir; buildler: Build 1–3 (oyuncu buildleri), Karma, Bu rakibe göre ve En çok kazananlar (top 3).
 LoL ve VALORANT kaynakları kendi klasörlerindeki README dosyalarında.
 
 Bu site hayran yapımıdır; Riot Games ile bağlantılı değildir. Oyun adları ve görseller Riot Games'e aittir.

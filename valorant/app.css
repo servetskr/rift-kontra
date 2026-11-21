@@ -1,5 +1,5 @@
 /* ================= Rift Kontra · VALORANT düzeni =================
- * Ekranlar: Eşleşme (ana: VS + Duo) · Ajanlar · Cephanelik (Silahlar + Haritalar) · Yama
+ * Ekranlar: Ana sayfa (Lineup + Duo) · Ajanlar · Cephanelik (Silahlar + Haritalar) · Yama
  * Temel renk ve yazı belirteçleri index.html içindeki :root'tadır (Wild Rift sürümüyle aynı).
  */
 .ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
@@ -77,14 +77,13 @@ details.why{margin-top:10px;font-size:13px;color:var(--muted)}details.why summar
 .cr{font-family:var(--f-mono);font-size:12px;color:var(--gold);white-space:nowrap;display:inline-flex;align-items:center;gap:3px}
 .cr .ic{width:13px;height:13px;stroke-width:2}
 
-/* ---- Eşleşme: seçim alanı ---- */
+/* ---- Ana sayfa: mod seçimi ve Duo seçim alanı ---- */
 .mode{justify-content:center}
 .mode button{padding:8px 18px;font-size:15px;font-weight:600}
 .arena{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:14px;align-items:stretch}
 .fighter{position:relative;display:grid;gap:10px;align-content:start;padding:16px;border-radius:16px;background:var(--surface);border:1px solid var(--line);overflow:hidden;min-width:0;grid-template-columns:auto minmax(0,1fr);align-items:center}
 .fighter::before{content:"";position:absolute;inset:0 0 auto;height:3px}
 .fighter.me::before{background:var(--teal)}
-.fighter.en::before{background:var(--bad)}
 .fighter.fr::before{background:var(--good)}
 .f-pick{position:relative;border:0;background:none;padding:0;cursor:pointer;flex:none;display:block;line-height:0}
 .f-pick:hover .por{border-color:var(--gold)}
@@ -94,7 +93,6 @@ details.why{margin-top:10px;font-size:13px;color:var(--muted)}details.why summar
 .f-id{display:grid;gap:4px;min-width:0;justify-items:start}
 .f-side{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
 .me .f-side{color:var(--teal)}
-.en .f-side{color:var(--bad)}
 .fr .f-side{color:var(--good)}
 .f-name{font-family:var(--f-display);font-size:24px;line-height:1.1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .abrow{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
@@ -105,9 +103,7 @@ details.why{margin-top:10px;font-size:13px;color:var(--muted)}details.why summar
 .abk .mk{width:24px;height:24px}
 .abk i{position:absolute;left:-4px;top:-5px;min-width:15px;height:15px;padding:0 3px;border-radius:4px;background:var(--gold);color:var(--gold-ink);font:700 10px/15px var(--f-mono);font-style:normal;text-align:center}
 
-/* ---- Eşleşme: etkileşim listesi ---- */
-.side.me{border-top:3px solid var(--teal)}
-.side.en{border-top:3px solid var(--bad)}
+/* ---- Duo: kombo listesi ---- */
 .ixs{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .ix{display:grid;gap:4px;padding:10px 12px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);min-width:0}
 .ix-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
@@ -125,12 +121,8 @@ details.why{margin-top:10px;font-size:13px;color:var(--muted)}details.why summar
 .ix-none{margin:0}
 details.more{margin-top:8px}
 details.more summary{cursor:pointer;color:var(--teal);font-size:13px;font-weight:600;margin-bottom:8px}
-.legend{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin:0}
-.legend .ix-t{margin-left:0}
-.fresh{display:flex;gap:8px;align-items:flex-start;margin:0;padding:10px 12px;border-radius:12px;border:1px dashed var(--gold);background:var(--gold-soft);font-size:14px}
-.fresh .ic{margin-top:2px;color:var(--gold)}
 
-/* ---- Eşleşme: Duo ---- */
+/* ---- Duo ---- */
 .dsc{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .ring{--v:50;flex:none;width:96px;height:96px;border-radius:50%;display:grid;place-items:center;align-content:center;background:radial-gradient(closest-side,var(--surface) 78%,transparent 80% 100%),conic-gradient(var(--good) calc(var(--v)*1%),var(--surface-2) 0)}
 .ring b{font-family:var(--f-mono);font-size:26px;line-height:1}
@@ -151,6 +143,87 @@ details.more summary{cursor:pointer;color:var(--teal);font-size:13px;font-weight
 .pstrip:hover{border-color:var(--gold)}
 .pstrip .faces{display:flex;gap:4px}
 .pstrip .go{margin-left:auto;color:var(--teal);font-weight:600}
+
+/* ---- Lineup: ajan → harita → hedef nokta → kayıtlar ---- */
+.lu-intro{margin:0;text-align:center;font-size:14px}
+.lu-pick{display:grid;gap:10px;padding:12px 14px;border-radius:16px;background:var(--surface);border:1px solid var(--line);min-width:0}
+.lu-row{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;align-items:center;min-width:0}
+.lu-lbl{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.lu-ags{display:flex;gap:6px}
+.lu-ag{flex:none;display:inline-flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;color:var(--fg);font-size:13px;font-weight:600}
+.lu-ag:hover{border-color:var(--gold)}
+.lu-ag[aria-pressed="true"]{border-color:var(--gold);background:var(--gold-soft)}
+.lu-ag .por.sm{width:34px;height:34px;border-radius:8px}
+.seg button small{font-family:var(--f-mono);font-size:11px;opacity:.75}
+.lu-maps button.none{opacity:.55}
+.lu-sep{flex:none;align-self:center;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 4px 0 8px;border-left:1px solid var(--line)}
+.lu-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.lu-grid{grid-template-columns:minmax(0,1fr)}}
+.lu-mapcard{padding:10px;display:grid;gap:8px}
+@media (min-width:861px){.lu-mapcard{position:sticky;top:76px}}
+/* Mini harita her temada koyu zemin üstünde: Riot'un açık renkli çizimi okunur kalsın */
+.mm{--pin-t:#e0b153;--pin-s:#4cc7bc;position:relative;aspect-ratio:1;width:100%;border-radius:10px;overflow:hidden;background:#0b111a}
+.mm img{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none}
+.mm-ov{position:absolute;inset:0}
+.mm-ov svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.mm-ov line{stroke-linecap:round;vector-effect:non-scaling-stroke}
+.mm-ov .ln-th{stroke:var(--pin-s);stroke-width:1.5;stroke-opacity:.45;stroke-dasharray:4 4}
+.mm-ov .ln-th.on{stroke-width:3;stroke-opacity:1;stroke-dasharray:none}
+.mm-ov .ln-look{stroke:#fff;stroke-width:2;stroke-opacity:.8;stroke-dasharray:3 5}
+.mm-ov marker path{fill:var(--pin-s)}
+.pin{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;padding:0;border:0;background:none;display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pin span{display:grid;place-items:center;border-radius:50%;font:700 11px/1 var(--f-mono);box-shadow:0 1px 4px rgba(0,0,0,.6)}
+.pin.tg span{width:22px;height:22px;background:#0b111a;color:var(--pin-t);border:2px solid var(--pin-t)}
+.pin.tg.on span{width:28px;height:28px;background:var(--pin-t);color:#1d1405;font-size:13px}
+.pin.tg.on{z-index:2}
+.pin.st span{width:20px;height:20px;background:#0b111a;color:var(--pin-s);border:2px solid var(--pin-s)}
+.pin.st.on{z-index:3}
+.pin.st.on span{width:26px;height:26px;background:var(--pin-s);color:#04201d;font-size:12px}
+.pin:hover span{transform:scale(1.12)}
+.pin:focus-visible{outline:none}
+.pin:focus-visible span{outline:2px solid #fff;outline-offset:2px}
+.pin.look{cursor:default;color:#fff;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(11,17,26,.85);border:1px solid rgba(255,255,255,.7)}
+.pin.look .ic{width:14px;height:14px}
+.lu-legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0}
+.lu-legend span{display:inline-flex;align-items:center;gap:6px}
+.lg{display:inline-block;width:12px;height:12px;border-radius:50%;flex:none}
+.lg.tg{border:2px solid #e0b153;background:#e0b153}
+.lg.st{border:2px solid #4cc7bc}
+.lg.lk{width:16px;height:0;border-radius:0;border-top:2px dashed var(--muted)}
+.lu-list{display:grid;gap:10px;min-width:0}
+.lu-h{font-size:19px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lu-h .ic{color:var(--gold)}
+.lu-h small{font-family:var(--f-body);font-size:13px;font-weight:500;color:var(--muted)}
+.lu-cards{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.lu-card{border-radius:12px;background:var(--surface);border:1px solid var(--line);min-width:0;overflow:hidden}
+.lu-card.on{border-color:var(--teal)}
+.lu-head{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:10px 12px;border:0;background:none;cursor:pointer;text-align:left;color:var(--fg)}
+.lu-head:hover{background:var(--surface-2)}
+.lu-n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 12px/1 var(--f-mono);border:2px solid var(--teal);color:var(--teal)}
+.lu-card.on .lu-n{background:var(--teal);color:var(--bg)}
+.lu-tt{display:grid;gap:1px;min-width:0}
+.lu-tt b{font-size:14px;font-weight:600;line-height:1.3}
+.lu-tt small{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lu-type{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;border:1px solid var(--line);color:var(--muted);background:var(--surface-2)}
+.lu-type[data-y="lineup"]{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 45%,var(--line));background:var(--gold-soft)}
+.lu-type[data-y="setup"]{color:var(--teal);border-color:color-mix(in srgb,var(--teal) 45%,var(--line));background:var(--teal-soft)}
+.lu-type[data-y="smoke"]{color:var(--shield);border-color:color-mix(in srgb,var(--shield) 45%,var(--line))}
+.lu-body{display:grid;gap:12px;padding:0 12px 12px}
+.lu-dl{display:grid;gap:10px;margin:0}
+.lu-dl div{display:grid;gap:3px}
+.lu-dl dt{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.lu-dl dt .ic{width:15px;height:15px;color:var(--gold)}
+.lu-dl dd{margin:0;font-size:14px}
+.lu-dl dd p{margin:2px 0 0}
+.lu-dl dd .en{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.lu-yt{display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap}
+.lu-yt .btn .ic{color:var(--val)}
+@media (max-width:760px){
+  .lu-pick{padding:10px}
+  .lu-row{grid-template-columns:minmax(0,1fr);gap:6px}
+  .lu-head{grid-template-columns:auto auto minmax(0,1fr);gap:8px;padding:10px}
+  .lu-head .lu-type{grid-column:3;justify-self:start}
+}
 
 /* ---- Seçici penceresi ---- */
 .overlay{position:fixed;inset:0;z-index:40;background:rgba(4,8,14,.66);display:grid;place-items:start center;overflow:auto;padding:max(20px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 20px max(12px,env(safe-area-inset-left,0px))}

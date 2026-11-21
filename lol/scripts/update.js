@@ -250,6 +250,23 @@ async function updateWikiStats() {
   return slim;
 }
 
+/* Birlikte alınamayan eşya grupları (wiki "itemlimit": Fatality, Lifeline, Spellblade, Hydra…) ve
+ * yalnızca menzilli şampiyonların alabildiği eşyalar → { id: { g:[grup...], ro:1 } } */
+async function updateItemLimits() {
+  const I = await wikiModule("Module:ItemData/data");
+  const out = {};
+  for (const name in I) {
+    const it = I[name]; if (!it || typeof it !== "object" || !it.id) continue;
+    const g = [it.itemlimit, it.itemlimit2].filter(x => typeof x === "string" && x).map(x => x.toLowerCase());
+    const ro = typeof it.limit === "string" && /purchased on \{\{tip\|ranged/i.test(it.limit);
+    if (g.length || ro) out[String(it.id)] = { ...(g.length ? { g } : {}), ...(ro ? { ro: 1 } : {}) };
+  }
+  const n = Object.keys(out).length;
+  if (n < 40 || !out["3036"] || !(out["3036"].g || []).length) throw new Error(`Eşya grupları eksik (${n})`);
+  log("eşya grupları:", n);
+  return out;
+}
+
 /* ---------- 3. Yetenek sayıları (LoL Wiki şampiyon sayfaları) ---------- */
 const { parseAbilities } = require("./abilities.js");
 async function updateAbilities(champs, prev) {
@@ -456,6 +473,8 @@ async function updateNotes(ver, champs, items) {
   if (!args.has("--skip-wiki") && (!wiki || patchChanged || FULL || hoursSince("wikiAt") > 20)) {
     try { wiki = await updateWikiStats(); fs.writeFileSync(path.join(DATA, "wiki-stats.json"), JSON.stringify(sortKeys(wiki))); prevMeta.wikiAt = now.toISOString(); }
     catch (e) { problems.push("wiki taban: " + e.message); }
+    try { fs.writeFileSync(path.join(DATA, "item-limits.json"), JSON.stringify(sortKeys(await updateItemLimits()))); }
+    catch (e) { problems.push("eşya grupları: " + e.message); }
   }
 
   // şampiyonlar + eşyalar + rünler
@@ -509,6 +528,9 @@ async function updateNotes(ver, champs, items) {
   // eşya listesini buildlerde kullanılanlara göre işaretleyip yaz
   if (builds && builds.c) { const used = new Set(); for (const s in builds.c) for (const r in builds.c[s]) { const R = builds.c[s][r]; R.v.forEach(v => v[1].forEach(x => used.add(x))); (R.sit || []).forEach(x => used.add(x)); if (R.boots) used.add(R.boots); }
     for (const id in items) items[id].u = used.has(id) ? 1 : 0; }
+  // birlikte alınamayan eşya grupları (wiki), yalnızca menzilli eşyalar
+  const limits = readJSON(path.join(DATA, "item-limits.json"), {});
+  for (const id in items) { delete items[id].g; delete items[id].ro; const L = limits[id]; if (L) { if (L.g) items[id].g = L.g; if (L.ro) items[id].ro = 1; } }
   writeGlobal("items.js", "LOL_ITEMS", items, "Eşyalar (Türkçe adlar, sayılar, etkiler), kaynak: Riot Data Dragon tr_TR");
 
   // 6. yama notları (her çalışmada; Riot notları sonradan düzeltebilir)

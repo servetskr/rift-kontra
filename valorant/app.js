@@ -39,6 +39,7 @@ const SV = {
   down:'<path d="M12 4v15M6 13l6 6 6-6"/>',
   run:'<path d="M13 4.5a1.5 1.5 0 1 0 0 .1M9 20l2.5-5.5L14 17v3M7 12l3-4 4 1 2 3h3"/>',
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  play:'<circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l6-3.5z"/>',
 };
 const ic = (n,cls) => `<svg class="ic${cls?" "+cls:""}" viewBox="0 0 24 24" aria-hidden="true">${SV[n]||""}</svg>`;
 
@@ -126,11 +127,6 @@ function vsSide(me,en){
     if(ai===me&&bi===en&&abOf(me,ak)&&abOf(en,bk)) out.push({id:"sp:"+p.a+">"+p.b,t:p.t,s:p.s,x:p.x,a:[abOf(me,ak)],b:[abOf(en,bk)]}); }
   return out.sort((x,y)=>y.s-x.s);
 }
-function matchup(me,en){
-  const mine=vsSide(me,en), theirs=vsSide(en,me);
-  return { mine, theirs, tips:IXD.tips[en]||[], role:AG[en]?IXD.roleVs[AG[en].r]||"":"",
-    general: mine.length+theirs.length<2, fresh:[me,en].filter((x,i,a)=>IXD.fresh[x]&&a.indexOf(x)===i).map(x=>({id:x,txt:IXD.fresh[x]})) };
-}
 /* İkili kombolar: her kural her iki yönde denenir */
 function duoCombos(a,b){
   const out=[];
@@ -178,23 +174,162 @@ function counterList(id,n=5){
 }
 
 /* ===================================================================
- *  ANA EKRAN — VS (yetenek etkileşimleri) · Duo (ikili seçim)
+ *  LINEUP — ajan → harita → hedef nokta → o noktaya atılan lineup'lar ve kurulumlar
+ *  Veri: data/lineups.js (elle hazırlanır) · mini harita ve bölge adları: data/game.js (valorant-api.com)
+ *  Konumlar bölge düzeyindedir: nokta, bölgenin mini haritadaki merkezidir (0–1 oranı).
  * =================================================================== */
-const H = { mode:"vs", me:null, en:null, fr:null, map:"all" };
+const LU = Object.assign({abil:{},list:[]}, window.VAL_LINEUPS||{});
+const LU_TYPE = { lineup:"Lineup", setup:"Kurulum", smoke:"Duman" };
+const SIDE_TXT = { atk:"Saldırı", def:"Savunma" };
+const CLX = {};
+const clMap = m => CLX[m] || (CLX[m] = Object.fromEntries(((G.maps[m]||{}).cl||[]).map(c=>[c.k,c])));
+/* Türkçe bölge adı: "A Bölge" → "A Bölgesi", başlangıçlar ve "Savunan Taraf / Su" gibi tek adlar */
+function clName(c){
+  if(!c) return "";
+  if(c.r==="Bölge") return `${c.s} Bölgesi`;
+  if(c.r==="Başlangıç") return /^Sald/.test(c.s) ? "Saldıran başlangıcı" : "Savunan başlangıcı";
+  return / Taraf$/.test(c.s) ? c.r : `${c.s} ${c.r}`;
+}
+/* Konum: "X" bölge, "X~Y" iki bölgenin ortası, "X~Y@0.3" X'ten Y'ye %30 */
+function luPos(m,ref){
+  if(!ref) return null;
+  const C=clMap(m), [a,rest]=ref.split("~");
+  if(!rest){ const c=C[a]; return c ? {x:c.x, y:c.y, n:clName(c), en:a} : null; }
+  const [b,t]=rest.split("@"), A=C[a], B=C[b]; if(!A||!B) return null;
+  const f = t!=null&&isFinite(+t) ? +t : .5;
+  return {x:A.x+(B.x-A.x)*f, y:A.y+(B.y-A.y)*f, n:`${clName(A)} – ${clName(B)} arası`, en:a};
+}
+const LUS = LU.list.filter(e=>AG[e.ag]&&G.maps[e.map]&&G.maps[e.map].mm&&abOf(e.ag,e.ab)&&luPos(e.map,e.to)&&(!e.from||luPos(e.map,e.from)))
+  .map(e=>({...e, id:`${e.ag}-${e.map}-${key(e.title)}`}));
+const LU_AG = [...new Set(LUS.map(e=>e.ag))].sort((a,b)=>AG[a].n.localeCompare(AG[b].n,"tr"));
+const luMaps = () => { const all=Object.keys(G.maps).filter(m=>G.maps[m].mm); const pool=poolIds.filter(m=>all.includes(m));
+  return { pool, off: all.filter(m=>!pool.includes(m)).sort() }; };
+function luYT(e){
+  const A=AG[e.ag], ab=LU.abil[e.ag+":"+e.ab]||{}, to=luPos(e.map,e.to), fr=luPos(e.map,e.from);
+  const q=[A.n, ab.en||abOf(e.ag,e.ab).n, G.maps[e.map].n, to&&to.en, fr&&fr.en!==(to&&to.en)?"from "+fr.en:"", e.yt||"", e.type==="lineup"?"lineup":e.type==="smoke"?"smoke":"setup"].filter(Boolean).join(" ");
+  return "https://www.youtube.com/results?search_query="+encodeURIComponent(q);
+}
+const ytSearch = q => "https://www.youtube.com/results?search_query="+encodeURIComponent(q);
+
+/* ===================================================================
+ *  ANA EKRAN — Lineup (ajan, harita, hedef nokta) · Duo (ikili seçim)
+ * =================================================================== */
+const H = { mode:"lu", me:null, fr:null, map:"all", la:null, lm:null, ls:"atk", lp:null, le:null };
 function hSave(){ try { localStorage.setItem("rk-val-home",JSON.stringify(H)); } catch {} }
 function hLoad(){
   let s=null; try { s=JSON.parse(localStorage.getItem("rk-val-home")||"null"); } catch {}
   const ok=id=>AG[id]?id:null, ids=ALIST.map(a=>a.id);
-  H.mode = s&&s.mode==="duo" ? "duo" : "vs";
+  H.mode = s&&s.mode==="duo" ? "duo" : "lu";
   H.me = ok(s&&s.me) || ok("jett") || ids[0];
-  H.en = ok(s&&s.en) || ok("deadlock") || ids[1];
   H.fr = ok(s&&s.fr) || ok("sova") || ids.find(x=>x!==H.me);
   if(H.fr===H.me) H.fr=ids.find(x=>x!==H.me);
   H.map = s&&s.map&&DUOS&&DUOS.map&&DUOS.map[s.map] ? s.map : "all";
+  H.la = s&&LU_AG.includes(s.la) ? s.la : (LU_AG.includes("sova") ? "sova" : LU_AG[0]||null);
+  H.lm = s&&s.lm&&G.maps[s.lm]&&G.maps[s.lm].mm ? s.lm : null;
+  H.ls = s&&s.ls==="def" ? "def" : "atk";
+  H.lp = s&&typeof s.lp==="string" ? s.lp : null;
+  H.le = s&&typeof s.le==="string" ? s.le : null;
+}
+/* Geçerli seçimi tamamla: harita yoksa ajanın en çok kaydı olan havuz haritası, taraf boşsa diğeri,
+ * hedef nokta yoksa en çok kaydı olan nokta, kayıt yoksa ilki */
+function luState(){
+  const mine=LUS.filter(e=>e.ag===H.la), {pool,off}=luMaps(), cnt=m=>mine.filter(e=>e.map===m).length;
+  if(!H.lm||!G.maps[H.lm]||!G.maps[H.lm].mm) H.lm = [...pool,...off].sort((a,b)=>cnt(b)-cnt(a)||(pool.includes(b)-pool.includes(a)))[0] || null;
+  const onMap=mine.filter(e=>e.map===H.lm);
+  if(onMap.length&&!onMap.some(e=>e.side===H.ls)) H.ls = H.ls==="atk"?"def":"atk";
+  const rows=onMap.filter(e=>e.side===H.ls), spots=[];
+  rows.forEach(e=>{ let s=spots.find(x=>x.to===e.to); if(!s){ s={to:e.to,pos:luPos(e.map,e.to),rows:[]}; spots.push(s); } s.rows.push(e); });
+  spots.sort((a,b)=>b.rows.length-a.rows.length||a.pos.n.localeCompare(b.pos.n,"tr"));
+  if(!spots.some(s=>s.to===H.lp)) H.lp = spots[0] ? spots[0].to : null;
+  const spot=spots.find(s=>s.to===H.lp)||null;
+  if(spot&&H.le!==""&&!spot.rows.some(e=>e.id===H.le)) H.le = spot.rows[0].id; // "" = kullanıcı kartı kapattı
+  return { mine, onMap, rows, spots, spot, pool, off, cnt };
+}
+const pc = v => (v*100).toFixed(2)+"%";
+/* Stand noktaları aynı bölgede üst üste gelirse küçük bir çember üstüne dağıtılır */
+function standPts(spot){
+  const groups={}; return spot.rows.map((e,i)=>{ const p=luPos(e.map,e.from); if(!p) return null;
+    const k=e.from; (groups[k]||=[]).push(i); return {i,p,k}; }).map(o=>{ if(!o) return null;
+    const g=groups[o.k], j=g.indexOf(o.i), n=g.length; if(n<2) return o;
+    const a=2*Math.PI*j/n-Math.PI/2, r=.032; return {...o, p:{...o.p, x:o.p.x+Math.cos(a)*r, y:o.p.y+Math.sin(a)*r}}; });
+}
+function luOverlay(S){
+  if(!S.spot&&!S.spots.length) return "";
+  const lines=[], pins=[];
+  if(S.spot){
+    const T=S.spot.pos, st=standPts(S.spot);
+    S.spot.rows.forEach((e,i)=>{ const on=e.id===H.le, s=st[i];
+      if(s) lines.push(`<line class="ln-th${on?" on":""}" x1="${s.p.x*100}" y1="${s.p.y*100}" x2="${T.x*100}" y2="${T.y*100}"${on?' marker-end="url(#lu-arr)"':""}/>`);
+      if(on&&e.look){ const L=luPos(e.map,e.look); if(L){ lines.push(`<line class="ln-look" x1="${T.x*100}" y1="${T.y*100}" x2="${L.x*100}" y2="${L.y*100}"/>`);
+        pins.push(`<span class="pin look" style="left:${pc(L.x)};top:${pc(L.y)}" title="Baktığı yer: ${esc(L.n)}">${ic("eye")}</span>`); } }
+      if(s) pins.push(`<button type="button" class="pin st${on?" on":""}" data-lue="${esc(e.id)}" style="left:${pc(s.p.x)};top:${pc(s.p.y)}" aria-pressed="${on}" aria-label="${i+1}. kayıt, nerede dur: ${esc(s.p.n)}"><span>${i+1}</span></button>`);
+    });
+  }
+  S.spots.forEach(s=>{ const on=S.spot&&s.to===S.spot.to;
+    pins.push(`<button type="button" class="pin tg${on?" on":""}" data-lup="${esc(s.to)}" style="left:${pc(s.pos.x)};top:${pc(s.pos.y)}" aria-pressed="${!!on}" aria-label="Hedef nokta: ${esc(s.pos.n)}, ${s.rows.length} kayıt"><span>${s.rows.length}</span></button>`); });
+  return `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><marker id="lu-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z"/></marker></defs>${lines.join("")}</svg>${pins.join("")}`;
+}
+function luCard(e,i){
+  const on=e.id===H.le, ab=abOf(e.ag,e.ab), A=LU.abil[e.ag+":"+e.ab]||{}, to=luPos(e.map,e.to), fr=luPos(e.map,e.from);
+  const place = e.type==="setup";
+  const where = (p,txt) => `${p?`<b>${esc(p.n)}</b>${p.en&&!/~/.test(p.en)?` <span class="en">${esc(p.en)}</span>`:""}`:""}${txt?`<p>${esc(txt)}</p>`:""}`;
+  const how=[A.how,e.how].filter(Boolean).join(" ");
+  return `<li class="lu-card${on?" on":""}">
+    <button type="button" class="lu-head" data-lue="${esc(e.id)}" aria-expanded="${on}">
+      <span class="lu-n">${i+1}</span>${abIcon(ab)}
+      <span class="lu-tt"><b>${esc(e.title)}</b><small>${esc(ab.n)} · ${esc(SIDE_TXT[e.side])}${!on&&fr?` · Konum: ${esc(fr.n)}`:""}</small></span>
+      <span class="lu-type" data-y="${e.type}">${LU_TYPE[e.type]||"Kurulum"}</span>
+    </button>
+    ${on?`<div class="lu-body"><dl class="lu-dl">
+      <div><dt>${ic("run")}Nerede dur</dt><dd>${where(fr||(place?to:null),e.stand)}</dd></div>
+      <div><dt>${ic("target")}${place?"Nereye kur":"Nereye nişan al"}</dt><dd>${where(to,e.aim)}${e.look?`<p class="muted small">Baktığı yer: ${esc((luPos(e.map,e.look)||{}).n||e.look)}</p>`:""}</dd></div>
+      ${how?`<div><dt>${ic("bolt")}${place?"Nasıl kur":"Nasıl at"}</dt><dd><p>${esc(how)}</p></dd></div>`:""}
+      <div><dt>${ic("spark")}Ne işe yarar</dt><dd><p>${esc(e.does)}</p></dd></div>
+    </dl>
+    <div class="lu-yt"><a class="btn" href="${esc(luYT(e))}" target="_blank" rel="noopener">${ic("play")}Videoda izle</a>
+      <span class="muted small">${e.type==="lineup"?"Kesin nişan noktası, şarj ve sekme ayarı için videoyla doğrula.":"Tam yerini görmek için videoya bak."}</span></div></div>`:""}
+  </li>`;
+}
+function luList(S){
+  const A=AG[H.la], M=G.maps[H.lm];
+  if(!S.onMap.length) return `<div class="empty">${esc(M.n)} için ${esc(A.n)} kaydı henüz yok. <a href="${esc(ytSearch(`${A.n} ${M.n} lineups`))}" target="_blank" rel="noopener">YouTube'da ara</a></div>`;
+  if(!S.spot) return `<div class="empty">Bu tarafta kayıt yok.</div>`;
+  const other=H.ls==="atk"?"def":"atk", nOther=S.onMap.filter(e=>e.side===other).length;
+  return `<h2 class="lu-h">${ic("target")}${esc(S.spot.pos.n)} <small>${S.spot.rows.length} kayıt · ${esc(SIDE_TXT[H.ls])}</small></h2>
+    <ol class="lu-cards">${S.spot.rows.map(luCard).join("")}</ol>
+    ${nOther?`<p class="muted small" style="margin:0">${esc(SIDE_TXT[other])} tarafında ${nOther} kayıt daha var.</p>`:""}`;
+}
+function luHTML(){
+  if(!H.la) return `<div class="empty">Lineup verisi yüklenemedi.</div>`;
+  const S=luState(), A=AG[H.la], M=G.maps[H.lm];
+  const agBtn=id=>`<button type="button" class="lu-ag" data-lua="${id}" aria-pressed="${id===H.la}">${por(AG[id],"sm",true)}<span>${esc(AG[id].n)}</span></button>`;
+  const mapBtn=m=>`<button type="button" data-lum="${m}" aria-pressed="${m===H.lm}"${S.cnt(m)?"":' class="none"'}>${esc(G.maps[m].n)}<small>${S.cnt(m)||"–"}</small></button>`;
+  const sideN=s=>S.onMap.filter(e=>e.side===s).length;
+  return `<p class="muted lu-intro">Ajanını ve haritayı seç, haritada hedef noktaya dokun: o noktaya atılan lineup'lar ve kurulumlar çıkar.</p>
+  <div class="lu-pick">
+    <div class="lu-row"><span class="lu-lbl">Ajan</span><div class="lu-ags scrollx" role="group" aria-label="Ajan">${LU_AG.map(agBtn).join("")}</div></div>
+    <div class="lu-row"><span class="lu-lbl">Harita</span><div class="seg sm scrollx lu-maps" role="group" aria-label="Harita">${S.pool.map(mapBtn).join("")}${S.off.length?`<span class="lu-sep">Havuz dışı</span>${S.off.map(mapBtn).join("")}`:""}</div></div>
+    <div class="lu-row"><span class="lu-lbl">Taraf</span><div class="seg sm" role="group" aria-label="Taraf">${["atk","def"].map(s=>`<button type="button" data-lus="${s}" aria-pressed="${s===H.ls}">${SIDE_TXT[s]}<small>${sideN(s)}</small></button>`).join("")}</div></div>
+  </div>
+  <div class="lu-grid">
+    <div class="card lu-mapcard">
+      <div class="mm"><img src="${esc(M.mm)}" alt="${esc(M.n)} mini haritası" width="1024" height="1024"><div class="mm-ov" id="lu-ov">${luOverlay(S)}</div></div>
+      <p class="lu-legend muted small"><span><i class="lg tg"></i>Hedef nokta (sayı: kayıt)</span><span><i class="lg st"></i>Nerede dur</span><span><i class="lg lk"></i>Kurulumun baktığı yer</span></p>
+    </div>
+    <div class="lu-list" id="lu-list" aria-live="polite">${luList(S)}</div>
+  </div>
+  <p class="muted small" style="margin:0">Konumlar bölge düzeyindedir; noktalar bölgenin mini haritadaki ortasını gösterir. Kayıtlar elle seçilmiş, yaygın kullanılan kurulumlardır (yama ${esc(LU.patch||"")}); harita değişikliklerinden etkilenebilir. ${esc(A.n)} · ${esc(M.n)}: ${S.onMap.length} kayıt.</p>`;
+}
+/* Yalnızca nokta ya da kayıt değiştiyse görsel yeniden yüklenmesin: katman ve liste güncellenir */
+function luRefresh(scrollCard){
+  const S=luState(); const ov=$("#lu-ov"), li=$("#lu-list");
+  if(!ov||!li){ renderHome(); return; }
+  ov.innerHTML=luOverlay(S); li.innerHTML=luList(S); hSave();
+  if(scrollCard){ const c=li.querySelector(".lu-card.on"); if(c){ const r=c.getBoundingClientRect(); if(r.top<60||r.bottom>innerHeight) c.scrollIntoView({block:"nearest",behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"}); } }
 }
 const abIcon = (x,cls) => x ? `<span class="abk${cls?" "+cls:""}" title="${esc(x.n)}">${mk(x.img)}<i>${x.k}</i></span>` : "";
 function pickCard(side,id){
-  const a=AG[id], lbl={me:"Sen",en:"Rakip",fr:"Arkadaşın"}[side];
+  const a=AG[id], lbl={me:"Sen",fr:"Arkadaşın"}[side];
   return `<button type="button" class="f-pick" data-hpick="${side}" aria-label="${lbl}: ${esc(a.n)} — değiştir">${por(a,"xl")}<span class="f-swap">${ic("swap")}</span></button>
     <div class="f-id"><span class="f-side">${lbl}</span><b class="f-name">${esc(a.n)}</b>${roleChip(a.r)}</div>
     <div class="abrow" aria-label="Yetenekler">${ABK.map(k=>abIcon(abOf(id,k))).join("")}</div>`;
@@ -210,18 +345,6 @@ function ixList(rows,empty,max=5){
   if(!rows.length) return `<p class="muted small ix-none">${esc(empty)}</p>`;
   const head=rows.slice(0,max), rest=rows.slice(max);
   return `<ul class="ixs">${head.map(ixRow).join("")}</ul>${rest.length?`<details class="more"><summary>${rest.length} etkileşim daha</summary><ul class="ixs">${rest.map(ixRow).join("")}</ul></details>`:""}`;
-}
-function vsHTML(me,en){
-  const M=matchup(me,en), A=AG[me], E=AG[en];
-  const fresh = M.fresh.map(f=>`<p class="fresh">${ic("info")}<span><b>${esc(AG[f.id].n)}</b>: ${esc(f.txt)}</span></p>`).join("");
-  return `${fresh}<div class="grid2">
-    <div class="card side me"><h2>${ic("spark")}Senin elinde <small>${esc(A.n)} › ${esc(E.n)}</small></h2>${ixList(M.mine,"Rakibin yeteneklerine doğrudan bir karşılığın yok.")}</div>
-    <div class="card side en"><h2>${ic("bolt")}Rakibin elinde <small>${esc(E.n)} › ${esc(A.n)}</small></h2>${ixList(M.theirs,"Senin yeteneklerine doğrudan bir karşılığı yok.")}</div>
-  </div>
-  <div class="card"><h2>${ic("target")}Nasıl oynanır <small>${esc(E.n)} karşısında</small></h2>
-    <ul class="tips">${M.tips.map(t=>`<li>${esc(t)}</li>`).join("")}${M.general&&M.role?`<li>${roleChip(E.r)} ${esc(M.role)}</li>`:""}</ul>
-    ${M.general?`<p class="muted small" style="margin:10px 0 0">Bu eşleşmede yetenekler birbirini doğrudan etkilemiyor; yukarıdakiler rol ve ajan için genel öneriler.</p>`:""}</div>
-  <p class="legend muted small">${Object.entries(IXT).filter(([k])=>k!=="kombo").map(([k,v])=>`<span class="ix-t" data-t="${k}">${ic(v.i)}${v.n}</span>`).join("")}<span>Soldaki yetenek sağdakini etkiler. Kaynak: oyun içi açıklamalar ve VALORANT Wiki, yama ${esc(IXD.patch||"")}.</span></p>`;
 }
 const pctTR = v => "%"+dec(v);
 function duoHTML(me,fr,map){
@@ -250,14 +373,15 @@ function duoHTML(me,fr,map){
 function renderHome(){
   const duo=H.mode==="duo";
   segSet($("#h-mode"),"hm",H.mode);
-  $("#f-me").innerHTML=pickCard("me",H.me);
-  $("#f-en").innerHTML=pickCard(duo?"fr":"en",duo?H.fr:H.en);
-  $("#f-en").className="fighter "+(duo?"fr":"en");
-  $("#h-vs").textContent=duo?"+":"VS";
+  $("#h-arena").hidden=!duo;
+  if(duo){ $("#f-me").innerHTML=pickCard("me",H.me); $("#f-en").innerHTML=pickCard("fr",H.fr); }
   const maps = DUOS&&DUOS.map ? Object.keys(DUOS.map).filter(m=>G.maps[m]).sort() : [];
   $("#h-map").hidden=!duo||!maps.length;
   $("#h-map").innerHTML=[["all","Tüm haritalar"],...maps.map(m=>[m,G.maps[m].n])].map(([k,v])=>`<button type="button" data-hmap="${k}" aria-pressed="${H.map===k}">${k==="all"?ic("map"):""}${esc(v)}</button>`).join("");
-  $("#h-out").innerHTML = duo ? duoHTML(H.me,H.fr,H.map) : vsHTML(H.me,H.en);
+  $("#h-out").innerHTML = duo ? duoHTML(H.me,H.fr,H.map) : luHTML();
+  // Yatay kaydırılan seçim satırlarında seçili öğe görünür kalsın (sayfa kaydırılmaz)
+  if(!duo) document.querySelectorAll("#h-out .scrollx").forEach(row=>{ const b=row.querySelector('[aria-pressed="true"]'); if(!b) return;
+    const l=b.offsetLeft-row.offsetLeft; if(l<row.scrollLeft||l+b.offsetWidth>row.scrollLeft+row.clientWidth) row.scrollLeft=Math.max(0,l-24); });
   hSave();
 }
 
@@ -292,10 +416,16 @@ $("#h-mode").addEventListener("click",e=>{ const b=e.target.closest("[data-hm]")
 $("#h-map").addEventListener("click",e=>{ const b=e.target.closest("[data-hmap]"); if(!b) return; H.map=b.dataset.hmap; renderHome(); });
 document.getElementById("v-ana").addEventListener("click",e=>{
   const p=e.target.closest("[data-hpick]"); if(p){ const side=p.dataset.hpick;
-    openPicker({me:"Senin ajanın",en:"Rakip ajan",fr:"Arkadaşının ajanı"}[side],a=>{ H[side]=a.id; if(side!=="en"&&H.me===H.fr) H[side==="me"?"fr":"me"]=ALIST.find(x=>x.id!==a.id).id; renderHome(); }); return; }
-  const f=e.target.closest("[data-hfr]"); if(f){ H.fr=f.dataset.hfr; renderHome(); }
+    openPicker({me:"Senin ajanın",fr:"Arkadaşının ajanı"}[side],a=>{ H[side]=a.id; if(H.me===H.fr) H[side==="me"?"fr":"me"]=ALIST.find(x=>x.id!==a.id).id; renderHome(); }); return; }
+  const f=e.target.closest("[data-hfr]"); if(f){ H.fr=f.dataset.hfr; renderHome(); return; }
+  // Lineup: ajan, harita ve taraf tüm ekranı; nokta ve kayıt yalnızca harita katmanını ve listeyi yeniler
+  const la=e.target.closest("[data-lua]"); if(la){ if(H.la!==la.dataset.lua){ H.la=la.dataset.lua; H.lp=H.le=null; const y=scrollY; renderHome(); scrollTo(0,y); } return; }
+  const lm=e.target.closest("[data-lum]"); if(lm){ if(H.lm!==lm.dataset.lum){ H.lm=lm.dataset.lum; H.lp=H.le=null; const y=scrollY; renderHome(); scrollTo(0,y); } return; }
+  const ls=e.target.closest("[data-lus]"); if(ls){ if(H.ls!==ls.dataset.lus){ H.ls=ls.dataset.lus; H.lp=H.le=null; const y=scrollY; renderHome(); scrollTo(0,y); } return; }
+  const lp=e.target.closest("[data-lup]"); if(lp){ H.lp=lp.dataset.lup; H.le=null; luRefresh(true); return; }
+  const le=e.target.closest("[data-lue]"); if(le){ const fromMap=!!le.closest("#lu-ov"); H.le = !fromMap&&H.le===le.dataset.lue ? "" : le.dataset.lue; luRefresh(fromMap); }
 });
-$("#h-swap").addEventListener("click",()=>{ if(H.mode==="duo") [H.me,H.fr]=[H.fr,H.me]; else [H.me,H.en]=[H.en,H.me]; renderHome(); });
+$("#h-swap").addEventListener("click",()=>{ [H.me,H.fr]=[H.fr,H.me]; renderHome(); });
 
 /* ===================================================================
  *  AJANLAR
@@ -381,9 +511,9 @@ function renderProfile(id){
     const ctr=counterList(id), bp=bestPartners(id,"all").measured;
     const face=(x,attr,val)=>`<button type="button" class="pchip" ${attr}>${por(AG[x],"sm",true)}<span class="n">${esc(AG[x].n)}</span>${val?`<span class="v">${val}</span>`:""}</button>`;
     body=`<div class="grid2"><div class="card"><h2>${mk(ROLES[a.r]&&ROLES[a.r].img,"rmk")}${esc((ROLES[a.r]||{}).n||"Rol")}</h2><p class="muted" style="margin:0 0 10px">${esc((ROLES[a.r]||{}).d||"")}</p><ul class="tips">${(ROLE_TIPS[a.r]||[]).map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>
-      <div class="card"><h2>${ic("bolt")}Kontralar <small>yetenekleri ${esc(a.n)}'i en çok zorlayanlar</small></h2>${ctr.length?`<div class="pchips">${ctr.map(r=>face(r.id,`data-hvs="${id}:${r.id}"`,"")).join("")}</div>`:`<p class="muted small" style="margin:0">Belirgin bir yetenek kontrası yok.</p>`}
+      <div class="card"><h2>${ic("bolt")}Kontralar <small>yetenekleri ${esc(a.n)}'i en çok zorlayanlar</small></h2>${ctr.length?`<div class="pchips">${ctr.map(r=>face(r.id,`data-go="a-${r.id}"`,"")).join("")}</div>`:`<p class="muted small" style="margin:0">Belirgin bir yetenek kontrası yok.</p>`}
         <h3 class="h3">${ic("users")}İyi eşler <small class="muted">birlikte kazanma</small></h3>${bp.length?`<div class="pchips">${bp.map(r=>face(r.id,`data-hduo="${id}:${r.id}"`,pct(r.st.wr))).join("")}</div>`:`<p class="muted small" style="margin:0">İkili oran verisi yok.</p>`}
-        <p class="muted small" style="margin:10px 0 0">Dokun: Eşleşme ekranında aç.</p></div></div>
+        <p class="muted small" style="margin:10px 0 0">Dokun: kontrada o ajanın profili, eşlerde Duo ekranı açılır.</p></div></div>
       ${(IXD.tips[id]||[]).length?`<div class="card"><h2>${ic("target")}${esc(a.n)} karşısında</h2><ul class="tips">${IXD.tips[id].map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`:""}
       <div class="card"><h2>Hikâyesi</h2><p style="margin:0">${rich(a.d)}</p></div>`;
   }
@@ -392,13 +522,14 @@ function renderProfile(id){
   <div class="prof-head">${por(a,"lg")}
     <div class="ph-id"><h1>${esc(a.n)}</h1><div class="row">${roleChip(a.r)}</div></div>
     ${kpis}
-    <div class="ph-cta"><button class="btn gold" type="button" id="pf-duel">${ic("duel")}VS'de dene</button></div>
+    <div class="ph-cta">${LU_AG.includes(a.id)?`<button class="btn gold" type="button" id="pf-lu">${ic("target")}Lineup'ları gör</button>`:`<button class="btn gold" type="button" id="pf-lu">${ic("users")}Duo'da dene</button>`}</div>
   </div>
   ${lc?`<button type="button" class="chstrip" data-v="${lc.ch.v}" data-chg="ag:${a.id}:${NOTES.indexOf(lc.n)}">${chgBadge(lc.ch.v)}<span>Yama ${esc(lc.n.patch)}: <b>${esc(VMARK[lc.ch.v][1])}</b>${lc.ch.c.length?" — "+esc(lc.ch.c.map(g=>g[0]||"Genel").join(", ")):""}</span><span class="go">Ayrıntı ›</span></button>`:""}
   <div class="ptabs" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" data-pt="${k}" aria-selected="${k===pTab}">${l}</button>`).join("")}</div>
   ${body}
   ${a.wr!=null?`<p class="muted small" style="margin:0">Oranlar: ${esc(srcLabel())}.</p>`:""}`;
-  $("#pf-duel").onclick=()=>{ H.me=a.id; if(H.en===a.id) H.en=ALIST.find(x=>x.id!==a.id).id; if(H.fr===a.id) H.fr=ALIST.find(x=>x.id!==a.id).id; H.mode="vs"; location.hash="ana"; };
+  $("#pf-lu").onclick=()=>{ if(LU_AG.includes(a.id)){ H.mode="lu"; if(H.la!==a.id){ H.la=a.id; H.lm=null; H.lp=H.le=null; } }
+    else { H.mode="duo"; H.me=a.id; if(H.fr===a.id) H.fr=ALIST.find(x=>x.id!==a.id).id; } location.hash="ana"; };
   v.querySelector(".ptabs").onclick=e=>{const b=e.target.closest("[data-pt]");if(!b)return;pTab=b.dataset.pt;renderProfile(id)};
   document.title=`${a.n} · Rift Kontra VALORANT`;
 }
@@ -507,17 +638,17 @@ document.addEventListener("click",e=>{
   const ch=e.target.closest("[data-chg]"); if(ch){ const [t,id,ni]=ch.dataset.chg.split(":"); showChange(t,id,+ni||0); return; }
   const w=e.target.closest("[data-weapon]"); if(w){ showWeapon(w.dataset.weapon); return; }
   const m=e.target.closest("[data-map]"); if(m){ showMap(m.dataset.map); return; }
-  const hv=e.target.closest("[data-hvs],[data-hduo]"); if(hv){ const duo=!!hv.dataset.hduo; const [x,y]=(hv.dataset.hduo||hv.dataset.hvs).split(":");
-    H.me=x; if(duo) H.fr=y; else H.en=y; H.mode=duo?"duo":"vs"; if(duo) H.map="all"; const here=(location.hash||"#ana")==="#ana"; location.hash="ana"; if(here) route(); }
+  const hv=e.target.closest("[data-hduo]"); if(hv){ const [x,y]=hv.dataset.hduo.split(":");
+    H.me=x; H.fr=y; H.mode="duo"; H.map="all"; const here=(location.hash||"#ana")==="#ana"; location.hash="ana"; if(here) route(); }
 });
 
 /* ===================================================================
  *  YÖNLENDİRME VE GEZİNME
  * =================================================================== */
-const NAV=[["ana","Eşleşme","duel"],["ajanlar","Ajanlar","users"],["silahlar","Cephanelik","gun"],["yama","Yama","scroll"]];
+const NAV=[["ana","Lineup","target"],["ajanlar","Ajanlar","users"],["silahlar","Cephanelik","gun"],["yama","Yama","scroll"]];
 $("#nav-top").innerHTML=NAV.map(([h,l,i])=>`<a href="#${h}">${ic(i)}${l}</a>`).join("");
 $("#nav-bot").innerHTML=NAV.map(([h,l,i])=>`<a href="#${h}">${ic(i)}<span>${l}</span></a>`).join("");
-const TITLES={ana:"Rift Kontra · VALORANT yetenek eşleşmeleri ve ikili seçimi",ajanlar:"Ajanlar · Rift Kontra VALORANT",silahlar:"Cephanelik · Rift Kontra VALORANT",yama:"Yama notları · Rift Kontra VALORANT"};
+const TITLES={ana:"Rift Kontra · VALORANT lineup, kurulum ve ikili seçimi",ajanlar:"Ajanlar · Rift Kontra VALORANT",silahlar:"Cephanelik · Rift Kontra VALORANT",yama:"Yama notları · Rift Kontra VALORANT"};
 function route(){
   ov.hidden=true;
   let h=(location.hash||"#ana").slice(1), v="ana";

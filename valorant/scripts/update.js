@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /*
  * Rift Kontra · VALORANT veri güncelleyici
- * Kullanım: node valorant/scripts/update.js [--full]
+ * Kullanım: node valorant/scripts/update.js [--full] [--game]
  *  - Oyun sürümünü her çalışmada okur (valorant-api.com)
  *  - Sürüm değiştiyse, 7 günden eskiyse ya da --full verildiyse ajanları, silahları, kalkanları,
- *    haritaları ve görselleri yeniler (valorant-api.com, tr-TR)
+ *    haritaları (mini harita ve bölge adlarıyla) ve görselleri yeniler (valorant-api.com, tr-TR)
+ *  - --game: yalnızca oyun verisini zorla yeniler; oranlar, ikililer ve yama notları atlanır
  *  - Ajan kazanma/seçilme oranlarını ve harita bazlı oranları her çalışmada çeker (blitz.gg, Elmas+)
  *  - Aynı takımdaki ajan ikililerinin birlikte kazanma oranlarını çeker (vstats.gg, Elmas+, tüm haritalar + havuz)
  *  - Son üç resmi Türkçe yama notundan değişen ajan, silah ve haritaları çıkarır (playvalorant.com/tr-tr)
@@ -145,13 +146,31 @@ async function updateGame(state, prev) {
   if (Object.keys(G).length < 2) throw new Error("Kalkanlar okunamadı");
 
   // Haritalar: yalnızca A/B bölgeli standart haritalar
-  const M = {};
+  // Mini harita (displayIcon) ve bölge adları (callouts) Lineup ekranı içindir. Konum, oyun koordinatından
+  // mini harita oranına valorant-api'nin verdiği katsayılarla çevrilir: x = oyunY·xMultiplier + xScalarToAdd,
+  // y = oyunX·yMultiplier + yScalarToAdd (0–1, sol üst köşe 0,0). Anahtar İngilizce addır ("A Main"), ad Türkçe.
+  const mapsEn = await api("/maps");
+  const M = {}; let nMini = 0;
   for (const m of maps) {
     if (!m.tacticalDescription || !m.callouts || !m.callouts.length) continue;
     const id = slug(m.displayName);
     M[id] = { n: titleTR(m.displayName, "en"), t: m.tacticalDescription, co: m.coordinates || "", img: await saveImage(m.listViewIcon, `map/${id}.png`, state) };
+    const en = mapsEn.find(x => x.uuid === m.uuid);
+    if (!m.displayIcon || !m.xMultiplier || !m.yMultiplier || !en || !en.callouts || en.callouts.length !== m.callouts.length) { problems.push("mini harita verisi yok: " + id); continue; }
+    const cl = [], keys = new Set();
+    m.callouts.forEach((c, i) => {
+      const e = en.callouts[i]; if (!c.location || !e) return;
+      const x = c.location.y * m.xMultiplier + m.xScalarToAdd, y = c.location.x * m.yMultiplier + m.yScalarToAdd;
+      if (!(x > -0.02 && x < 1.02 && y > -0.02 && y < 1.02)) return;
+      let k = `${e.superRegionName} ${e.regionName}`.replace(/\s+/g, " ").trim(); if (keys.has(k)) k += " " + (i + 1); keys.add(k);
+      cl.push({ k, s: c.superRegionName, r: c.regionName, x: Math.round(x * 1e4) / 1e4, y: Math.round(y * 1e4) / 1e4 });
+    });
+    if (cl.length < 10 || !cl.some(c => /Site$/.test(c.k))) { problems.push(`mini harita bölgeleri az ya da bozuk: ${id} (${cl.length})`); continue; }
+    M[id].mm = await saveImage(m.displayIcon, `minimap/${id}.png`, state);
+    M[id].cl = cl.sort((a, b) => a.k.localeCompare(b.k, "en")); nMini++;
   }
   if (Object.keys(M).length < 8) throw new Error(`Haritalar: liste çok kısa (${Object.keys(M).length})`);
+  if (nMini < 8) throw new Error(`Haritalar: mini harita/bölge verisi çok az (${nMini})`);
   log("oyun verisi:", nA, "ajan,", nW, "silah,", Object.keys(G).length, "kalkan,", Object.keys(M).length, "harita");
   return { agents: A, roles, weapons: W, cats, gear: G, maps: M };
 }
@@ -325,15 +344,16 @@ async function updateNotes(game, state) {
   // 1. oyun verisi
   let game = prevGame;
   const age = prevMeta.gameAt ? (now - new Date(prevMeta.gameAt)) / 864e5 : 99;
-  if (!prevGame || verChanged || age > 7 || args.has("--full")) {
+  if (!prevGame || verChanged || age > 7 || args.has("--full") || args.has("--game")) {
     try { game = await updateGame(state, prevGame); writeGlobal("game.js", "VAL_GAME", game, "Ajanlar, silahlar, kalkanlar ve haritalar, kaynak: valorant-api.com (tr-TR)"); prevMeta.gameAt = now.toISOString(); }
     catch (e) { failed = true; problems.push("oyun verisi: " + e.message); }
   }
   if (!game) { console.error("Oyun verisi yok; devam edilemiyor."); process.exit(1); }
 
+  const only = args.has("--game");
   // 2. oranlar (her çalışmada)
   let stats = prevStats;
-  try { stats = await updateStats(new Set(Object.keys(game.agents)), new Set(Object.keys(game.maps)), prevStats); writeGlobal("stats.js", "VAL_STATS", stats, "Ajan kazanma/seçilme oranları (Rekabetçi), kaynak: blitz.gg"); }
+  if (!only) try { stats = await updateStats(new Set(Object.keys(game.agents)), new Set(Object.keys(game.maps)), prevStats); writeGlobal("stats.js", "VAL_STATS", stats, "Ajan kazanma/seçilme oranları (Rekabetçi), kaynak: blitz.gg"); }
   catch (e) {
     if (/HTTP 40[13]/.test(e.message)) log("ATLANDI: blitz.gg erişimi engelliyor; oranlar olmadan devam ediliyor —", e.message);
     else { failed = true; problems.push("oranlar: " + e.message); }
@@ -341,7 +361,7 @@ async function updateNotes(game, state) {
 
   // 2b. ikili oranları (her çalışmada; harita listesi oranların rekabetçi havuzundan)
   const prevDuos = readGlobal("duos.js", "VAL_DUOS");
-  try {
+  if (!only) try {
     await sleep(2000);
     const pool = stats && stats.pool && Object.keys(stats.pool).length ? Object.keys(stats.pool) : Object.keys(game.maps);
     const duos = await updateDuos(game, new Set(pool), prevDuos);
@@ -353,7 +373,7 @@ async function updateNotes(game, state) {
 
   // 3. yama notları (her çalışmada: Riot notları sonradan düzeltebiliyor)
   let notes = readGlobal("notes.js", "VAL_NOTES");
-  try { notes = await updateNotes(game, state); writeGlobal("notes.js", "VAL_NOTES", notes, "Yama değişiklikleri, kaynak: playvalorant.com/tr-tr resmi yama notları"); }
+  if (!only) try { notes = await updateNotes(game, state); writeGlobal("notes.js", "VAL_NOTES", notes, "Yama değişiklikleri, kaynak: playvalorant.com/tr-tr resmi yama notları"); }
   catch (e) { failed = true; problems.push("yama notları: " + e.message); }
 
   // 4. meta
