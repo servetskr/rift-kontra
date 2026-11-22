@@ -212,7 +212,7 @@ function buildCard(c) {
   const groups = [...new Set(P.map(p => p.grp))];
   return `${roles.length > 1 ? `<div class="seg sm" style="margin-bottom:10px">${roles.map(r => `<button type="button" data-br="${r}" aria-pressed="${r === bRole}">${ROLE_LONG[r]}</button>`).join("")}</div>` : ""}
     ${groups.length > 1 ? `<div class="vtabs grps" role="tablist" aria-label="Oyun tarzı">${groups.map(g => { const i = P.findIndex(p => p.grp === g); return `<button type="button" role="tab" data-bv="${i}" aria-selected="${g === V.grp}">${ic(STY[g] ? STY[g].ic : "sword")}${esc(P[i].grpLbl)}</button>`; }).join("")}</div>` : ""}
-    <div class="vtabs" role="tablist" aria-label="Build">${P.map((p, i) => p.grp !== V.grp ? "" : `<button type="button" role="tab" data-bv="${i}" aria-selected="${i === bVar}">${ic(p.ic)}${esc(p.lbl)}${p.wr != null ? ` <small>${pct(p.wr)}</small>` : ""}</button>`).join("")}</div>
+    <div class="vtabs" role="tablist" aria-label="Build">${P.map((p, i) => p.grp !== V.grp ? "" : `<button type="button" role="tab" data-bv="${i}" aria-selected="${i === bVar}" title="${esc(p.sub)}"${p.badge === "trophy" ? ' class="win"' : ""}>${ic(p.ic)}${esc(p.lbl)}${p.wr != null ? ` <small>${pct(p.wr)}</small>` : ""}${p.badge === "trophy" ? '<span class="bdg">En çok kazanan</span>' : ""}</button>`).join("")}</div>
     <p class="muted small" style="margin:0 0 10px">${esc(ROLE_LONG[bRole])}${R ? ` · ${n0(R.g)} maç · kazanma ${pct(R.wr)}` : ""} · <b>${esc(V.grpLbl)} · ${esc(V.lbl)}</b> · ${esc(V.sub)}</p>
     ${V.start && V.start.length ? `<div class="brow2"><span class="l" title="Başlangıç">Başla</span><div class="irow">${V.start.map(id => itile(id)).join("")}</div></div>` : ""}
     <div class="brow2"><span class="l" title="Eşya sırası">Build</span><div class="irow">${V.items.filter(x => !isBoot(x)).map((id, i) => itile(id, i + 1)).join('<span class="arrow" aria-hidden="true">›</span>')}${bRole === "sup" ? lateTile(V.items, V.after) : ""}</div></div>
@@ -597,8 +597,8 @@ function presetsFor(c, role) {
   const antis = (p0, list0) => { if (!p0) return;
     for (const [team, lbl, ic0] of [["ad", "Fiziksel hasara karşı", "shield"], ["ap", "Büyü hasarına karşı", "spark"]]) {
       const [items, sw] = antiItems(c, role, p0.items, team, p0.style); if (!sw.length) continue;
-      finish({ ...p0, id: p0.grp + "-" + team, lbl, ic: ic0, wr: null, g: 0, items: null, after: null,
-        sub: `${esc2(p0.lbl)} buildi; ${sw.map(([a, x]) => `${iname(a)} → ${iname(x)}`).join(", ")}${adapted ? " · " + note : ""}` }, [...items, ...list0.filter(x => !items.includes(x))]); }
+      finish({ ...p0, id: p0.grp + "-" + team, lbl, ic: ic0, wr: null, g: 0, items: null, after: null, anti: true, badge: null,
+        sub: `Build 1 temelinde; ${sw.map(([a, x]) => `${iname(a)} → ${iname(x)}`).join(", ")}${adapted ? " · " + note : ""}` }, [...items, ...list0.filter(x => !items.includes(x))]); }
   };
   let main = null;
   const anyBoots = Object.values(b).map(x => x.boots).find(Boolean) || null;
@@ -612,7 +612,7 @@ function presetsFor(c, role) {
     R.v.forEach((v, i) => { const m = VAR_P[v[0]] || ["wand", v[0]]; const list = [...v[1], ...spare.filter(x => !v[1].includes(x)), boots0];
       const p = finish({ id: "v" + i, grp: main, lbl: m[1], ic: m[0], wr: adapted ? null : v[2], g: v[3], style: main, ru: v[4] || R.ru, ruSrc: v[4] ? "Master+ oyuncuların rün sayfası" : "Oyuncuların bu koridordaki rün sayfası",
         sp: spellsFor(R.sp, src, role), start: startFor(c, role, adapted ? null : R, main), adapted,
-        sub: adapted ? note : `${v[3] ? `${n0(v[3])} maç${v[2] != null ? " · " + pct(v[2]) + " kazanma" : ""}` : "maç sayısı az"}` }, list);
+        sub: adapted ? note : `${v[3] ? `${n0(v[3])} maç${v[2] != null ? " · " + pct(v[2]) + " kazanma" : ""}` : v[0] === "win" ? "4.–6. eşyada en yüksek kazanma oranlı seçenekler" : "maç sayısı az"}` }, list);
       if (p && !first) { first = p; firstList = list; } });
     antis(first, firstList);
     // u.gg tarz sayfaları (bu koridorda yeterli maçı olanlar)
@@ -635,11 +635,21 @@ function presetsFor(c, role) {
       sub: STY[st].sub + (adapted ? " · " + note : "") }, list);
     antis(p, list);
   }
-  // Bu rakibe göre (yalnızca düelloda): her grubun ilk buildinin ilk 2 eşyası + öneri motoru
-  for (const g of [...new Set(out.map(p => p.grp))]) { const f0 = out.find(p => p.grp === g);
+  // Wild Rift gibi: her tarzda Build 1, 2, 3… (en çok seçilen önce, sonra alternatifler); adı ve maç/kazanma bilgisi alt satırda.
+  // Koşula bağlı buildler (Fiziksel hasara karşı, Büyü hasarına karşı) adıyla kalır, "Bu rakibe göre" en sonda.
+  const grps = [...new Set(out.map(p => p.grp))], sorted = [];
+  for (const g of grps) {
+    const nums = out.filter(p => p.grp === g && !p.anti).sort((a, b) => (a.id === "v0" ? -1 : b.id === "v0" ? 1 : 0) || (b.g || 0) - (a.g || 0));
+    nums.forEach((p, i) => { p.name = p.lbl; p.lbl = `Build ${i + 1}`; p.badge = p.id.startsWith("v") && p.name === VAR_P.win[1] ? "trophy" : p.name === VAR_P.high[1] ? "star" : null;
+      p.ic = p.badge || (i === 0 ? (STY[g] ? STY[g].ic : "sword") : "wand"); p.sub = `${p.name} · ${p.sub}`; });
+    sorted.push(...nums, ...out.filter(p => p.grp === g && p.anti));
+  }
+  out.length = 0; out.push(...sorted);
+  // Bu rakibe göre (yalnızca düelloda): her grubun Build 1'inin ilk 2 eşyası + öneri motoru
+  for (const g of grps) { const f0 = out.find(p => p.grp === g);
     out.push({ id: "ct-" + g, grp: g, grpLbl: f0.grpLbl, lbl: "Bu rakibe göre", ic: "target", gen: "ct", style: f0.style, ru: f0.ru, ruSrc: f0.ruSrc, sp: f0.sp, start: f0.start, adapted,
       base: f0.items.filter(x => !isBoot(x)), boots: f0.items.find(isBoot) || null,
-      sub: `İlk 2 eşya "${f0.lbl}" buildinden; kalanlar düello rakibine göre önerilenler` }); }
+      sub: `İlk 2 eşya ${f0.lbl} (${f0.name}) buildinden; kalanlar düello rakibine göre önerilenler` }); }
   P_MEMO.set(mk, out); return out;
 }
 const esc2 = s => String(s == null ? "" : s);
@@ -889,7 +899,7 @@ function fighterHTML(side) {
     </dl>` : `<p class="muted small">Bu şampiyonun taban değerleri henüz yok.</p>`}
     <div class="f-builds">
       ${groups.length > 1 ? `<div class="f-grps" role="group" aria-label="Oyun tarzı">${groups.map(x => { const p0 = P.find(p => p.grp === x); return `<button type="button" data-dgrp="${side}:${x}" aria-pressed="${x === g}">${ic(STY[x] ? STY[x].ic : "sword")}${esc(p0.grpLbl)}</button>`; }).join("")}</div>` : ""}
-      <div class="f-styles" role="group" aria-label="Hazır build">${GP.map(p => `<button type="button" data-dbuild="${side}:${p.id}" aria-pressed="${f.build === p.id}" title="${esc(p.sub)}">${ic(p.ic)}${esc(p.lbl)}${p.wr != null ? ` <small>${pct(p.wr)}</small>` : ""}</button>`).join("") || '<span class="muted small">Bu şampiyon için build verisi yok.</span>'}</div>
+      <div class="f-styles" role="group" aria-label="Hazır build">${GP.map(p => `<button type="button" data-dbuild="${side}:${p.id}" aria-pressed="${f.build === p.id}" title="${esc(p.sub)}"${p.badge === "trophy" ? ' class="win"' : ""}>${ic(p.ic)}${esc(p.lbl)}${p.wr != null ? ` <small>${pct(p.wr)}</small>` : ""}${p.badge === "trophy" ? '<span class="bdg">En çok kazanan</span>' : ""}</button>`).join("") || '<span class="muted small">Bu şampiyon için build verisi yok.</span>'}</div>
       <p class="f-bsub muted small">${cur ? `<b>${esc(cur.grpLbl)} · ${esc(cur.lbl)}</b> · ${esc(cur.sub)}` : "Elle seçilmiş eşyalar"} · ${f.role === "adc" ? "Alt koridor: çizme + 6 eşya" : f.role === "mid" ? "Orta: gelişmiş çizme alınabilir" : "Çizme + 5 eşya"}${f.swaps && f.swaps.length ? ` · <span class="gold-t">Karşı takıma göre: ${esc(f.swaps.map(([a, b]) => `${iname(a)} → ${iname(b)}`).join(", "))}</span>` : ""}</p>
       ${ruP ? runeLine(ruP.ru, ruP.sp) : ""}
       ${f.role === "sup" ? supPath(f.full || f.items) : ""}

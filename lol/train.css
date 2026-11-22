@@ -112,3 +112,6 @@ kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border
 .tbest th,.tbest td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
 .tbest th{font-size:12px;color:var(--muted);font-weight:600}
 .tbest td.v{font-family:var(--f-mono)}
+.t-sel{font:inherit;font-size:14px;color:var(--fg);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:6px 10px;max-width:200px}
+#t-cv{cursor:default}
+.t-stage.aiming #t-cv{cursor:crosshair}

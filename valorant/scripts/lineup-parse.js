@@ -8,26 +8,26 @@
 
 /* Ajan → { kelime düzeni: yetenek tuşu } (oyundaki tuşlar; Deadlock/Phoenix düzeltmesi dahil) */
 const VOCAB = {
-  sova: [[/recon|reveal|arrow|scan/, "E"], [/shock|dart/, "Q"]],
-  brimstone: [[/molly|mollies|incendiary/, "Q"], [/smoke/, "E"]],
+  sova: [[/recon|reveal|arrow|scan|flecha|reconocimiento|reconhecimento/, "E"], [/shock|dart|dardo|choque/, "Q"]],
+  brimstone: [[/molly|mollies|incendiary|molotov|incendiari/, "Q"], [/smoke|humo|fuma[cç]a/, "E"]],
   viper: [[/molly|mollies|snake ?bite/, "C"], [/orb|poison cloud|one[- ]?way/, "Q"], [/wall|toxic screen/, "E"]],
-  kayo: [[/knife|zero/, "E"], [/flash/, "Q"], [/molly|mollies|frag/, "C"]],
+  kayo: [[/knife|zero|cuchillo|faca/, "E"], [/flash/, "Q"], [/molly|mollies|frag|molotov/, "C"]],
   fade: [[/haunt|eye|reveal/, "E"], [/seize|tether/, "Q"]],
   gekko: [[/mosh|molly|mollies/, "C"]],
-  killjoy: [[/nano|molly|mollies|swarm/, "C"], [/turret/, "E"], [/alarm/, "Q"]],
-  cypher: [[/trip|trap/, "C"], [/cam(era)?s?\b/, "E"], [/cage/, "Q"]],
+  killjoy: [[/nano|molly|mollies|swarm|molotov/, "C"], [/turret|torreta/, "E"], [/alarm/, "Q"]],
+  cypher: [[/trip|trap|trampa|armadilha/, "C"], [/cam(era)?s?\b|c[aá]mara|c[aâ]mera/, "E"], [/cage|jaula/, "Q"]],
   deadlock: [[/sensor|sonic/, "Q"], [/barrier|mesh|wall/, "E"], [/grav ?net|gravnet/, "C"]],
   vyse: [[/thorn|razorvine|vine/, "C"], [/shear|wall/, "Q"], [/arc rose|flash/, "E"]],
   chamber: [[/trademark|trap/, "C"]],
   sage: [[/wall|barrier/, "C"], [/slow/, "Q"]],
-  omen: [[/smoke|one[- ]?way/, "E"], [/paranoia/, "Q"]],
+  omen: [[/smoke|one[- ]?way|humo|fuma[cç]a/, "E"], [/paranoia/, "Q"]],
   astra: [[/smoke|nebula/, "E"], [/nova|stun/, "Q"], [/gravity|pull/, "C"]],
   clove: [[/smoke|one[- ]?way/, "E"]],
   harbor: [[/cove|bubble|smoke/, "E"], [/high tide|wave|wall/, "Q"], [/storm surge|surge/, "C"]],
   breach: [[/fault|stun/, "E"], [/aftershock/, "C"]],
   tejo: [[/drone/, "C"], [/salvo|missile|molly|mollies/, "E"], [/special delivery|stun/, "Q"]],
   veto: [[/chokehold|trip|trap/, "Q"]],
-  phoenix: [[/molly|mollies|hot hands/, "E"]],
+  phoenix: [[/molly|mollies|hot hands|molotov/, "E"]],
   skye: [[/dog|trailblazer|tiger/, "Q"]],
 };
 /* Bölümde yetenek sözcüğü yoksa video başlığına göre varsayılan */
@@ -47,10 +47,10 @@ const DMG = new Set(["brimstone:Q", "viper:C", "kayo:C", "gekko:C", "killjoy:C",
 const PURE_MOLLY = new Set(["brimstone:Q", "viper:C", "kayo:C", "gekko:C", "phoenix:E"]);
 
 /* Bölüm başlığı taraf sözcüğü taşıyorsa taraf o bölümden itibaren geçerlidir */
-const ATK = /\b(att|atk|attack|attacking|attacker|attackers|offen[cs]e|saldırı)\b|攻め/;
-const DEF = /\b(def|defen[cs]e|defending|defender|defenders|defensive|defencive|savunma)\b|守り/;
+const ATK = /\b(att|atk|attack|attacking|attacker|attackers|offen[cs]e|saldırı|atak|ataque|atacante|atacantes|atacando)\b|tấn công|攻め|攻撃|공격|атак/;
+const DEF = /\b(def|defen[cs]e|defending|defender|defenders|defensive|defencive|savunma|defans|defensa|defensor|defensores|defesa|defensiva)\b|phòng thủ|守り|防衛|守備|수비|защит/;
 /* Yalnız o bölüm için: geri alma savunma, plant sonrası saldırıdır */
-const ONE_DEF = /\bretakes?\b/, ONE_ATK = /post.?plant|afterplant|after plant/;
+const ONE_DEF = /\bretakes?\b|\bretoma(da|r)?\b|geri alma|리테이크|ретейк|plant (prevention|denial)|anti.?plant|deny (the )?plant/, ONE_ATK = /post.?plant|afterplant|after plant|p[oó]s.?plant|despu[eé]s de plantar|plant sonras|포스트 ?플랜트|постплант|после установки|defuse (denial|prevention)|anti.?defuse|deny (the )?defuse|gadget destruction/;
 const SKIP = /\b(intro|outro|subscribe|patreon|sponsor|discord|thank|giriş|kapanış|ult|ults|ultimate|montage|gameplay|example|tips?|explained|why|how to|bonus|clips?|summary|overview|pistol|eco|playstyle|positioning|strategy|strategies|rotat)/;
 
 /* Bölge çözücü (harita başına) */
@@ -77,10 +77,10 @@ function resolver(G, m) {
   for (const k of keys) {
     add(k, k);
     const mm = /^([ABC]) Site$/.exec(k);
-    if (mm) { const L = mm[1].toLowerCase(); for (const s of ["site", "default", "site default", "default plant", "open", "open plant", "backsite", "back site", "site back", "corner", "safe", "plant", "center", "center plant", "side plant", "box", "dice", "under"]) add(`${L} ${s}`, k); add(`site ${L}`, k); add(`${L} retake`, k); }
+    if (mm) { const L = mm[1].toLowerCase(); for (const s of ["site", "default", "site default", "default plant", "open", "open plant", "backsite", "back site", "site back", "corner", "safe", "plant", "center", "center plant", "side plant", "box", "dice", "under"]) add(`${L} ${s}`, k); add(`site ${L}`, k); add(`${L} retake`, k); for (const w of ["sitio", "bomb", "bombsite", "spike"]) { add(`${w} ${L}`, k); add(`${L} ${w}`, k); } }
     if (k === "Mid Top") add("top mid", k); if (k === "Mid Bottom") add("bottom mid", k);
-    if (k === "Defender Side Spawn") for (const s of ["ct", "ct spawn", "defender spawn", "def spawn", "cts", "defenders spawn"]) add(s, k);
-    if (k === "Attacker Side Spawn") for (const s of ["t spawn", "attacker spawn", "attack spawn", "attackers spawn", "attack side spawns", "t-spawn"]) add(s, k);
+    if (k === "Defender Side Spawn") for (const s of ["ct", "ct spawn", "defender spawn", "def spawn", "cts", "defenders spawn", "spawn defensor", "base defensora", "spawn ct"]) add(s, k);
+    if (k === "Attacker Side Spawn") for (const s of ["t spawn", "attacker spawn", "attack spawn", "attackers spawn", "attack side spawns", "t-spawn", "spawn atacante", "base atacante", "t side spawn"]) add(s, k);
   }
   // site harfi olmadan benzersiz tek sözcük (ör. "garden")
   const tail = {}; for (const k of keys) { const w = k.replace(/^(A|B|C|Mid|Attacker Side|Defender Side) /, "").toLowerCase(); (tail[w] ||= []).push(k); }
@@ -116,7 +116,9 @@ function parseChapters(G, ag, m, vtitle, chap) {
   const defAb = defaultAb(ag, vtitle);
   for (const [t, raw] of chap) {
     const s = String(raw).toLowerCase();
-    const sAtk = ATK.test(s), sDef = DEF.test(s);
+    // yer adlarındaki taraf sözcükleri (Defender Spawn, Attacker Side, CT) tarafı belirlemez
+    const sSide = s.replace(/\b(defenders?|attackers?|attack|defen[cs]e|ct|t)\s*(side\s*)?(spawns?|arches)\b|\b(defenders?|attackers?)\s+side\b|spawn (defensor|atacante)|base (defensora|atacante)/g, " ");
+    const sAtk = ATK.test(sSide), sDef = DEF.test(sSide);
     if (sAtk && !sDef) side = "atk"; else if (sDef && !sAtk) side = "def";
     // "ZERO/point: …" gibi önek yetenek bölümü açar
     const pre = /^([^:]{2,30}):/.exec(s);
@@ -126,10 +128,12 @@ function parseChapters(G, ag, m, vtitle, chap) {
     const ability = a || (prefixed ? ab : defAb);
     if (!ability || !has(ability)) continue;
     // hedef ve durma yeri
-    const body = raw.replace(/^\s*\[[^\]]*\]\s*/, "").replace(/^[^:]{2,30}:\s*/, "").replace(/^(att|atk|def|attack|defense|defence)\b[\s\-–:]*/i, "");
+    const body = raw.replace(/^\s*\[[^\]]*\]\s*/, "").replace(/^[^:]{2,30}:\s*/, "").replace(/^(att|atk|def|attack|attacking|attacker|defense|defence|defending|defender|ataque|defensa|defesa)\b[\s\-–:,]*/i, "");
     let to = null, from = null, mt;
-    if ((mt = /^(.+?)\s+to\s+(.+)$/i.exec(body))) { from = mt[1]; to = mt[2]; }
-    else if ((mt = /^(.+?)\s+from\s+(.+)$/i.exec(body))) { to = mt[1]; from = mt[2]; }
+    if ((mt = /^(.+?)\s*(?:→|->|=>|»)\s*(.+)$/.exec(body))) { from = mt[1]; to = mt[2]; }
+    else if ((mt = /^(?:\S+\s+){0,2}?(?:de|da|desde)\s+(.+?)\s+(?:a|al|para|hacia|até)\s+(.+)$/i.exec(body))) { from = mt[1]; to = mt[2]; }
+    else if ((mt = /^(.+?)\s+to\s+(.+)$/i.exec(body))) { from = mt[1]; to = mt[2]; }
+    else if ((mt = /^(.+?)\s+(?:from|desde)\s+(.+)$/i.exec(body))) { to = mt[1]; from = mt[2]; }
     else if ((mt = /^(.+?)\s+-\s+(.+)$/.exec(body)) && resolve(mt[1]) && resolve(mt[2])) { from = mt[1]; to = mt[2]; }
     else to = body;
     const T = resolve(to); if (!T) continue;
@@ -145,7 +149,7 @@ function parseChapters(G, ag, m, vtitle, chap) {
     if (!sd) continue;
     const site = / Site$/.test(T);
     const gadget = key === "sova:Q" && /trip|trap|cypher|gadget|destruct|alarm|killjoy|sentinel|cam/.test(s);
-    const pp = sd === "atk" && DMG.has(key) && site && !gadget && (PURE_MOLLY.has(key) || /default|plant|post|after|open|safe|corner|backsite|dice|box|center/.test(s));
+    const pp = sd === "atk" && DMG.has(key) && site && !gadget && (PURE_MOLLY.has(key) || /default|plant|post|after|open|safe|corner|backsite|dice|box|center|defuse/.test(s));
     const type = SMOKE.has(key) ? "smoke" : SETUP.has(key) && sd === "def" ? "setup" : "lineup";
     out.push({ ag, ab: ability, map: m, side: sd, type, from: F, to: T, t, pp, gadget, retake: /retake/.test(s) });
   }

@@ -25,7 +25,7 @@
 <main class="wrap">
   <div class="page-head">
     <h1>Antrenman</h1>
-    <p>Tarayıcıda kısa çalışmalar: yeteneklerden kaçarak hareketini, hedef vurarak nişanını, son vuruşla zamanlamanı geliştir. Her mod ve zorluk için en iyi skorun bu cihazda saklanır.</p>
+    <p>Koridorda kısa çalışmalar: rakip yeteneklerinden kaçarak hareketini, isabetli yetenek atarak nişanını, minyonlara son vuruşla zamanlamanı geliştir. Şampiyonunu seç; her mod ve zorluk için en iyi skorun bu cihazda saklanır.</p>
   </div>
 
   <div class="t-opts card">
@@ -35,7 +35,8 @@
       <button type="button" data-v="easy" aria-pressed="false">Kolay</button><button type="button" data-v="normal" aria-pressed="true">Normal</button><button type="button" data-v="hard" aria-pressed="false">Zor</button></div></div>
     <div class="t-opt" id="t-lenrow"><span class="t-l">Süre</span><div class="seg" id="t-len" role="group" aria-label="Tur süresi">
       <button type="button" data-v="30" aria-pressed="true">30 sn</button><button type="button" data-v="60" aria-pressed="false">60 sn</button></div></div>
-    <div class="t-opt" id="t-walkrow"><label class="t-chk"><input type="checkbox" id="t-left" checked> Sol tıkla da yürü</label></div>
+    <div class="t-opt"><label class="t-l" for="t-champ">Şampiyon</label><select id="t-champ" class="t-sel" aria-label="Şampiyonun"></select></div>
+    <div class="t-opt" id="t-walkrow"><label class="t-chk"><input type="checkbox" id="t-left" checked> Sol tıkla da yürü (Kaçış)</label></div>
   </div>
 
   <div class="t-stage card" id="t-stage">
@@ -60,6 +61,7 @@
   <p>Antrenman modları bu siteye özgüdür; yetenekler ve görseller özgün çizimdir. Hayran yapımıdır; Riot Games ile bağlantılı değildir. <a href="https://github.com/servetskr/rift-kontra" target="_blank" rel="noopener">GitHub</a></p>
 </div></footer>
 
+<script src="data/champs.js"></script>
 <script src="train.js"></script>
 </body>
 </html>

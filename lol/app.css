@@ -384,3 +384,7 @@ details.more .rec-list{margin-top:6px}
 .fighter.en .late{justify-self:end}
 .brow2 .irow .late{margin-left:6px;align-self:center}
 @media (max-width:760px){.fighter.en .late{justify-self:start}.brow2 .irow .late{margin-left:0;flex-basis:100%}}
+
+/* ---- Build 1, 2, 3: en çok kazanan rozeti ---- */
+.f-styles button .bdg,.vtabs button .bdg{font-size:10px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:99px;padding:0 6px;line-height:16px;white-space:nowrap}
+.f-styles button.win .ic,.vtabs button.win .ic{color:var(--gold)}

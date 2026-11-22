@@ -329,7 +329,22 @@ async function updateWiki(slugMap) {
     const g = [it.itemlimit, it.itemlimit2].filter(x => typeof x === "string" && x).map(x => x.toLowerCase());
     if (g.length) o.g = g;
     if (typeof it.limit === "string" && /ranged/i.test(it.limit)) o.ro = 1; // yalnızca menzilli şampiyonlar
+    if (Array.isArray(it.recipe) && it.recipe.length) o.r = it.recipe.map(kebab); // yapılışında kullanılan itemlar
     item[kebab(name)] = o;
+  }
+  // tarifte geçip oyun simgesi olmayan itemlar (ör. Kazma, B. F. Kılıcı): wiki'nin "<ad> WR item.png" simgesi
+  const icons = (readGlobal("icons.js", "WR_ICONS") || {}).item || {};
+  const need = new Set(Object.values(item).flatMap(o => o.r || []).filter(k => item[k] && !icons[k]));
+  for (const k of need) {
+    const file = path.join(IMG, "wr/comp", k + ".png");
+    if (!fs.existsSync(file)) {
+      try {
+        const buf = await get(`https://wiki.leagueoflegends.com/en-us/images/${encodeURIComponent(item[k].n.replace(/ /g, "_"))}_WR_item.png`, { binary: true, tries: 2, ua: "RiftKontraUpdater/1.0 (+https://github.com/servetskr/rift-kontra)" });
+        if (buf.length > 200) { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, buf); }
+        await sleep(200);
+      } catch (e) { problems.push("tarif simgesi " + k + ": " + e.message); }
+    }
+    if (fs.existsSync(file)) item[k].i = "img/wr/comp/" + k + ".png";
   }
   // yükseltilmiş itemlarda "=>Manamune" gibi değerler: o itemın değerini devral
   const inh = (o, depth = 0) => { if (depth > 3) return; for (const [k, v] of Object.entries(o.s || {})) if (typeof v === "string" && v.startsWith("=>")) { const b = item[kebab(v.slice(2))]; if (b) { inh(b, depth + 1); o.s[k] = typeof b.s[k] === "number" ? b.s[k] : 0; } else delete o.s[k]; }
@@ -427,7 +442,7 @@ async function updateAbilities(names, prev) {
   // 3b. taban değerler + eşya sayıları: günde bir ya da yeni yamada
   const wikiAge = prevMeta.wikiAt ? (now - new Date(prevMeta.wikiAt)) / 36e5 : 99;
   const needAb = args.has("--abilities") || !fs.existsSync(path.join(DATA, "abilities.js")) || !prevMeta.abilitiesAt || (now - new Date(prevMeta.abilitiesAt)) / 864e5 > 7;
-  if (patchChanged || wikiAge > 20 || needAb || args.has("--full") || !fs.existsSync(path.join(DATA, "wr.js"))) {
+  if (patchChanged || wikiAge > 20 || needAb || args.has("--full") || args.has("--wiki") || !fs.existsSync(path.join(DATA, "wr.js"))) {
     try { writeGlobal("wr.js", "WR_DATA", await updateWiki(slugMap), "Wild Rift taban değerleri ve eşya sayıları, kaynak: wiki.leagueoflegends.com (CC BY-SA 4.0)"); prevMeta.wikiAt = now.toISOString(); }
     catch (e) { problems.push("wiki: " + e.message); }
   }

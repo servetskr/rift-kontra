@@ -1506,6 +1506,25 @@ function renderItems(){
 $("#e-cats").innerHTML=Object.entries(CAT).map(([k,v])=>`<a href="#esyalar" data-jump="cat-${k}">${v}</a>`).join("");
 $("#e-cats").addEventListener("click",e=>{const a=e.target.closest("[data-jump]");if(!a)return;e.preventDefault();const t=document.getElementById(a.dataset.jump);if(t)t.scrollIntoView({behavior:"smooth",block:"start"})});
 /* Item ayrıntısı: Wild Rift sayıları + Türkçe etki + yama değişikliği */
+/* Yapılışı: itemın tarifindeki ara itemlar (wiki "recipe"); simge yoksa wiki'nin WR simgesi (img/wr/comp) */
+const COMP_TR = {"pickaxe":"Kazma","b-f-sword":"B. F. Kılıcı","long-sword":"Uzun Kılıç","amplifying-tome":"Güçlendirme Kitabı","blasting-wand":"Patlatma Asası",
+  "needlessly-large-rod":"Gereksiz Büyüklükte Çubuk","ruby-crystal":"Yakut Kristali","cloth-armor":"Bez Zırh","chain-vest":"Zincir Yelek",
+  "null-magic-mantle":"Büyü Önleyici Pelerin","negatron-cloak":"Negatron Pelerini","dagger":"Hançer","recurve-bow":"Kıvrık Yay","brawlers-gloves":"Kavgacı Eldivenleri",
+  "boots-of-speed":"Hız Çizmeleri","giants-belt":"Dev Kemeri","kindlegem":"Alevtaşı","sheen":"Parıltı","phage":"Faj","zeal":"Şevk","tear-of-the-goddess":"Tanrıçanın Gözyaşı",
+  "lost-chapter":"Kayıp Bölüm","fiendish-codex":"Şeytani Kitap","glacial-shroud":"Buzul Örtüsü","bramble-vest":"Dikenli Yelek","vampiric-scepter":"Vampir Asası",
+  "serrated-dirk":"Tırtıklı Hançer","caulfields-warhammer":"Caulfield'ın Savaş Çekici","hearthbound-axe":"Ocakbağı Baltası","executioners-calling":"Cellat Çağrısı",
+  "last-whisper":"Son Fısıltı","oblivion-orb":"Unutuş Küresi","spectres-cowl":"Hayalet Başlığı","kircheis-shard":"Kircheis Parçası","noonquiver":"Öğlesadağı",
+  "catalyst-of-aeons":"Çağların Katalizörü","bamis-cinder":"Bami'nin Közü","aether-wisp":"Esir Ruhu","forbidden-idol":"Yasak Put","hextech-alternator":"Hextech Alternatörü",
+  "haunting-guise":"Musallat Maskesi","wardens-mail":"Muhafız Zırhı","winged-moonplate":"Kanatlı Ay Plakası","jaurims-fist":"Jaurim'in Yumruğu","relic-shield":"Kalıntı Kalkanı",
+  "ring-of-revelation":"Vahiy Yüzüğü","void-amethyst":"Hiçlik Ametisti","fated-ashes":"Kader Külleri","bandleglass-mirror":"Bandle Camı Ayna","spectral-sickle":"Hayalet Orak","hexdrinker":"Büyüiçen"};
+const compIcon = k => { const en=IT[(WD.item[k]||{}).n]; return (en&&en.icon) || ICO_ITEM[k] || (WD.item[k]||{}).i || null; };
+const compName = k => { const o=WD.item[k]; if(!o) return k; return IT[o.n] ? IT[o.n].tr : COMP_TR[k] || o.n; };
+function recipeHTML(en, cls){
+  const d=itemData(en); if(!d||!d.r||!d.r.length) return "";
+  const parts=d.r.map(k=>{ const o=WD.item[k]||{}, ic=compIcon(k); return `<span class="rc"${IT[o.n]?` data-tip="item:${esc(o.n)}"`:""}>${ic?`<img src="${ic}" alt="">`:""}<span class="rn">${esc(compName(k))}</span>${o.c?`<small>${n0(o.c)}</small>`:""}</span>`; });
+  const sum=d.r.reduce((a,k)=>a+((WD.item[k]||{}).c||0),0), extra=d.c&&sum?d.c-sum:0;
+  return `<div class="${cls||"recipe"}"><span class="l">Yapılışı</span><div class="rcs">${parts.join('<span class="pl">+</span>')}</div>${extra>0?`<small class="muted">Birleştirme: +${n0(extra)} altın</small>`:""}</div>`;
+}
 function showItem(en){
   const i=IT[en]; if(!i) return; const d=itemData(en);
   const stats = d&&d.s ? Object.entries(d.s).map(([k,v])=>fmtStat(k,v)) : (i.st?i.st.split(" · "):[]);
@@ -1513,6 +1532,7 @@ function showItem(en){
     <div class="sheet-head">${icoImg(en,"ico-lg")}<div style="flex:1;min-width:0"><h3 style="margin:0">${esc(i.tr)}</h3><span class="muted small">${i.cat?esc(CAT[i.cat])+" · ":""}${d&&d.c?d.c+" altın":i.cost?i.cost+" altın":""}</span></div><button class="btn icon" type="button" data-close aria-label="Kapat">${ic("x")}</button></div>
     ${stats.length?`<ul class="stl">${stats.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>`:""}
     ${i.fx?`<p style="margin:0">${esc(i.fx)}</p>`:""}
+    ${recipeHTML(en)}
     ${ICHG[en]?`<div class="chbox">${vPill(ICHG[en].v)} <span class="muted small">Yama ${esc(NOTES.patch||"")}</span>${changeBody(ICHG[en])}</div>`:""}
     <p class="muted small" style="margin:0">İngilizce adı: ${esc(i.en)}</p></div>`;
   ov.hidden=false; ov.querySelector("[data-close]").focus();
@@ -1598,7 +1618,7 @@ dLoad(); renderGrid(); renderItems(); renderPatch(); route();
     const st=statLines(en), rules=[...g.filter(x=>GRP_TR[x]).map(x=>`Tek ${GRP_TR[x]} itemı taşınabilir`), ...(d.ro?["Yalnızca menzilli şampiyonlar"]:[]), ...(isQuest(en)?["Yalnızca destek koridoru"]:[])];
     return `<div class="tb-h">${i.icon?`<img src="${i.icon}" alt="">`:""}<div><b>${esc(i.tr)}</b>${i.tr!==i.en?`<small>${esc(i.en)}</small>`:""}${i.cost?`<span class="tb-cost">${n0(+i.cost)} altın</span>`:""}</div></div>
       ${st.length?`<ul class="tb-st">${st.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:i.st?`<p class="tb-st1">${esc(i.st)}</p>`:""}
-      ${i.fx?`<p>${esc(i.fx)}</p>`:""}${rules.length?`<p class="tb-rule">${esc(rules.join(" · "))}</p>`:""}`;
+      ${i.fx?`<p>${esc(i.fx)}</p>`:""}${recipeHTML(en,"recipe tb-rec")}${rules.length?`<p class="tb-rule">${esc(rules.join(" · "))}</p>`:""}`;
   }
   function runeHTML(n){
     const r=RUNES[n]||[]; return `<div class="tb-h">${ICO_RUNE[n]?`<img class="rd" src="${ICO_RUNE[n]}" alt="">`:""}<div><b>${esc(runeTR(n))}</b>${runeTR(n)!==n?`<small>${esc(n)}</small>`:""}</div></div>${r[1]?`<p>${esc(r[1])}</p>`:`<p class="muted">Açıklama henüz yok.</p>`}`;

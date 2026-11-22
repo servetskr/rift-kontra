@@ -29,7 +29,7 @@ const ROOT = path.join(__dirname, ".."), DATA = path.join(ROOT, "data");
 const FILE = path.join(DATA, "lineups.js"), STATE_FILE = path.join(DATA, "lineups-state.json");
 const arg = (n, d) => { const i = process.argv.indexOf("--" + n); return i < 0 ? d : (process.argv[i + 1] && !process.argv[i + 1].startsWith("--") ? process.argv[i + 1] : true); };
 const OPT = {
-  force: !!arg("force", false), dry: !!arg("dry", false), max: +arg("max", 40), verify: +arg("verify", 20), stills: +arg("stills", 60),
+  force: !!arg("force", false), dry: !!arg("dry", false), max: +arg("max", 40), verify: +arg("verify", 20), stills: +arg("stills", 60), remine: +arg("remine", 0),
   delay: +arg("delay", 2500), minGap: +arg("min-gap", 20),
   agents: arg("agents", "") ? String(arg("agents")).split(",") : null, maps: arg("maps", "") ? String(arg("maps")).split(",") : null,
 };
@@ -37,6 +37,15 @@ const log = (...a) => console.log("[lineup]", ...a);
 const sleep = ms => new Promise(r => setTimeout(r, ms + Math.random() * ms * 0.4));
 const now = () => new Date().toISOString();
 const q = s => JSON.stringify(s);
+/* Sorgu biçimleri: aynı ikili her aranışta sıradakini kullanır (state.qi) */
+const CHANNELS = ["hoverboarD", "Tseeky", "maxWELL Lineup-Larry", "HEHE XD", "Yolzy", "TylerJedi", "Quible", "ItsFlameBTW", "CoachCow", "nic.vallabh", "Valomate", "MKYwh0"];
+function queryFor(G, a, m, i) {
+  const A = G.agents[a].n, M = G.maps[m].n;
+  const sent = /^(killjoy|cypher|deadlock|vyse|chamber|sage|veto)$/.test(a), smoke = /^(omen|astra|clove|harbor)$/.test(a);
+  const own = a === "sova" ? ["recon darts", "shock darts", "lineups easy guide"] : sent ? ["setups 2026", "setups and lineups", "setups guide"] : smoke ? ["one way smokes", "smokes guide", "smokes lineups"] : /^(brimstone|viper|kayo|gekko|phoenix|killjoy|tejo)$/.test(a) ? ["post plant lineups", "molly lineups"] : [];
+  const list = [...own.map(w => `${A} ${M} ${w}`), `${A} ${M} lineups`, `${A} ${M} lineups 2026`, `${A} ${M} lineups guide`, ...CHANNELS.map(c => `${c} ${A} ${M}`)];
+  return list[i % list.length];
+}
 const ROLE_WORD = a => /^(killjoy|cypher|deadlock|vyse|chamber|sage|veto)$/.test(a) ? "setups lineups" : /^(omen|astra|clove|harbor|brimstone)$/.test(a) ? (a === "brimstone" ? "lineups" : "smokes lineups") : "lineups";
 const BAD_TITLE = /montage|reaction|ranked game|\bpov\b|gameplay|\bvs\b|pearl harbor|[ạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹđơư]/i;
 const IM_OK = /^hqdefault_\d+\.jpg\?sqp=[\w=+\/-]+&rs=[\w-]+$/;
@@ -109,7 +118,7 @@ function insertInBlock(body, head, lines) {
 
 async function main() {
   const t0 = Date.now(), state = loadState();
-  state.searched ||= {}; state.verified ||= {}; state.gone ||= {}; state.runs ||= [];
+  state.searched ||= {}; state.verified ||= {}; state.qi ||= {}; state.remined ||= {}; state.gone ||= {}; state.runs ||= [];
   if (!OPT.force && state.lastRun && Date.now() - Date.parse(state.lastRun) < OPT.minGap * 3600e3) {
     log(`son çalışma ${state.lastRun}; ${OPT.minGap} saat dolmadı, atlandı (--force ile zorla)`); return;
   }
@@ -132,15 +141,45 @@ async function main() {
 
   const added = [], newVids = {}, newVid = {};
   let blocks = 0;
+  function emit(a, rows, id, chap) {
+    const abName = k => (G.agents[a].ab.find(x => x.k === k) || {}).n; let n = 0;
+    for (const r of rows.slice(0, 30)) {
+      if (!LU.abil[a + ":" + r.ab] && !ABIL[a + ":" + r.ab]) { keys.delete(dkey(r)); continue; }
+      const c = chap.find(x => x[0] === r.t); r.v = id; r.im = c ? imPath(c[2]) : null;
+      const e = buildEntry(G, r, abName(r.ab)); if (!e) { keys.delete(dkey(r)); continue; }
+      added.push(e); n++;
+    }
+    return n;
+  }
+  /* 0) Yeniden kazıma: verideki videoların bölümlerini (gelişen ayrıştırıcıyla) yeniden oku, yalnız yeni anahtarları ekle.
+   *    Video yalnız tek ajan + tek haritaya bağlıysa kullanılır (çok haritalı videoda harita belirsizdir). */
+  if (OPT.remine > 0) {
+    const use = {}; LU.list.forEach(e => { if (e.v) (use[e.v] ||= new Set()).add(e.ag + ":" + e.map); });
+    const ids = Object.keys(LU.vids || {}).filter(id => use[id] && use[id].size === 1)
+      .sort((x, y) => String(state.remined[x] || "").localeCompare(String(state.remined[y] || ""))).slice(0, OPT.remine);
+    for (const id of ids) {
+      if (blocks >= 2) break;
+      const [a, m] = [...use[id]][0].split(":");
+      let chap; try { chap = await watch(id); blocks = 0; } catch (e) { if (!(e instanceof BlockedError)) throw e; if (e.kind === "format") continue; blocks++; report.blocked = e.message; continue; }
+      state.remined[id] = now(); report.queries++;
+      const parsed = parseChapters(G, a, m, LU.vids[id][0] || "", chap.map(c => [c[0], c[1]]));
+      if (parsed.length >= 3) {
+        const rows = parsed.filter(r => { const k = dkey(r); if (keys.has(k)) return false; keys.add(k); return true; });
+        const n = rows.length ? emit(a, rows, id, chap) : 0; if (n) log(`yeniden: ${a}:${m} ${id} → ${n} kayıt`);
+      }
+      await sleep(OPT.delay);
+    }
+  }
   for (const pair of pairs) {
     if (blocks >= 2) break;
     const [a, m] = pair.split(":"), an = agentNames(G, a), mn = G.maps[m].n.toLowerCase();
     let res;
-    try { res = await search(`${G.agents[a].n} ${G.maps[m].n} ${ROLE_WORD(a)}`); blocks = 0; report.queries++; }
+    const qq = queryFor(G, a, m, (state.qi[pair] = (state.qi[pair] || 0) + 1) - 1);
+    try { res = await search(qq); blocks = 0; report.queries++; }
     catch (e) { if (e instanceof BlockedError) { blocks++; report.blocked = e.message; log("arama engellendi:", e.message); await sleep(OPT.delay * 4); continue; } throw e; }
     state.searched[pair] = now();
     const cands = res.filter(v => { const t = v.title.toLowerCase(); return !usedVid.has(v.id) && !newVids[v.id] && an.some(x => t.includes(x)) && t.includes(mn) && !BAD_TITLE.test(v.title) && durS(v.dur) >= 60 && ageMo(v.ago) <= 30 && v.chap.length >= 3; })
-      .sort((x, y) => y.chap.length - x.chap.length).slice(0, 2);
+      .sort((x, y) => y.chap.length - x.chap.length).slice(0, 3);
     if (!cands.length) log(`${pair}: uygun bölümlü video yok (${res.length} sonuç)`);
     for (const v of cands) {
       await sleep(OPT.delay);
@@ -157,14 +196,7 @@ async function main() {
       const oe = await oembed(v.id);
       const ot = oe && oe.ok ? oe.title.toLowerCase() : "";
       if (!oe || !oe.ok || !an.some(x => ot.includes(x)) || !ot.includes(mn)) { rows.forEach(r => keys.delete(dkey(r))); log("video doğrulanamadı, atlandı:", v.id); continue; }
-      const abName = k => (G.agents[a].ab.find(x => x.k === k) || {}).n;
-      let n = 0;
-      for (const r of rows.slice(0, 25)) {
-        if (!LU.abil[a + ":" + r.ab] && !ABIL[a + ":" + r.ab]) { keys.delete(dkey(r)); continue; }
-        const c = chap.find(x => x[0] === r.t); r.v = v.id; r.im = c ? imPath(c[2]) : null;
-        const e = buildEntry(G, r, abName(r.ab)); if (!e) { keys.delete(dkey(r)); continue; }
-        added.push(e); n++;
-      }
+      const n = emit(a, rows, v.id, chap);
       if (n) { newVids[v.id] = [oe.title, oe.author]; if (!(LU.vid || {})[pair] && !newVid[pair]) newVid[pair] = v.id; report.videos++; log(`${pair}: ${v.id} → ${n} kayıt`); }
     }
     await sleep(OPT.delay);
