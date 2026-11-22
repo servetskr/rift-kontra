@@ -213,8 +213,10 @@ const ytSearch = q => "https://www.youtube.com/results?search_query="+encodeURIC
 /* Doğrudan video: kayıttaki v/t (bölüm başlangıcı), yoksa ajan+harita genel videosu (LU.vid) */
 const VIDS = LU.vids || {};
 const fmtT = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+/* im: YouTube'un o bölüm için ürettiği küçük resim (izleme sayfasının herkese açık verisindeki imzalı i.ytimg.com adresi) */
+const IM_OK = /^hqdefault_\d+\.jpg\?sqp=[\w=+\/-]+&rs=[\w-]+$/;
 function luVideo(e){
-  if(e.v&&VIDS[e.v]) return {id:e.v, t:e.t||0, exact:true};
+  if(e.v&&VIDS[e.v]) return {id:e.v, t:e.t||0, exact:true, im:e.im&&IM_OK.test(e.im)?e.im:null};
   const g=(LU.vid||{})[e.ag+":"+e.map]; return g&&VIDS[g] ? {id:g, t:0, exact:false} : null;
 }
 const ytWatch = (id,t) => `https://www.youtube.com/watch?v=${encodeURIComponent(id)}${t?`&t=${t}s`:""}`;
@@ -222,14 +224,20 @@ function vidHTML(v, note){
   const m=VIDS[v.id];
   return `<div class="lu-vid">
     <button type="button" class="vthumb" data-play="${esc(v.id)}" data-t="${v.t||0}" aria-label="Videoyu burada oynat${v.t?`, ${fmtT(v.t)} anından`:""}">
-      <img src="https://i.ytimg.com/vi/${esc(v.id)}/hqdefault.jpg" alt="" loading="lazy" width="480" height="360">
-      <span class="vplay">${ic("play")}</span>${v.t?`<span class="vtime">${fmtT(v.t)}'den başlar</span>`:""}
+      <img src="https://i.ytimg.com/vi/${esc(v.id)}/${v.im?esc(v.im):"hqdefault.jpg"}" alt="${v.im?"Videonun bu kayıttaki bölümünden kare":""}" loading="lazy" width="480" height="270"${v.im?` data-fb="https://i.ytimg.com/vi/${esc(v.id)}/hqdefault.jpg"`:""}>
+      <span class="vplay">${ic("play")}</span>${v.t?`<span class="vtime">${fmtT(v.t)}'den başlar</span>`:""}${v.im?`<span class="vchap">Bölüm karesi</span>`:""}
     </button>
     <div class="vmeta"><span class="muted small">${esc(note)}</span>
       <span class="small"><b>${esc(m[0])}</b> · ${esc(m[1])}</span>
       <a class="small" href="${esc(ytWatch(v.id,v.t))}" target="_blank" rel="noopener">${ic("link")}YouTube'da aç</a></div>
   </div>`;
 }
+/* Bölüm karesi yüklenemezse (YouTube imzayı yenilediyse) videonun genel küçük resmine dön */
+/* i.ytimg.com geçersiz adreste hata yerine 120×90 gri bir yer tutucu döndürür; onu da hata say */
+const imFallback = t => { const fb=t.dataset.fb; delete t.dataset.fb; t.alt=""; t.src=fb;
+  const c=t.parentElement&&t.parentElement.querySelector(".vchap"); if(c) c.remove(); };
+document.addEventListener("error",e=>{ const t=e.target; if(t&&t.tagName==="IMG"&&t.dataset&&t.dataset.fb) imFallback(t); },true);
+document.addEventListener("load",e=>{ const t=e.target; if(t&&t.tagName==="IMG"&&t.dataset&&t.dataset.fb&&t.naturalWidth<=120) imFallback(t); },true);
 /* Küçük resme dokununca video aynı yerde açılır (çerezsiz YouTube oynatıcısı) */
 document.addEventListener("click",e=>{
   const b=e.target.closest("[data-play]"); if(!b) return;
@@ -293,8 +301,10 @@ function luOverlay(S){
       if(s) pins.push(`<button type="button" class="pin st${on?" on":""}" data-lue="${esc(e.id)}" style="left:${pc(s.p.x)};top:${pc(s.p.y)}" aria-pressed="${on}" aria-label="${i+1}. kayıt, nerede dur: ${esc(s.p.n)}"><span>${i+1}</span></button>`);
     });
   }
-  S.spots.forEach(s=>{ const on=S.spot&&s.to===S.spot.to;
-    pins.push(`<button type="button" class="pin tg${on?" on":""}" data-lup="${esc(s.to)}" style="left:${pc(s.pos.x)};top:${pc(s.pos.y)}" aria-pressed="${!!on}" aria-label="Hedef nokta: ${esc(s.pos.n)}, ${s.rows.length} kayıt"><span>${s.rows.length}</span></button>`); });
+  /* Seçili hedef: kırmızı bitiş noktası; seçili kaydın numarasını taşır (yeşil başlangıçla aynı numara) */
+  const selN = S.spot ? S.spot.rows.findIndex(e=>e.id===H.le) : -1;
+  S.spots.forEach(s=>{ const on=S.spot&&s.to===S.spot.to, n=on&&selN>=0?selN+1:null;
+    pins.push(`<button type="button" class="pin tg${on?" on":""}" data-lup="${esc(s.to)}" style="left:${pc(s.pos.x)};top:${pc(s.pos.y)}" aria-pressed="${!!on}" aria-label="${n?`${n}. kaydın düştüğü / kurulduğu yer: ${esc(s.pos.n)}`:`Hedef nokta: ${esc(s.pos.n)}, ${s.rows.length} kayıt`}"><span>${n||s.rows.length}</span></button>`); });
   return `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><marker id="lu-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z"/></marker></defs>${lines.join("")}</svg>${pins.join("")}`;
 }
 function luCard(e,i){
@@ -308,7 +318,9 @@ function luCard(e,i){
       <span class="lu-tt"><b>${esc(e.title)}</b><small>${esc(ab.n)} · ${esc(SIDE_TXT[e.side])}${!on&&fr?` · Konum: ${esc(fr.n)}`:""}</small></span>
       <span class="lu-type" data-y="${e.type}">${LU_TYPE[e.type]||"Kurulum"}</span>
     </button>
-    ${on?`<div class="lu-body"><dl class="lu-dl">
+    ${on?`<div class="lu-body"><p class="lu-route small">${fr?`<span class="rt st">${i+1}</span><b>${esc(fr.n)}</b>${ic("arrow")}`:""}<span class="rt en">${i+1}</span><b>${esc(to.n)}</b>
+      <button type="button" class="lu-onmap" data-lumap>${ic("map")}Haritada gör</button></p>
+    <dl class="lu-dl">
       <div><dt>${ic("run")}Nerede dur</dt><dd>${where(fr||(place?to:null),e.stand)}</dd></div>
       <div><dt>${ic("target")}${place?"Nereye kur":"Nereye nişan al"}</dt><dd>${where(to,e.aim)}${e.look?`<p class="muted small">Baktığı yer: ${esc((luPos(e.map,e.look)||{}).n||e.look)}</p>`:""}</dd></div>
       ${how?`<div><dt>${ic("bolt")}${place?"Nasıl kur":"Nasıl at"}</dt><dd><p>${esc(how)}</p></dd></div>`:""}
@@ -344,7 +356,8 @@ function luHTML(){
   <div class="lu-grid">
     <div class="card lu-mapcard">
       <div class="mm"><img src="${esc(M.mm)}" alt="${esc(M.n)} mini haritası" width="1024" height="1024"><div class="mm-ov" id="lu-ov">${luOverlay(S)}</div></div>
-      <p class="lu-legend muted small"><span><i class="lg tg"></i>Hedef nokta (sayı: kayıt)</span><span><i class="lg st"></i>Nerede dur</span><span><i class="lg lk"></i>Kurulumun baktığı yer</span></p>
+      <p class="lu-legend muted small"><span><i class="lg st"></i>Yeşil: duruş noktası</span><span><i class="lg en"></i>Kırmızı: düştüğü / kurulduğu yer</span><span><i class="lg tg"></i>Diğer hedefler (sayı: kayıt)</span><span><i class="lg lk"></i>Kurulumun baktığı yer</span></p>
+      <p class="lu-hint muted small">Listedeki numara haritadaki numarayla aynıdır: bir kayda dokununca yeşil başlangıç ve kırmızı bitiş aynı numarayla işaretlenir.</p>
     </div>
     <div class="lu-list" id="lu-list" aria-live="polite">${luList(S)}</div>
   </div>
@@ -452,6 +465,7 @@ document.getElementById("v-ana").addEventListener("click",e=>{
   const la=e.target.closest("[data-lua]"); if(la){ if(H.la!==la.dataset.lua){ H.la=la.dataset.lua; H.lp=H.le=null; const y=scrollY; renderHome(); scrollTo(0,y); } return; }
   const lm=e.target.closest("[data-lum]"); if(lm){ if(H.lm!==lm.dataset.lum){ H.lm=lm.dataset.lum; H.lp=H.le=null; const y=scrollY; renderHome(); scrollTo(0,y); } return; }
   const ls=e.target.closest("[data-lus]"); if(ls){ if(H.ls!==ls.dataset.lus){ H.ls=ls.dataset.lus; H.lp=H.le=null; const y=scrollY; renderHome(); scrollTo(0,y); } return; }
+  const om=e.target.closest("[data-lumap]"); if(om){ const mc=$(".lu-mapcard"); if(mc) mc.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"}); return; }
   const lp=e.target.closest("[data-lup]"); if(lp){ H.lp=lp.dataset.lup; H.le=null; luRefresh(true); return; }
   const le=e.target.closest("[data-lue]"); if(le){ const fromMap=!!le.closest("#lu-ov"); H.le = !fromMap&&H.le===le.dataset.lue ? "" : le.dataset.lue; luRefresh(fromMap); }
 });

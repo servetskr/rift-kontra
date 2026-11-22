@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
  * Rift Kontra veri güncelleyici
- * Kullanım: node scripts/update.js [--full] [--skip-matchups]
+ * Kullanım: node scripts/update.js [--full] [--skip-matchups] [--cores (çekirdek build + rün sayfalarını zorla yenile)]
  *  - İstatistikleri her çalışmada çeker (riftpatchnotes.com)
  *  - Yama değiştiyse ya da --full verildiyse şampiyon profillerini ve görselleri yeniler (resmi Wild Rift TR sitesi)
  *  - Eşleşme puanlarını 20 saatte bir yeniler (wildriftcore.com)
@@ -419,7 +419,7 @@ async function updateAbilities(names, prev) {
 
   // 3a. en popüler 3 çekirdek build (kazanma/seçilme oranlı): yeni yamada ya da 20 saatte bir
   const coreAge = prevMeta.coresAt ? (now - new Date(prevMeta.coresAt)) / 36e5 : 99;
-  if (!args.has("--skip-cores") && (patchChanged || coreAge > 20 || args.has("--full") || !fs.existsSync(path.join(DATA, "cores.js")))) {
+  if (!args.has("--skip-cores") && (patchChanged || coreAge > 20 || args.has("--full") || args.has("--cores") || !fs.existsSync(path.join(DATA, "cores.js")))) {
     try { writeGlobal("cores.js", "WR_CORES", await updateCores(slugMap, readGlobal("cores.js", "WR_CORES")), "En popüler çekirdek buildler (Elmas+, CN), kaynak: riftpatchnotes.com"); prevMeta.coresAt = now.toISOString(); }
     catch (e) { problems.push("çekirdek buildler: " + e.message); }
   }

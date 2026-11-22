@@ -279,8 +279,13 @@ const VAR = {standard:["sword","Standart"],"anti-tank":["shield","Tanklara karş
   utility:["wand","Destekleyici"],bruiser:["sword","Dövüşçü"]};
 const SITS = [[/İyileş/i,"drop","İyileşmeye karşı"],[/tank|HP/i,"shield","Tanklara karşı"],[/AD burst/i,"sword","Fiziksel patlamaya karşı"],[/AP burst/i,"spark","Büyü patlamasına karşı"],[/hareketli/i,"wind","Kaçan rakiplere karşı"]];
 const RUNE_TR = {"Conqueror":"Yenilmez","Lethal Tempo":"Ölümcül Tempo","Electrocute":"Elektrik Ver","Grasp of the Undying":"Hortlağın Pençesi","Summon Aery":"Aery","Aery":"Aery","Arcane Comet":"Sihirli Yıldız","Phase Rush":"Sürat Coşkusu","Fleet Footwork":"Ayağı Çabuk","Guardian":"Muhafız","Aftershock":"Artçı Şok","Dark Harvest":"Karanlık Hasat","First Strike":"İlk Vuruş","Kraken Slayer":"Kraken Avcısı","Glacial Augment":"Buzul Takviyesi"};
-const runeTR = n => RUNE_TR[n] || n;
-const runeImg = (n,cls) => ICO_RUNE[n] ? `<img class="${cls||""}" src="${ICO_RUNE[n]}" alt="${esc(runeTR(n))}" title="${esc(runeTR(n))}" loading="lazy">` : `<span class="chip">${esc(runeTR(n))}</span>`;
+const RUNES = window.WR_RUNES || {};
+/* riftpatchnotes yeni adları → simge adları */
+const RUNE_ALIAS = {"Ice Overlord":"Ice Tyrant","Cut Down":"Giant Slayer","Eyeball Collection":"Eyeball Collector","Hexflash":"Hextech Flashtraption","Aery":"Summon Aery"};
+const runeKey = n => ICO_RUNE[n] ? n : (RUNE_ALIAS[n]&&ICO_RUNE[RUNE_ALIAS[n]] ? RUNE_ALIAS[n] : n);
+const runeTR = n => RUNE_TR[n] || (RUNES[n]&&RUNES[n][0]) || n;
+const tipAttr = (k,id) => `data-tip="${k}:${esc(id)}"`;
+const runeImg = (n0,cls) => { const n=runeKey(n0); return ICO_RUNE[n] ? `<img class="${cls||""}" src="${ICO_RUNE[n]}" alt="${esc(runeTR(n))}" ${tipAttr("rune",n)} loading="lazy">` : `<span class="chip" ${tipAttr("rune",n)}>${esc(runeTR(n))}</span>`; };
 const wrBuild = (c,r) => { const b=BUILDS[c.slug]; if(!b) return null; const rr = b.r[r] ? r : b.r[c.main] ? c.main : Object.keys(b.r)[0]; return rr ? {role:rr, ...b.r[rr], sit:b.sit||[]} : null; };
 let bRole=null, bVar=0, bTab="rec", bStyle=null;
 /* Profil build kartı: koridor → stil → Önerilenler (oyuncu/stil buildleri + Karma) / En çok kazananlar (top 3 çekirdek) */
@@ -304,7 +309,7 @@ function buildCard(c){
     <div class="irow">${V.items.filter(x=>!isBoot(x)).map((en,i)=>itile(en,i+1)).join('<span class="arrow" aria-hidden="true">›</span>')}</div>`:'<div class="empty">Bu koridor için build verisi yok.</div>'}
     <div class="bsub">
       ${V&&V.items.find(isBoot)?`<div><span class="l" title="Çizme">${ic("boot")}</span>${itile(V.items.find(isBoot))}</div>`:""}
-      ${runes&&runes.length?`<div class="runes"><span class="l" title="Rünler">${ic("rune")}</span>${runeImg(runes[0],"ks")}<span class="minor">${runes.slice(1).map(n=>runeImg(n)).join("")}</span><span class="rn">${esc(runeTR(runes[0]))}</span></div>`:""}
+      ${runes&&runes.length?`<div class="runes"><span class="l" title="Rünler">${ic("rune")}</span>${runeImg(runes[0],"ks")}<span class="minor">${runes.slice(1).map(n=>runeImg(n)).join("")}</span><span class="rn">${esc(runeTR(runeKey(runes[0])))}${V&&V.runeSrc?`<small class="muted"> · ${esc(V.runeSrc)}</small>`:""}</span></div>`:""}
       <div><span class="l" title="Sihirdar büyüleri">${ic("spark")}</span><span class="small">${esc(SPELLS[bRole])}</span></div>
     </div>
     ${bRole==="sup"?`<p class="muted small" style="margin:8px 0 0">${ic("info")} Destek görev itemı yalnızca destek koridorunda alınır; oyunun başında ilk item odur.</p>`:""}
@@ -803,7 +808,7 @@ const have = l => l.filter(n=>IT[n]);
 const DEF_POOL = {
   adm: have(["Sterak's Gage","Death's Dance","Maw of Malmortius","Guardian Angel","Randuin's Omen","Force of Nature","Dead Man's Plate","Amaranth's Twinguard","Kaenic Rookern","Thornmail"]),
   adr: have(["Guardian Angel","Immortal Shieldbow","Mercurial Scimitar","Maw of Malmortius","Death's Dance","Edge of Night"]),
-  ap:  have(["Zhonya's Hourglass","Banshee's Veil","Rod of Ages","Abyssal Mask","Kaenic Rookern","Riftmaker","Force of Nature","Randuin's Omen"]),
+  ap:  have(["Zhonya's Hourglass","Banshee's Veil","Rod of Ages","Riftmaker","Abyssal Mask"]),
 };
 const DMG_POOL = { AP: have(["Hextech Rocketbelt","Riftmaker","Liandry's Torment","Abyssal Mask","Rod of Ages"]), AD: have(["Black Cleaver","Sundered Sky","Sterak's Gage","Divine Sunderer","Titanic Hydra"]) };
 const ANTI_HEAL = new Set(have(["Mortal Reminder","Chempunk Chainsword","Morellonomicon","Thornmail"]));
@@ -947,6 +952,10 @@ const PRE_CACHE = {};
 function presetsFor(c, role){
   const ck=c.slug+"|"+role; if(PRE_CACHE[ck]) return PRE_CACHE[ck];
   const out=[], V=realVariants(c,role), styles=stylesOf(c,role), own=styles[0];
+  // riftpatchnotes rün sayfaları (en popüler + alternatif): stile uyan ana rünlü olan seçilir
+  const RP=((CORES[c.slug]||{})[role]||{}).r||[];
+  const pageFor = st => RP.find(pg=>{ const ks=KS_OK[st]; return !ks||ks.includes(runeKey(pg[0][0])); });
+  const pageSrc = pg => pg ? `rün sayfası %${dec1(pg[1])} kazanma · %${dec1(pg[2])} seçilme` : null;
   const spare=V.flatMap(v=>v.items);
   const real=V.map((v,i)=>{ const m=VAR[v.key]||["wand",v.title];
     const items=arrange([...v.items,...spare.filter(x=>!v.items.includes(x))],c,role).filter(x=>!isBoot(x)).slice(0,SLOTS-1);
@@ -968,7 +977,8 @@ function presetsFor(c, role){
       VS.forEach(([team,t,icn])=>{
         let items=styleItems(c, role, s, team);
         if(core.length){ const boot=items.find(isBoot); items=swapDef(arrange([...core,...items.filter(x=>!isBoot(x)),boot],c,role),team,c,role); } const sig=items.join(); if(items.length<4||seen.has(sig)) return; seen.add(sig);
-        out.push({id:`s:${s}:${team}`, tab:"rec", style:s, lbl:`Build ${++k}`, ic:icn, title:t, items, runes:T.runes,
+        const pg=pageFor(s);
+        out.push({id:`s:${s}:${team}`, tab:"rec", style:s, lbl:`Build ${++k}`, ic:icn, title:t, items, runes:pg?pg[0].map(runeKey):T.runes, runeSrc:pageSrc(pg),
           sub:`${STYLE[s].lbl} — ${t}`, src:`aynı stildeki şampiyonların ${ROLE_LONG[role]||""} buildlerinden`}); });
     }
     const first=out.find(p=>p.style===s);
@@ -983,8 +993,9 @@ function presetsFor(c, role){
     const fill=V.flatMap(v=>v.items), boot=C.b&&C.b[0]?itemOf(C.b[0][0]):(V[0]&&V[0].boots);
     [...C.c].sort((a,b)=>b[1]-a[1]).forEach((x,i)=>{ const core=x[0].map(itemOf), st0=listStyle(core), st=st0&&STYLE[st0]&&!(!isMelee(c.slug)&&(st0==="bruiser"||st0==="tank"))?(st0==="ap"&&own==="sup"?"sup":st0):own;
       const sfill=st!==own&&STYLE[st] ? tplOf(st,role,isMelee(c.slug),true).items : fill;
-      const runes=(real.find(p=>p.style===st)||{}).runes || (STYLE[st]?tplOf(st,role,isMelee(c.slug),st!==own).runes:(V[0]||{}).runes) || [];
-      out.push({id:"t"+i, tab:"top", style:st, lbl:`#${i+1}`, ic:"trophy", wr:x[1], pr:x[2], core, runes,
+      const pg=pageFor(st);
+      const runes=pg ? pg[0].map(runeKey) : (real.find(p=>p.style===st)||{}).runes || (STYLE[st]?tplOf(st,role,isMelee(c.slug),st!==own).runes:(V[0]||{}).runes) || [];
+      out.push({id:"t"+i, tab:"top", style:st, lbl:`#${i+1}`, ic:"trophy", wr:x[1], pr:x[2], core, runes, runeSrc:pageSrc(pg),
         sub:`${STYLE[st]?STYLE[st].lbl+" · ":""}%${dec1(x[1])} kazanma · %${dec1(x[2])} seçilme (çekirdek: ilk 3 item)`, items:arrange([...core,...sfill,boot],c,role), src:"Elmas+ maçlar, CN sunucusu"}); });
   }
   out.styles=styles.filter(s=>out.some(p=>p.tab==="rec"&&p.style===s));
@@ -1089,7 +1100,7 @@ function openSpellPicker(side,idx){
   ov.hidden=false;
 }
 const TEAM = [["AD","Çoğu fiziksel","sword"],["mix","Dengeli","users"],["AP","Çoğu büyü","spark"]];
-const runeRow = runes => runes&&runes.length ? `<div class="f-runes" title="Rün sayfası">${runeImg(runes[0],"ks")}<span class="minor">${runes.slice(1).map(n=>runeImg(n)).join("")}</span><span class="rn">${esc(runeTR(runes[0]))}</span></div>` : "";
+const runeRow = runes => runes&&runes.length ? `<div class="f-runes">${runeImg(runes[0],"ks")}<span class="minor">${runes.slice(1).map(n=>runeImg(n)).join("")}</span><span class="rn">${esc(runeTR(runes[0]))}</span></div>` : "";
 function buildsHTML(side){
   const f=D[side], P=presetsFor(f.c,f.role), styles=stylesShown(f.c,f.role), hasTop=P.some(p=>p.tab==="top");
   if(!hasTop&&f.tab==="top") f.tab="rec";
@@ -1100,7 +1111,7 @@ function buildsHTML(side){
     ${f.tab==="rec"&&styles.length>1?`<div class="f-stylesel" role="group" aria-label="Oyun stili"><span class="lbl">Stil</span>${styles.map(s=>`<button type="button" data-dstyle="${side}:${s}" aria-pressed="${s===f.style}" title="${esc(STY_DESC[s])}">${ic(STYLE[s].ic)}${esc(STYLE[s].lbl)}</button>`).join("")}</div>`:""}
     <div class="f-styles" role="group" aria-label="Hazır build">${list.map(p=>`<button type="button" data-dbuild="${side}:${p.id}" aria-pressed="${f.build===p.id}" title="${esc(p.sub)}">${ic(p.ic)}${esc(p.lbl)}${p.wr!=null?` <small>%${dec1(p.wr)}</small>`:""}</button>`).join("")||'<span class="muted small">Bu koridor için build verisi yok.</span>'}</div>
     <p class="f-bsub muted small">${cur?`<b>${esc(cur.lbl)}</b> · ${esc(cur.sub)}`:"Elle seçilmiş itemlar"}</p>
-    ${runeRow(runesOf(f))}
+    ${runeRow(runesOf(f))}${cur&&cur.runeSrc?`<p class="f-bsub muted small">${esc(cur.runeSrc)} (Elmas+, CN)</p>`:""}
     ${side==="me"?`<div class="f-team" role="group" aria-label="Karşı takımın hasar türü"><span class="lbl">Karşı takım</span>${TEAM.map(([k,l,icn])=>`<button type="button" data-dteam="${k}" aria-pressed="${D.team===k}">${ic(icn)}${l}</button>`).join("")}</div>`:""}
   </div>`;
 }
@@ -1170,69 +1181,107 @@ function renderDuel(){
 /* ===================================================================
  *  ÖNERİLER — her item için: kural kontrolü, simülasyon farkı ve gerekçe
  * =================================================================== */
+/* ===== ÖNERİ MOTORU — kural tabanlı =====
+ * Simülasyon puanı yerine: bu şampiyonun bu koridorda gerçekten aldığı itemlar (ne kadar sık alındığı)
+ * + rakibe göre ihtiyaç: tank rakibe zırh/büyü delme ve yüzde can hasarı, iyileşene Ağır Yara,
+ * rakibin hasar türüne uygun savunma, ani hasara karşı hayatta kalma, kitle kontrolüne karşı arındırma.
+ * Hangi itemın çıkarılacağına oyuncu karar verir. */
+const PEN_ARMOR = new Set(have(["Serylda's Grudge","Dominik's Regards","Black Cleaver","Mortal Reminder","Terminus"]));
+const PEN_MAGIC = new Set(have(["Void Staff","Cryptbloom","Terminus"]));
+const PCT_HP = new Set(have(["Blade of the Ruined King","Liandry's Torment","Divine Sunderer","Kraken Slayer","Bloodletter's Curse","Riftmaker","Sundered Sky"]));
+const ANTI_BURST = new Set(have(["Guardian Angel","Zhonya's Hourglass","Edge of Night","Banshee's Veil","Immortal Shieldbow","Sterak's Gage","Maw of Malmortius","Death's Dance"]));
+const ANTI_CC = new Set(have(["Mercurial Scimitar","Mercury's Treads","Quicksilver Sash","Wit's End"]));
 const FINISHED = () => ILIST.filter(i=>{const d=itemData(i.en);return d&&(d.t>=3||i.cat==="bot")&&i.cat!=="";});
-/* Rakibin profili: hasar türü dağılımı, dayanıklılık, iyileşme */
+/* Rakibin profili (karşı takım seçimi savunma kararına katılır) */
 function foeOf(r, side){
-  const mine = side==="me";
+  const mine = side==="me", foeF = mine ? D.en : D.me;
   const s = mine ? r.se : r.sm, heal = mine ? r.healEn : r.healMe;
   let split = typeSplit(mine ? r.typeEn : r.typeMe);
-  // "Karşı takım" seçiliyse savunma kararı düello rakibi ile takımın ortalamasına göre verilir
   const team = mine&&D.team!=="mix" ? D.team : null;
   if(team){ const t=team==="AD"?{P:0.85,M:0.15,T:0}:{P:0.15,M:0.85,T:0}; split={P:(split.P+t.P)/2, M:(split.M+t.M)/2, T:split.T/2}; }
-  return { split, s, heal, team, tanky: s.bhp>=900||s.bar+s.bmr>=110, squishy: s.bhp<450&&s.bar<35&&s.bmr<35 };
+  const A=AB[foeF.c.slug]||{}; const hardCC=["1","2","3","4"].filter(k=>A[k]&&A[k].cc&&A[k].cc[0]==="hard").length;
+  const burst=/assassin|mage_burst/.test(foeF.c.arch) || (mine?r.ttkEn:r.ttkMe)<4;
+  return { c:foeF.c, split, s, heal, team, hardCC, burst,
+    tankyAR: s.ar>=140||s.bar>=70, tankyMR: s.mr>=110||s.bmr>=60, tankyHP: s.bhp>=900,
+    get tanky(){ return this.tankyAR||this.tankyMR||this.tankyHP; }, squishy: s.bhp<450&&s.bar<35&&s.bmr<35 };
 }
-/* Gerekçeler ve mantık düzeltmesi: [puan çarpanı, ["olumlu"/"olumsuz", metin]...] */
-function reasonsFor(en, foe){
-  const x=itemStats(en), out=[]; let k=1;
-  const P=Math.round(foe.split.P*100), M=Math.round(foe.split.M*100);
-  const vsM = foe.team==="AP" ? "Karşı takım çoğunlukla büyü hasarı veriyor" : `Rakibin hasarı: %${M} büyü`;
-  const vsP = foe.team==="AD" ? "Karşı takım çoğunlukla fiziksel hasar veriyor" : `Rakibin hasarı: %${P} fiziksel`;
-  if((x.mr||0)>0&&!(x.armor>0)){ if(foe.split.M>=0.5){ out.push(["good",vsM]); k*=1.15; } else if(foe.split.M<0.25){ out.push(["bad",foe.team?"Karşı takım çoğunlukla fiziksel vuruyor; büyü direnci az işe yarar":`Rakip çoğunlukla fiziksel vuruyor (%${P}); büyü direnci az işe yarar`]); k*=0.35; } }
-  if((x.armor||0)>0&&!(x.mr>0)){ if(foe.split.P>=0.5){ out.push(["good",vsP]); k*=1.15; } else if(foe.split.P<0.25){ out.push(["bad",foe.team?"Karşı takım çoğunlukla büyü hasarı veriyor; zırh az işe yarar":`Rakip çoğunlukla büyü hasarı veriyor (%${M}); zırh az işe yarar`]); k*=0.35; } }
-  if(ANTI_TANK.has(en)||(x.armpen||0)>0||(x.mpen||0)>0){
-    if(foe.tanky) out.push(["good","Rakip dayanıklı"]);
-    else if(foe.squishy&&ANTI_TANK.has(en)){ out.push(["bad","Rakip dayanıklı değil; bu item tanklara karşı alınır"]); k*=0.6; }
-  }
-  if(ANTI_HEAL.has(en)&&foe.heal>=0.08*foe.s.hp) out.push(["good",`Rakip dövüşte ${n0(foe.heal)} can yeniliyor (ağır yara)`]);
-  return [k,out];
+/* Bu şampiyonun bu koridordaki item sıklığı (0–1) */
+function popOf(c, role, style){
+  const k=c.slug+"|"+role+"|"+style; if(popOf.m[k]) return popOf.m[k];
+  const w={}, add=(en,v)=>{ if(IT[en]) w[en]=(w[en]||0)+v; };
+  const b=BUILDS[c.slug];
+  if(b&&b.r[role]) b.r[role].v.forEach((v,i)=>v[2].forEach((x,j)=>add(itemOf(x),(i?1:2)*(1.4-j*0.08))));
+  if(b) Object.entries(b.r).forEach(([r,R])=>{ if(r!==role) R.v.forEach(v=>v[2].forEach(x=>add(itemOf(x),0.4))); });
+  if(b) (b.sit||[]).forEach(([x])=>add(itemOf(x),1.2));
+  ((CORES[c.slug]||{})[role]||{c:[]}).c.forEach(x=>x[0].forEach(s=>add(itemOf(s),0.6+x[2]/20)));
+  if(style&&STYLE[style]) tplOf(style,role,isMelee(c.slug),style!==styleOfArch(c.arch)).items.slice(0,14).forEach((en,i)=>add(en,0.9-i*0.04));
+  const mx=Math.max(1,...Object.values(w)); Object.keys(w).forEach(en=>w[en]=Math.min(1,w[en]/mx));
+  return popOf.m[k]=w;
 }
-/* Bir itemı en mantıklı yuvaya koyar: boş yuva → çakışan itemın yuvası → çizme yuvası → en az katkı veren yuva */
-function slotFor(f, en, weak){
-  const conflict=f.items.findIndex(x=>x&&x!==en&&(isBoot(en)?isBoot(x):igrp(x).some(g=>igrp(en).includes(g))));
-  if(conflict>=0) return conflict;
-  const empty=f.items.indexOf(null); if(empty>=0) return empty;
-  return weak;
+popOf.m={};
+/* Tek item için puan ve gerekçeler */
+function recScore(en, f, foe, mineSplit){
+  const x=itemStats(en), why=[]; const pop=popOf(f.c,f.role,f.style)[en]||0; let sc=pop*1.2;
+  const myP=mineSplit.P>=0.5, myM=mineSplit.M>=0.5, fn=esc(foe.c.disp);
+  const has=k=>f.items.some(o=>o&&(itemStats(o)[k]||0)>0);
+  const isDmg=!!(x.ad||x.ap||x.crit||x.as);
+  // tank rakip: delme ve yüzde can hasarı
+  if(foe.tankyAR&&myP&&(PEN_ARMOR.has(en)||(x.armpen||0)>0)){ sc+=1.6; why.push(["good",`${fn} çok zırhlı: zırh delme şart`]); }
+  if(foe.tankyMR&&myM&&(PEN_MAGIC.has(en)||(x.mpen||0)>0)){ sc+=1.6; why.push(["good",`${fn} çok büyü direnci taşıyor: büyü delme şart`]); }
+  if(foe.tankyHP&&PCT_HP.has(en)&&((x.ap>0)===myM||!(x.ap||x.ad))){ sc+=0.9; why.push(["good",`${fn} çok can yığıyor: yüzde can hasarı işe yarar`]); }
+  if(foe.tanky&&isDmg&&(x.armpenflat||0)>0&&!(x.armpen>0)){ sc-=0.6; why.push(["bad","Öldürücülük tanklara karşı zayıf kalır"]); }
+  // kırılgan rakip
+  if(foe.squishy&&(PEN_ARMOR.has(en)||PEN_MAGIC.has(en)||PCT_HP.has(en))&&!(x.armpenflat||x.mpenflat)){ sc-=0.5; why.push(["bad",`${fn} dayanıklı değil; bu item tanklara karşı alınır`]); }
+  if(foe.squishy&&((x.armpenflat||0)>0&&myP||(x.mpenflat||0)>0&&myM)){ sc+=0.5; why.push(["good",`${fn} kırılgan: ani hasar etkili`]); }
+  // iyileşme
+  const healer=foe.c.arch==="enchanter"||/İyileş|heal/i.test((foe.c.tags||[]).join(" "));
+  if(ANTI_HEAL.has(en)&&(foe.heal>=0.08*foe.s.hp||healer)&&!f.items.some(o=>o&&ANTI_HEAL.has(o))){ sc+=1.1; why.push(["good",healer?`${fn} takımını iyileştiriyor: Ağır Yara`:`${fn} dövüşte çok iyileşiyor: Ağır Yara`]); }
+  // savunma: rakibin (ve karşı takımın) hasar türüne göre
+  const who=foe.team?"Karşı takım":fn;
+  if((x.armor||0)>0&&!(x.mr>0)){ if(foe.split.P>=0.6){ sc+=0.6+(has("armor")?0:0.4); why.push(["good",`${who} çoğunlukla fiziksel hasar veriyor`]); } else if(foe.split.P<0.3){ sc-=0.8; why.push(["bad",`${who} çoğunlukla büyü hasarı veriyor; zırh az işe yarar`]); } }
+  if((x.mr||0)>0&&!(x.armor>0)){ if(foe.split.M>=0.6){ sc+=0.6+(has("mr")?0:0.4); why.push(["good",`${who} çoğunlukla büyü hasarı veriyor`]); } else if(foe.split.M<0.3){ sc-=0.8; why.push(["bad",`${who} çoğunlukla fiziksel vuruyor; büyü direnci az işe yarar`]); } }
+  // ani hasar ve kitle kontrolü
+  if(foe.burst&&ANTI_BURST.has(en)){ sc+=0.5; why.push(["good",`${fn} ani hasar veriyor: hayatta kalmana yardım eder`]); }
+  if(foe.hardCC>=2&&ANTI_CC.has(en)){ sc+=0.5; why.push(["good",`${fn} çok kitle kontrolü taşıyor`]); }
+  if(pop>=0.55&&why.every(w=>w[0]!=="good")) why.push(["good",`${esc(f.c.disp)} oyuncularının bu koridorda sık aldığı item`]);
+  return {sc, pop, why:why.slice(0,2)};
 }
-function weakestSlot(side, base){
-  const f=D[side], o=other(side); let w=-1, wv=-1;
-  f.items.forEach((en,i)=>{ if(!en||isBoot(en)) return; const items=[...f.items]; items[i]=null; const v=trial(f,items,o); if(v>wv){wv=v;w=i;} });
-  return w<0?SLOTS-1:w;
+function bestItems(side, limit){
+  const f=D[side], base=simulate(D.me,D.en); if(!base) return [];
+  const foe=foeOf(base,side), mineSplit=typeSplit(side==="me"?base.typeMe:base.typeEn);
+  const pool=new Set([...buildPool(f.c,f.role,f.style), ...Object.keys(popOf(f.c,f.role,f.style)).filter(en=>itemFits(en,f.style))]);
+  return FINISHED().filter(i=>pool.has(i.en)&&!f.items.includes(i.en)&&(f.role==="sup"||!isQuest(i.en))).map(i=>{
+    // kural: aynı gruptan item varsa yalnızca onun yerine alınabilir — öneri yine gösterilir, seçicide belirtilir
+    const g=f.items.find(o=>o&&o!==i.en&&(isBoot(i.en)?isBoot(o):igrp(o).some(x=>igrp(i.en).includes(x))));
+    const test={...f, items:f.items.map(o=>o===g?null:o)}; if(blockOf(test,i.en,-1)) return null;
+    const r=recScore(i.en,f,foe,mineSplit); return {en:i.en, ...r, conflict:g||null};
+  }).filter(x=>x&&x.sc>0.15).sort((a,b)=>b.sc-a.sc).slice(0,limit);
 }
-function bestItems(side,limit){
-  const f=D[side], o=other(side), base=simulate(D.me,D.en); if(!base) return [];
-  const baseV = side==="me"?base.score:1-base.score, foe=foeOf(base,side);
-  const weak=f.items.indexOf(null)<0?weakestSlot(side):-1;
-  const pool=new Set(buildPool(f.c,f.role,f.style));
-  return FINISHED().filter(i=>pool.has(i.en)&&!f.items.includes(i.en)).map(i=>{
-    const slot=slotFor(f,i.en,weak); const items=[...f.items]; items[slot]=i.en;
-    if(blockOf({...f,items},i.en,slot)) return null;
-    const gain=trial(f,items,o)-baseV; const [k,why]=reasonsFor(i.en,foe);
-    return {en:i.en, slot, out:f.items[slot], gain, adj: gain>0?gain*k:gain, why};
-  }).filter(Boolean).sort((a,b)=>b.adj-a.adj).slice(0,limit);
-}
-const ptsTxt = g => Math.abs(g)<0.0005?"±0":(g>0?"+":"−")+Math.abs(g*100).toFixed(1).replace(".",",");
 function renderRecs(){
   const best=bestItems("me",12), sty=STYLE[D.me.style];
+  const lvl=x=>x.sc>=1.8?["hi","Çok etkili"]:x.sc>=1.1?["mid","Etkili"]:["lo","Uygun"];
   $("#d-recs").innerHTML = `<h2>${ic("wand")}Bu rakibe karşı en etkili itemlar</h2>
-    <p class="muted small">${esc(D.me.c.disp)}${sty?` (${esc(sty.lbl)} stili)`:""} için ${esc(ROLE_LONG[D.me.role]||"")} buildlerinde alınan itemlar arasından${D.team!=="mix"?`; karşı takım ${D.team==="AD"?"çoğunlukla fiziksel":"çoğunlukla büyü"} hasar veriyor`:""}. Birlikte alınamayan itemlar ayıklandı. Dokun, ekle.</p>
-    <div class="rec-list${recMore?" open":""}">${best.map(x=>`<button type="button" class="rec2" data-dadd="${esc(x.en)}:${x.slot}">
+    <p class="muted small">${esc(D.me.c.disp)}${sty?` (${esc(sty.lbl)})`:""} için: oyuncuların bu koridorda aldığı itemlar, ${esc(D.en.c.disp)} rakibinin özelliklerine göre sıralandı${D.team!=="mix"?`; karşı takım ${D.team==="AD"?"çoğunlukla fiziksel":"çoğunlukla büyü"} hasar veriyor`:""}. Dokun: boş yuvaya eklenir, build doluysa hangi itemın yerine alacağını sen seçersin.</p>
+    <div class="rec-list${recMore?" open":""}">${best.map(x=>{ const L=lvl(x); return `<button type="button" class="rec2" data-dadd="${esc(x.en)}" ${tipAttr("item",x.en)}>
       ${IT[x.en]&&IT[x.en].icon?`<img src="${IT[x.en].icon}" alt="">`:""}
-      <span class="rb"><span class="nm">${esc(iname(x.en))}</span>${x.out?`<span class="muted small">${esc(iname(x.out))} yerine</span>`:""}
-        ${x.why.length?`<span class="why">${x.why.map(([t,s])=>`<span class="${t}">${esc(s)}</span>`).join("")}</span>`:""}</span>
-      <span class="gain ${x.gain>=0?"good":"bad"}">${ptsTxt(x.gain)} puan</span></button>`).join("")||'<div class="empty">Eklenebilecek item kalmadı.</div>'}</div>
+      <span class="rb"><span class="nm">${esc(iname(x.en))}</span>
+        ${x.why.length?`<span class="why">${x.why.map(([t,s])=>`<span class="${t}">${s}</span>`).join("")}</span>`:""}</span>
+      <span class="rlvl ${L[0]}">${L[1]}</span></button>`; }).join("")||'<div class="empty">Eklenebilecek item kalmadı.</div>'}</div>
     ${best.length>6?`<button type="button" class="lnk rec-more" data-recmore aria-expanded="${recMore}">${ic(recMore?"x":"plus")}${recMore?"Daha az göster":`${best.length-6} öneri daha göster`}</button>`:""}`;
 }
 let recMore=false;
+/* Öneriyi ekle: boş yuva varsa oraya; yoksa (ya da aynı gruptan item varsa) oyuncu seçer */
+function addRec(en){
+  const f=D.me, g=f.items.find(o=>o&&o!==en&&(isBoot(en)?isBoot(o):igrp(o).some(x=>igrp(en).includes(x))));
+  if(!g){ const empty=f.items.findIndex((o,i)=>!o&&(isBoot(en)?true:i<SLOTS)); if(empty>=0){ setItem("me",empty,en); return; } }
+  const opts=f.items.map((o,i)=>({o,i})).filter(x=>x.o&&(!g||x.o===g));
+  ov.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Hangi itemın yerine?">
+    <div class="sheet-head"><h3>${esc(iname(en))}: hangi itemın yerine?</h3><button class="btn icon" type="button" data-close aria-label="Kapat">${ic("x")}</button></div>
+    ${g?`<p class="muted small" style="margin:0 0 10px">${esc(iname(g))} ile aynı gruptan (${esc(igrp(en).map(x=>GRP_TR[x]||x).join(", "))}); ikisi birlikte alınamaz.</p>`:""}
+    <div class="repl">${opts.map(x=>`<button type="button" class="ipb" data-repl="${x.i}" data-repl-en="${esc(en)}" ${tipAttr("item",x.o)}><span class="ib">${IT[x.o]&&IT[x.o].icon?`<img src="${IT[x.o].icon}" alt="">`:""}</span><span class="nm">${esc(iname(x.o))}</span></button>`).join("")}</div></div>`;
+  ov.hidden=false;
+}
+const ptsTxt = g => Math.abs(g)<0.0005?"±0":(g>0?"+":"−")+Math.abs(g*100).toFixed(1).replace(".",",");
 function renderCounters(r){
   const en=D.en.c, role=r?r.role:D.en.role;
   const rows=(MU[role]&&MU[role][en.slug]||[]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,6).map(x=>({c:BYSLUG[x[0]],e:x[1]})).filter(x=>x.c);
@@ -1299,7 +1348,7 @@ document.getElementById("v-ana").addEventListener("click",e=>{
     t.classList.add("busy"); setTimeout(()=>{ applyPreset(s,id); const p=presetsFor(D[s].c,D[s].role).find(x=>x.id===id);
       logChange(s,`<b>${esc(p?p.lbl:"")}</b> buildini seçti{s}`,before); renderDuel(); },10); }
   else if(t.dataset.dclear){ const s=t.dataset.dclear; D[s].items=Array(SLOTS).fill(null); D[s].build=null; renderDuel(); }
-  else if(t.dataset.dadd){ const [en,slot]=t.dataset.dadd.split(/:(?=\d+$)/); setItem("me",+slot,en); }
+  else if(t.dataset.dadd){ addRec(t.dataset.dadd); }
   else if(t.dataset.dme){ D.me=fighter("me",BYSLUG[t.dataset.dme],{role:D.en.role}); D.log=[]; D.prev=null; renderDuel(); window.scrollTo({top:0,behavior:"smooth"}); }
   else if(t.dataset.lvl){ D.lvl=Math.min(15,Math.max(1,D.lvl+(+t.dataset.lvl))); renderDuel(); }
 });
@@ -1307,6 +1356,7 @@ ov.addEventListener("click",e=>{
   const q=e.target.closest("[data-spick]"); if(q){ ov.hidden=true; const f=D[spSide], k=q.dataset.spick, o=1-spIdx;
     if(f.sp[spIdx]!==k){ const old=f.sp[spIdx], before=D.prev&&D.prev.score; if(f.sp[o]===k) f.sp[o]=old; f.sp[spIdx]=k;
       logChange(spSide,`<b>${esc(spellTR(k))}</b> büyüsünü seçti{s}`,before); renderDuel(); } return; }
+  const rp=e.target.closest("[data-repl]"); if(rp){ ov.hidden=true; setItem("me",+rp.dataset.repl,rp.dataset.replEn); return; }
   const p=e.target.closest("[data-ipick]"); if(p){ if(p.disabled) return; ov.hidden=true; setItem(ipSide,ipSlot,p.dataset.ipick); return; }
   if(e.target.closest("[data-iprm]")){ ov.hidden=true; setItem(ipSide,ipSlot,null); }
 });
@@ -1327,8 +1377,8 @@ $("#c-q").addEventListener("input",renderGrid);
 segSet("#c-sort","s",cSort);
 $("#c-sort").addEventListener("click",e=>{const b=e.target.closest("[data-s]");if(!b)return;cSort=b.dataset.s;setPref("rk-csort",cSort);segSet("#c-sort","s",cSort);renderGrid()});
 /* Kart: kazanma ve seçilme oranı, ikisi de yazıyla etiketli */
-const ccard = (c,s) => `<button class="ccard" type="button" ${champBtnAttrs(c)} title="${esc(c.disp)}${s&&s[0]!=null?` — kazanma ${pct(s[0])}, seçilme ${pct(s[1])}`:""}">${por(c)}<span class="nm">${esc(c.disp)}</span>
-  <span class="wr"><b>${pct(s&&s[0])}</b> kazanma</span>${s&&s[1]!=null?`<span class="wr pr">${pct(s[1])} seçilme</span>`:""}</button>`;
+const cst = s => `<span class="cst"><span>Kazanma <b>${pct(s&&s[0])}</b></span><span>Seçilme <b>${pct(s&&s[1])}</b></span></span>`;
+const ccard = (c,s) => `<button class="ccard" type="button" ${champBtnAttrs(c)}>${por(c)}<span class="nm">${esc(c.disp)}</span>${cst(s)}</button>`;
 const TIER_RULE = {S:"kazanma %52,5 ve üstü",A:"kazanma %51–52,5",B:"kazanma %49,5–51",C:"kazanma %48–49,5",D:"kazanma %48'in altı","?":"bu koridorda yeterli maç yok"};
 /* Meta: kademesi S/A (kazanma %51+) ve koridorunda ortalamanın üstünde seçilen; sıra: seçilme × güç */
 function metaPicks(role, n){
@@ -1339,11 +1389,11 @@ function metaPicks(role, n){
 }
 function metaHTML(){
   const roles=cRole==="all"?Object.keys(ROLE):[cRole];
-  const rows=roles.map(r=>[r,metaPicks(r,cRole==="all"?4:8)]).filter(x=>x[1].length);
+  const rows=roles.map(r=>[r,metaPicks(r,cRole==="all"?5:10)]).filter(x=>x[1].length);
   if(!rows.length) return "";
-  return `<section class="meta-sec"><h2 class="th">${ic("trophy")}Meta şampiyonlar</h2>
-    <p class="muted small" style="margin:-6px 0 10px">Şu an hem güçlü hem çok oynananlar: kademesi S ya da A (kazanma %51 ve üstü) ve o koridorda ortalamanın üstünde seçilen şampiyonlar. Sıralama: seçilme oranı × kazanma gücü.</p>
-    ${rows.map(([r,l])=>`<div class="meta-row">${cRole==="all"?`<span class="meta-r">${ROLE[r]}</span>`:""}<div class="cgrid">${l.map(x=>ccard(x.c,x.s)).join("")}</div></div>`).join("")}</section>`;
+  return `<section class="card metabox"><h2 class="th">${ic("trophy")}Meta şampiyonlar<small>Yama ${esc(META.patch||"")}</small></h2>
+    <p class="muted small" style="margin:0 0 10px">Şu an hem güçlü hem çok oynananlar: kademesi S ya da A (kazanma %51 ve üstü) ve o koridorda ortalamanın üstünde seçilen şampiyonlar; seçilme ve kazanma birlikte puanlanır. Kaynak: Elmas+ maçlar, CN sunucusu.</p>
+    ${rows.map(([r,l])=>`<div class="mrow"><span class="mr-l">${roleB(r)}</span><div class="mcards">${l.map(x=>`<button class="mcard" type="button" ${champBtnAttrs(x.c)}>${por(x.c,"sm")}<span class="mb"><span class="nm">${esc(x.c.disp)}</span>${cst(x.s)}</span></button>`).join("")}</div></div>`).join("")}</section>`;
 }
 function renderGrid(){
   const q=key($("#c-q").value);
@@ -1367,6 +1417,25 @@ function pickRow(c,e,role){
   const T=EDGE_TXT(e); const w=role?roleWR(c,role):null;
   return `<button class="pick" type="button" ${champBtnAttrs(c)}>${por(c,"sm")}<span class="nm">${esc(c.disp)}</span><span class="tag ${T[0]}">${T[1]}</span><span class="rt">${pct(w!=null?w:c.wr)}</span></button>`;
 }
+/* İstatistik sekmesi: koridor başına oranlar, en popüler çekirdekler, çizmeler ve rün sayfaları (Elmas+, CN) */
+function statsTab(c){
+  const rows=Object.keys(ROLE).filter(r=>c.rs[r]).sort((a,b)=>c.rs[b][1]-c.rs[a][1]);
+  const C=CORES[c.slug]||{};
+  const wpr=(w,p)=>`<span class="ow ${w>=52?"good":w<48?"bad":""}">${pct(w)}</span> kazanma · ${pct(p)} seçilme`;
+  const roleBlock=r=>{ const R=C[r]; if(!R) return "";
+    return `<div class="card"><h2>${roleB(r)} ${esc(ROLE_LONG[r])}</h2>
+      <h3 class="h3">En popüler çekirdekler (ilk 3 item)</h3>
+      <div class="cores">${R.c.map(x=>`<div class="core"><div class="irow">${x[0].map(itemOf).map(en=>itile(en)).join("")}</div><span class="small">${wpr(x[1],x[2])}</span></div>`).join("")}</div>
+      ${R.b&&R.b.length?`<h3 class="h3">Çizmeler</h3><div class="cores">${R.b.map(x=>`<div class="core"><div class="irow">${itile(itemOf(x[0]))}</div><span class="small">${wpr(x[1],x[2])}</span></div>`).join("")}</div>`:""}
+      ${R.r&&R.r.length?`<h3 class="h3">Rün sayfaları</h3><div class="cores">${R.r.map(x=>`<div class="core"><div class="runes">${runeImg(x[0][0],"ks")}<span class="minor">${x[0].slice(1).map(n=>runeImg(n)).join("")}</span><span class="rn">${esc(runeTR(runeKey(x[0][0])))}</span></div><span class="small">${wpr(x[1],x[2])}</span></div>`).join("")}</div>`:""}
+      <p class="muted small" style="margin:8px 0 0">Oyun stilleri: ${esc(stylesShown(c,r).map(s=>STYLE[s].lbl).join(", "))}</p></div>`; };
+  return `<div class="card"><h2>${ic("trophy")}Koridorlara göre</h2>
+    <div class="tblw"><table class="stbl"><thead><tr><th>Koridor</th><th>Kademe</th><th>Kazanma</th><th>Seçilme</th><th>Yasaklanma</th></tr></thead><tbody>
+    ${rows.map(r=>{ const x=c.rs[r], t=tierOf(x[0]); return `<tr><th>${esc(ROLE_LONG[r])}</th><td><span class="tier" data-t="${t}">${t}</span></td><td>${pct(x[0])}</td><td>${pct(x[1])}</td><td>${pct(x[2])}</td></tr>`; }).join("")||'<tr><td colspan="5">Veri yok.</td></tr>'}
+    </tbody></table></div>
+    <p class="muted small" style="margin:8px 0 0">Kademe: S %52,5 ve üstü · A %51 · B %49,5 · C %48 · D altı. Kaynak: Elmas+ dereceli maçlar, Wild Rift CN sunucusu (riftpatchnotes.com).</p></div>
+    ${rows.map(roleBlock).join("")}`;
+}
 function renderProfile(slug){
   const c=BYSLUG[slug]; const v=$("#v-profil");
   if(slug!==pSlug){pSlug=slug;pRole=null;bRole=null;bVar=0;bTab="rec";bStyle=null;pTab="build";}
@@ -1377,9 +1446,10 @@ function renderProfile(slug){
   const strong=board.filter(x=>x.e<0).sort((a,b)=>a.e-b.e), weak=board.filter(x=>x.e>0).sort((a,b)=>b.e-a.e);
   const slotName={"PASİF":"Pasif","1":"1","2":"2","3":"3","ULTİ":"Ulti"};
   const ch=CHG[c.slug];
-  const tabs=[["build","Build"],["yetenek","Yetenekler"],["eslesme","Eşleşmeler"],["oyna","Oynanış"]];
+  const tabs=[["build","Build"],["istatistik","İstatistik"],["yetenek","Yetenekler"],["eslesme","Eşleşmeler"],["oyna","Oynanış"]];
   let body="";
   if(pTab==="build") body=`<div class="card" id="pf-build">${buildCard(c)}</div>`;
+  if(pTab==="istatistik") body=statsTab(c);
   if(pTab==="yetenek") body=`<div class="card"><div class="abil">${(pr.ab||[]).map(a=>{const cp=ch&&ch.c.find(p=>p[0]===a[0]);const d=cp?cp[3].reduce((x,l)=>x+l[1],0):null;return `<div class="ab${cp?" chg-ab":""}"><span class="abi">${a[3]?`<img src="${a[3]}" alt="">`:""}${cp?chgBadge(d>0?"buff":d<0?"nerf":"adj"):""}</span><div><div class="k">${esc(slotName[a[1]]||a[1])}</div><div class="n">${esc(a[0])}</div><p>${esc(a[2])}</p>${cp?`<ul class="lns">${cp[3].map(lineHTML).join("")}</ul>`:""}</div></div>`}).join("")||'<div class="empty">Yetenek bilgisi yok.</div>'}</div></div>`;
   if(pTab==="eslesme") body=br.length?`<div class="seg sm" id="pf-roles">${br.map(r=>`<button type="button" data-r="${r}" aria-pressed="${r===pRole}">${ROLE_LONG[r]}</button>`).join("")}</div>
     <div class="grid2"><div class="card"><h2 class="good-h">Rahat ettiği rakipler <small>${strong.length}</small></h2><div class="list">${strong.map(x=>pickRow(x.o,-x.e,pRole)).join("")||'<div class="empty">Kayıt yok.</div>'}</div></div>
@@ -1392,9 +1462,9 @@ function renderProfile(slug){
     ${por(c,"lg")}
     <div class="ph-id">
       <h1>${esc(c.disp)}</h1>${pr.t?`<div class="title">${esc(pr.t)}</div>`:""}
-      <div class="prof-meta">${c.roles.map(roleB).join("")}<span class="chip ${c.dmg.toLowerCase()}">${DMG[c.dmg]}</span>${pr.d?`<span class="chip">Zorluk <span class="diff">${[1,2,3].map(i=>`<i class="${i<=pr.d?"on":""}"></i>`).join("")}</span></span>`:""}</div>
+      <div class="prof-meta">${c.roles.map(roleB).join("")}<span class="chip ${c.dmg.toLowerCase()}">${DMG[c.dmg]}</span>${(pr.cls||[]).map(x=>`<span class="chip">${esc(CLS_TR[x]||x)}</span>`).join("")}${pr.d?`<span class="chip">Zorluk <span class="diff">${[1,2,3].map(i=>`<i class="${i<=pr.d?"on":""}"></i>`).join("")}</span></span>`:""}</div>
     </div>
-    <div class="ph-kpi"><span class="tier big" data-t="${c.tier}">${c.tier}</span><div><b>${pct(c.wr)}</b><span>kazanma</span></div><div><b>${pct(c.pr)}</b><span>seçilme</span></div></div>
+    <div class="ph-kpi"><span class="tier big" data-t="${c.tier}">${c.tier}</span><div><b>${pct(c.wr)}</b><span>kazanma</span></div><div><b>${pct(c.pr)}</b><span>seçilme</span></div>${c.br!=null?`<div><b>${pct(c.br)}</b><span>yasaklanma</span></div>`:""}</div>
     <div class="ph-cta"><button class="btn gold" type="button" id="pf-duel">${ic("duel")}Düelloda dene</button></div>
   </div>
   ${ch?`<button type="button" class="chstrip" data-v="${ch.v}" data-chg="${c.slug}">${chgBadge(ch.v)}<span>Yama ${esc(NOTES.patch||"")}: <b>${esc(VMARK[ch.v][1])}</b> — ${ch.c.length?esc(ch.c.map(p=>p[0]?titleTR(p[0]):"Temel değerler").join(", ")):"yeni şampiyon"}</span><span class="go">Ayrıntı ›</span></button>`:""}
@@ -1485,3 +1555,64 @@ if("serviceWorker" in navigator && location.protocol==="https:"){
   navigator.serviceWorker.register("../sw.js",{updateViaCache:"none",scope:"../"}).then(r=>r.update()).catch(()=>{});
 }
 dLoad(); renderGrid(); renderItems(); renderPatch(); route();
+
+/* ===================================================================
+ *  BİLGİ KUTUSU — item, rün ya da şampiyonun üstüne gelince açılır, imleç gidince kapanır.
+ *  Tek bir kutu; olay temsilciliği ile tüm görünümlerde çalışır. Dokunmatik ekranda gösterilmez.
+ * =================================================================== */
+(()=>{
+  if(!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+  const box=document.createElement("div"); box.className="tipbox"; box.setAttribute("role","tooltip"); box.hidden=true; document.body.append(box);
+  let cur=null, timer=0;
+  const SEL="[data-tip],[data-item],[data-ipick],[data-dslot],[data-go^='s-'],[data-dme],[data-dpick],[data-repl]";
+  function resolve(el){
+    const t=el.closest(SEL); if(!t) return null; const d=t.dataset;
+    if(d.tip){ const i=d.tip.indexOf(":"); return {t, k:d.tip.slice(0,i), id:d.tip.slice(i+1)}; }
+    if(d.item) return {t,k:"item",id:d.item};
+    if(d.ipick) return {t,k:"item",id:d.ipick};
+    if(d.dslot){ const [s,i]=d.dslot.split(":"); const en=D[s]&&D[s].items[+i]; return en?{t,k:"item",id:en}:null; }
+    if(d.go) return {t,k:"champ",id:d.go.slice(2)};
+    if(d.dme) return {t,k:"champ",id:d.dme};
+    if(d.dpick) return D[d.dpick]?{t,k:"champ",id:D[d.dpick].c.slug}:null;
+    return null;
+  }
+  const statLines = en => Object.entries(itemStats(en)).filter(([k,v])=>STAT_TR[k]&&v).map(([k,v])=>fmtStat(k,v));
+  function itemHTML(en){
+    const i=IT[en]; if(!i) return ""; const d=itemData(en)||{}, g=igrp(en);
+    const st=statLines(en), rules=[...g.filter(x=>GRP_TR[x]).map(x=>`Tek ${GRP_TR[x]} itemı taşınabilir`), ...(d.ro?["Yalnızca menzilli şampiyonlar"]:[]), ...(isQuest(en)?["Yalnızca destek koridoru"]:[])];
+    return `<div class="tb-h">${i.icon?`<img src="${i.icon}" alt="">`:""}<div><b>${esc(i.tr)}</b>${i.tr!==i.en?`<small>${esc(i.en)}</small>`:""}${i.cost?`<span class="tb-cost">${n0(+i.cost)} altın</span>`:""}</div></div>
+      ${st.length?`<ul class="tb-st">${st.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:i.st?`<p class="tb-st1">${esc(i.st)}</p>`:""}
+      ${i.fx?`<p>${esc(i.fx)}</p>`:""}${rules.length?`<p class="tb-rule">${esc(rules.join(" · "))}</p>`:""}`;
+  }
+  function runeHTML(n){
+    const r=RUNES[n]||[]; return `<div class="tb-h">${ICO_RUNE[n]?`<img class="rd" src="${ICO_RUNE[n]}" alt="">`:""}<div><b>${esc(runeTR(n))}</b>${runeTR(n)!==n?`<small>${esc(n)}</small>`:""}</div></div>${r[1]?`<p>${esc(r[1])}</p>`:`<p class="muted">Açıklama henüz yok.</p>`}`;
+  }
+  function champHTML(slug){
+    const c=BYSLUG[slug]; if(!c) return ""; const pr=c.prof||{};
+    const rs=Object.keys(ROLE).filter(r=>c.rs[r]).map(r=>`<li><span>${ROLE[r]}</span> kazanma ${pct(c.rs[r][0])} · seçilme ${pct(c.rs[r][1])}</li>`);
+    const st=stylesShown(c, c.main).map(s=>STYLE[s].lbl).join(", ");
+    return `<div class="tb-h">${por(c,"sm",true)}<div><b>${esc(c.disp)}</b><small>${esc((pr.cls||[]).map(x=>CLS_TR[x]||x).join(" · ")||(ARCH[c.arch]||{}).lbl||"")}</small><span class="tb-cost">${tierB(c)} ${esc(DMG[c.dmg]||"")}</span></div></div>
+      ${rs.length?`<ul class="tb-st">${rs.join("")}</ul>`:""}${st?`<p><b>Oyun stilleri:</b> ${esc(st)}</p>`:""}`;
+  }
+  function place(t){
+    const r=t.getBoundingClientRect(), bw=box.offsetWidth, bh=box.offsetHeight, m=8;
+    let x=r.left, y=r.bottom+m; if(x+bw>innerWidth-m) x=innerWidth-m-bw; if(x<m) x=m;
+    if(y+bh>innerHeight-m) y=r.top-m-bh; if(y<m) y=Math.min(innerHeight-m-bh, r.bottom+m);
+    box.style.left=x+"px"; box.style.top=y+"px";
+  }
+  function show(info){
+    const html = info.k==="item" ? itemHTML(info.id) : info.k==="rune" ? runeHTML(info.id) : info.k==="champ" ? champHTML(info.id) : "";
+    if(!html){ hide(); return; }
+    box.innerHTML=html; box.hidden=false; place(info.t);
+  }
+  function hide(){ clearTimeout(timer); box.hidden=true; cur=null; }
+  const enter = e => { const info=resolve(e.target); if(!info){ if(cur&&!cur.contains(e.target)) hide(); return; } if(cur===info.t) return;
+    clearTimeout(timer); cur=info.t; if(info.t.title) { info.t.dataset.title=info.t.title; info.t.removeAttribute("title"); }
+    timer=setTimeout(()=>{ if(cur===info.t) show(info); }, box.hidden?120:0); };
+  document.addEventListener("mouseover", enter);
+  document.addEventListener("mouseout", e => { if(cur&&!cur.contains(e.relatedTarget)) hide(); });
+  document.addEventListener("focusin", enter);
+  document.addEventListener("focusout", () => hide());
+  addEventListener("scroll", hide, {passive:true, capture:true});
+  document.addEventListener("click", () => hide(), true);
+})();

@@ -88,6 +88,7 @@ async function saveImage(url, file, state) {
   return "img/" + file;
 }
 const ROLE_UGG = { 1: "jg", 2: "sup", 3: "adc", 4: "top", 5: "mid" };
+const STYLE_UGG = ["ap", "tank", "ad", "crit", "lethality", "onhit"];   // u.gg tarz sayfaları
 const ROLE_CR = { jungle: "jg", supp: "sup", adc: "adc", top: "top", mid: "mid" };
 const gamePatch = v => { const [a, b] = v.split("."); return (+a + 10) + "." + b; };   // Data Dragon 16.23 → oyun yaması 26.23
 
@@ -386,6 +387,15 @@ async function updateBuilds(champs, items, stats, prevB, prevMU) {
       if (!ov) throw new Error("build dosyası yok");
       const main = parseOverview(ov, items, RANK_UGG) || {};
       const high = parseOverview(ov, items, RANK_HIGH) || {};
+      // tarz buildleri (u.gg ap / tank / ad / crit / lethality / onhit sayfaları): her birinin kendi eşyası, rün sayfası ve oranı var
+      const sty = {};
+      for (const st of STYLE_UGG) {
+        const so = await get(`${UGG}/${st}-overview/${p}/ranked_solo_5x5/${k}/1.5.0.json`, { json: true, tries: 2, okMissing: true });
+        await sleep(200);
+        if (!so) continue;
+        const x = parseOverview(so, items, RANK_UGG) || {};
+        for (const r in x) (sty[r] ||= {})[st] = x[r];
+      }
       const rs = stats.rows[slug] || {};
       const tot = Object.values(rs).reduce((a, x) => a + x[3], 0) || 1;
       const roles = {};
@@ -395,8 +405,15 @@ async function updateBuilds(champs, items, stats, prevB, prevMU) {
         const R = main[r];
         const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
         if (!same(R.win, R.v[0][1])) R.v.push(["win", R.win, null, 0]);
-        if (high[r] && high[r].g >= 400 && !R.v.some(v => same(v[1], high[r].v[0][1]))) R.v.push(["high", high[r].v[0][1], high[r].v[0][2], high[r].v[0][3]]);
+        // Master+ buildi kendi rün sayfasıyla (u.gg her derece grubuna ayrı sayfa verir)
+        if (high[r] && high[r].g >= 400 && !R.v.some(v => same(v[1], high[r].v[0][1]))) R.v.push(["high", high[r].v[0][1], high[r].v[0][2], high[r].v[0][3], high[r].ru]);
         delete R.win;
+        // tarz buildleri: koridorda en az 300 maç ve koridor maçlarının %3'ü; ana buildle aynı olanlar atlanır
+        const st = {};
+        for (const name in sty[r] || {}) { const X = sty[r][name];
+          if (X.g < Math.max(300, R.g * 0.03) || same(X.v[0][1], R.v[0][1])) continue;
+          st[name] = { g: X.g, wr: X.wr, i: X.v[0][1], b: X.boots, ru: X.ru, sp: X.sp, start: X.start, so: X.so, mx: X.mx }; }
+        if (Object.keys(st).length) R.st = st;
         roles[r] = R;
       }
       if (Object.keys(roles).length) { B[slug] = roles; ok++; }

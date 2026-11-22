@@ -162,7 +162,7 @@ details.more summary{cursor:pointer;color:var(--teal);font-size:13px;font-weight
 .lu-mapcard{padding:10px;display:grid;gap:8px}
 @media (min-width:861px){.lu-mapcard{position:sticky;top:76px}}
 /* Mini harita her temada koyu zemin üstünde: Riot'un açık renkli çizimi okunur kalsın */
-.mm{--pin-t:#e0b153;--pin-s:#4cc7bc;position:relative;aspect-ratio:1;width:100%;border-radius:10px;overflow:hidden;background:#0b111a}
+.mm{--pin-t:#e0b153;--pin-s:#3ccf6e;--pin-e:#ef4b4b;position:relative;aspect-ratio:1;width:100%;border-radius:10px;overflow:hidden;background:#0b111a}
 .mm img{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none}
 .mm-ov{position:absolute;inset:0}
 .mm-ov svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
@@ -174,11 +174,11 @@ details.more summary{cursor:pointer;color:var(--teal);font-size:13px;font-weight
 .pin{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;padding:0;border:0;background:none;display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .pin span{display:grid;place-items:center;border-radius:50%;font:700 11px/1 var(--f-mono);box-shadow:0 1px 4px rgba(0,0,0,.6)}
 .pin.tg span{width:22px;height:22px;background:#0b111a;color:var(--pin-t);border:2px solid var(--pin-t)}
-.pin.tg.on span{width:28px;height:28px;background:var(--pin-t);color:#1d1405;font-size:13px}
+.pin.tg.on span{width:28px;height:28px;background:var(--pin-e);border-color:#fff;color:#fff;font-size:13px}
 .pin.tg.on{z-index:2}
 .pin.st span{width:20px;height:20px;background:#0b111a;color:var(--pin-s);border:2px solid var(--pin-s)}
 .pin.st.on{z-index:3}
-.pin.st.on span{width:26px;height:26px;background:var(--pin-s);color:#04201d;font-size:12px}
+.pin.st.on span{width:26px;height:26px;background:var(--pin-s);border-color:#fff;color:#04200f;font-size:12px}
 .pin:hover span{transform:scale(1.12)}
 .pin:focus-visible{outline:none}
 .pin:focus-visible span{outline:2px solid #fff;outline-offset:2px}
@@ -188,7 +188,9 @@ details.more summary{cursor:pointer;color:var(--teal);font-size:13px;font-weight
 .lu-legend span{display:inline-flex;align-items:center;gap:6px}
 .lg{display:inline-block;width:12px;height:12px;border-radius:50%;flex:none}
 .lg.tg{border:2px solid #e0b153;background:#e0b153}
-.lg.st{border:2px solid #4cc7bc}
+.lg.st{border:2px solid #3ccf6e;background:#3ccf6e}
+.lg.en{border:2px solid #ef4b4b;background:#ef4b4b}
+.lg.tg{background:transparent}
 .lg.lk{width:16px;height:0;border-radius:0;border-top:2px dashed var(--muted)}
 .lu-list{display:grid;gap:10px;min-width:0}
 .lu-h{font-size:19px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -430,3 +432,20 @@ table.dmg td.hd{color:var(--gold)}
   .mcardA .mn .tier{position:absolute;top:6px;right:6px}
   .mcardA .mt b{padding-right:22px}
 }
+
+/* Seçili kayıt: yeşil başlangıç → kırmızı bitiş; listedeki numarayla aynı */
+.mm-ov .ln-th.on{stroke:#fff}
+.mm-ov marker path{fill:#fff}
+.pin.st:not(.on) span{opacity:.8}
+.lu-card.on .lu-n{background:var(--pin-s,#3ccf6e);color:#04200f}
+.lu-hint{margin:0}
+.lu-route{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;padding:8px 10px;border-radius:10px;background:var(--surface-2)}
+.lu-route .ic{width:16px;height:16px;color:var(--muted)}
+.rt{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;font:700 11px/1 var(--f-mono);color:#fff;flex:none}
+.rt.st{background:#3ccf6e;color:#04200f}
+.rt.en{background:#ef4b4b}
+.lu-onmap{margin-left:auto;display:none;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:12px;cursor:pointer}
+.lu-onmap .ic{width:14px;height:14px}
+@media (max-width:860px){.lu-onmap{display:inline-flex}}
+.vchap{position:absolute;right:8px;top:8px;padding:2px 8px;border-radius:6px;background:rgba(0,0,0,.75);color:#fff;font-size:11px}
+.lu-mapcard{scroll-margin-top:76px}
