@@ -905,11 +905,13 @@ const MR_TANK = have(["Force of Nature","Kaenic Rookern","Abyssal Mask"]);
 function swapDef(items, team, c, role){
   if(team!=="AD"&&team!=="AP") return items;
   const from=team==="AD"?0:1, to=1-from, out=[...items];
-  out.forEach((en,i)=>{ const p=DEF_SWAP.find(x=>x[from]===en); if(p&&!out.includes(p[to])) out[i]=p[to]; });
+  // değişim yalnızca kurala uyuyorsa yapılır (aynı gruptan item varsa eski item kalır)
+  const ok=(i,en)=>!blockOf({c,role,items:out.map((x,j)=>j===i?null:x)},en,-1);
+  out.forEach((en,i)=>{ const p=DEF_SWAP.find(x=>x[from]===en); if(p&&!out.includes(p[to])&&ok(i,p[to])) out[i]=p[to]; });
   // eşi zaten buildde olan saf tank itemları: aynı türdeki başka bir tank itemına çevrilir
   const need=team==="AD"?"armor":"mr", drop=team==="AD"?"mr":"armor", alt=team==="AD"?ARMOR_TANK:MR_TANK;
   out.forEach((en,i)=>{ const x=itemStats(en); if(isBoot(en)||itemKind(en)!=="tank"||!(x[drop]>0)||x[need]>0) return;
-    const r=alt.find(a=>!out.includes(a)); if(r) out[i]=r; });
+    const r=alt.find(a=>!out.includes(a)&&ok(i,a)); if(r) out[i]=r; });
   return arrange(out, c, role);
 }
 /* Stil buildi: şablondaki en sık itemlar kurala uyarak sırayla; "AD"/"AP" sürümünde savunma o türe çevrilir */
@@ -951,53 +953,67 @@ function greedyFill(f, base, pool, o, upto){
 const PRE_CACHE = {};
 function presetsFor(c, role){
   const ck=c.slug+"|"+role; if(PRE_CACHE[ck]) return PRE_CACHE[ck];
-  const out=[], V=realVariants(c,role), styles=stylesOf(c,role), own=styles[0];
+  const out=[], V=realVariants(c,role), styles=stylesOf(c,role), own=styles[0], melee=isMelee(c.slug);
+  const C=(CORES[c.slug]||{})[role]||{c:[],b:[],r:[]};
   // riftpatchnotes rün sayfaları (en popüler + alternatif): stile uyan ana rünlü olan seçilir
-  const RP=((CORES[c.slug]||{})[role]||{}).r||[];
+  const RP=C.r||[];
   const pageFor = st => RP.find(pg=>{ const ks=KS_OK[st]; return !ks||ks.includes(runeKey(pg[0][0])); });
   const pageSrc = pg => pg ? `rün sayfası %${dec1(pg[1])} kazanma · %${dec1(pg[2])} seçilme` : null;
   const spare=V.flatMap(v=>v.items);
+  // wildriftcore build motoru varyantları (koşullu öneriler: tanklara karşı, AD takıma karşı…)
   const real=V.map((v,i)=>{ const m=VAR[v.key]||["wand",v.title];
     const items=arrange([...v.items,...spare.filter(x=>!v.items.includes(x))],c,role).filter(x=>!isBoot(x)).slice(0,SLOTS-1);
     const fixed=v.items.some(x=>!items.includes(x)), st=listStyle(items);
-    return {id:"v"+i, tab:"rec", style: st&&styles.includes(st) ? st : (st==="ap"&&own==="sup" ? "sup" : own), ic:m[0], title:m[1],
-      sub:`${m[1]}${v.when.length?" — "+v.when.join(" · "):""}${fixed?" (birlikte alınamayan item değiştirildi)":""}`, items:arrange([...items,v.boots],c,role), runes:v.runes, src:"Oyuncu buildi (CN sunucusu)"}; });
+    return {id:"v"+i, key:v.key, tab:"rec", style: st&&styles.includes(st) ? st : (st==="ap"&&own==="sup" ? "sup" : own), ic:m[0], title:m[1],
+      sub:`${m[1]}${v.when.length?" — "+v.when.join(" · "):""}${fixed?" (birlikte alınamayan item değiştirildi)":""}`, items:arrange([...items,v.boots],c,role), runes:v.runes, src:"Önerilen build (wildriftcore)"}; });
+  const runesFor = s => { const pg=pageFor(s); return pg ? [pg[0].map(runeKey), pageSrc(pg)] : [(real.find(p=>p.style===s)||{}).runes || tplOf(s,role,melee,s!==own).runes, null]; };
+  /* GERÇEK OYUNCU BUILDLERİ: Elmas+ (CN) en popüler 3 çekirdek; 4.–5. item aynı koridordaki diğer
+   * çekirdeklerden, önerilen buildlerden ve stilin şablonundan en sık alınanlarla tamamlanır */
+  const coreStyle = core => { const st0=listStyle(core); return st0&&STYLE[st0]&&styles.includes(st0==="ap"&&own==="sup"?"sup":st0)&&!(!melee&&(st0==="bruiser"||st0==="tank")) ? (st0==="ap"&&own==="sup"?"sup":st0) : own; };
+  const followFor = (core, st) => { const w={}; const add=(en,v)=>{ if(IT[en]&&!core.includes(en)&&!isBoot(en)&&itemFits(en,st)&&(role==="sup"||!isQuest(en))) w[en]=(w[en]||0)+v; };
+    C.c.forEach(x=>x[0].map(itemOf).forEach((en,j)=>add(en, x[2]*(1.2-j*0.1))));
+    V.forEach(v=>v.items.forEach((en,j)=>add(en, 2.5*(1.2-j*0.1))));
+    tplOf(st,role,melee,st!==own).items.slice(0,12).forEach((en,j)=>add(en, 2-j*0.12));
+    return Object.entries(w).sort((a,b)=>b[1]-a[1]).map(x=>x[0]); };
+  const boot0=C.b&&C.b[0] ? itemOf(C.b[0][0]) : (V[0]&&V[0].boots);
+  const bootFor = st => st===own ? boot0 : (tplOf(st,role,melee,true).boots||boot0);
+  const coreB=[...C.c].sort((a,b)=>b[2]-a[2]).map(x=>{ const core=x[0].map(itemOf), st=coreStyle(core);
+    return {core, st, wr:x[1], pr:x[2], items:arrange([...core,...followFor(core,st),bootFor(st)],c,role)}; });
+  const coreSrc="Elmas+ maçlar, CN sunucusu — ilk 3 item gerçek oyuncu verisi, 4.–5. item en sık alınanlardan";
   styles.forEach(s=>{
-    const mine=real.filter(p=>p.style===s); let k=0;
-    mine.forEach(p=>{ p.lbl=`Build ${++k}`; out.push(p); });
+    let k=0; const mineCore=coreB.filter(b=>b.st===s);
+    mineCore.forEach((b,i)=>{ const [runes,runeSrc]=runesFor(s);
+      out.push({id:"c"+coreB.indexOf(b), tab:"rec", style:s, lbl:`Build ${++k}`, ic:i?"wand":"users", wr:b.wr, pr:b.pr, core:b.core, title:i?"Alternatif çekirdek":"En popüler çekirdek",
+        items:b.items, runes, runeSrc, sub:`${i?"Alternatif":"En popüler"} oyuncu buildi · %${dec1(b.wr)} kazanma · %${dec1(b.pr)} seçilme`, src:coreSrc}); });
+    // önerilen build motorunun varyantları: gerçek veri varsa yalnızca koşullu olanlar ("Tanklara karşı"…)
+    const mine=real.filter(p=>p.style===s&&(!mineCore.length||p.key!=="standard"));
+    mine.forEach(p=>{ p.lbl=mineCore.length ? (VAR[p.key]||["",p.title])[1] : `Build ${++k}`; out.push(p); });
     const VS=[["mix","Standart",STYLE[s].ic],["AD","Fiziksel hasara karşı","sword"],["AP","Büyü hasarına karşı","spark"]];
-    if(mine.length===1){ // tek oyuncu buildi: savunmasını karşı takıma göre çeviren iki sürüm
-      const seen=new Set([mine[0].items.join()]);
-      VS.slice(1).forEach(([team,t,icn])=>{ const items=swapDef(mine[0].items,team,c,role); const sig=items.join(); if(seen.has(sig)) return; seen.add(sig);
-        out.push({...mine[0], id:`${mine[0].id}:${team}`, lbl:`Build ${++k}`, ic:icn, title:t, items, sub:`${mine[0].title} — ${t}`}); });
+    const all=out.filter(p=>p.style===s);
+    if(all.length===1){ // tek build: savunmasını karşı takıma göre çeviren iki sürüm
+      const b=all[0], seen=new Set([b.items.join()]);
+      VS.slice(1).forEach(([team,t,icn])=>{ const items=swapDef(b.items,team,c,role); const sig=items.join(); if(seen.has(sig)) return; seen.add(sig);
+        out.push({...b, id:`${b.id}:${team}`, lbl:`Build ${++k}`, ic:icn, title:t, items, wr:null, pr:null, sub:`${b.title} — ${t}`}); });
     }
-    if(!mine.length){
-      const T=tplOf(s, role, isMelee(c.slug), s!==own), seen=new Set();
-      const core=(((CORES[c.slug]||{})[role]||{c:[]}).c.find(x=>listStyle(x[0].map(itemOf))===s)||[[]])[0].map(itemOf);
+    if(!all.length){
+      const T=tplOf(s, role, melee, s!==own), seen=new Set();
       VS.forEach(([team,t,icn])=>{
-        let items=styleItems(c, role, s, team);
-        if(core.length){ const boot=items.find(isBoot); items=swapDef(arrange([...core,...items.filter(x=>!isBoot(x)),boot],c,role),team,c,role); } const sig=items.join(); if(items.length<4||seen.has(sig)) return; seen.add(sig);
-        const pg=pageFor(s);
-        out.push({id:`s:${s}:${team}`, tab:"rec", style:s, lbl:`Build ${++k}`, ic:icn, title:t, items, runes:pg?pg[0].map(runeKey):T.runes, runeSrc:pageSrc(pg),
+        const items=styleItems(c, role, s, team); const sig=items.join(); if(items.length<4||seen.has(sig)) return; seen.add(sig);
+        const [runes,runeSrc]=runesFor(s);
+        out.push({id:`s:${s}:${team}`, tab:"rec", style:s, lbl:`Build ${++k}`, ic:icn, title:t, items, runes:runes||T.runes, runeSrc,
           sub:`${STYLE[s].lbl} — ${t}`, src:`aynı stildeki şampiyonların ${ROLE_LONG[role]||""} buildlerinden`}); });
     }
     const first=out.find(p=>p.style===s);
     if(first&&role!=="sup"&&s!=="sup"){
       const base=first.items.filter(x=>!isBoot(x)), boots=first.items.find(isBoot)||null;
       out.push({id:"hy:"+s, tab:"rec", style:s, lbl:"Karma", ic:"heart", runes:first.runes, sub: s==="tank" ? "Tank + hasar: 3 dayanıklılık itemı, 2 hasar itemı" : "Hasar + dayanıklılık: 3 hasar itemı, 2 savunma itemı", gen:"hy", base, boots, kind:STYLE[s].kind});
-      out.push({id:"ct:"+s, tab:"rec", style:s, lbl:"Bu rakibe göre", ic:"target", runes:first.runes, sub:"İlk 2 item stil buildinden; kalanlar düello rakibine karşı en çok fark yaratanlar", gen:"ct", base, boots, kind:STYLE[s].kind});
+      out.push({id:"ct:"+s, tab:"rec", style:s, lbl:"Bu rakibe göre", ic:"target", runes:first.runes, sub:"İlk 2 item stil buildinden; kalanlar bu rakibe karşı en etkili itemlar", gen:"ct", base, boots, kind:STYLE[s].kind});
     }
   });
-  const C=(CORES[c.slug]||{})[role];
-  if(C&&C.c.length){
-    const fill=V.flatMap(v=>v.items), boot=C.b&&C.b[0]?itemOf(C.b[0][0]):(V[0]&&V[0].boots);
-    [...C.c].sort((a,b)=>b[1]-a[1]).forEach((x,i)=>{ const core=x[0].map(itemOf), st0=listStyle(core), st=st0&&STYLE[st0]&&!(!isMelee(c.slug)&&(st0==="bruiser"||st0==="tank"))?(st0==="ap"&&own==="sup"?"sup":st0):own;
-      const sfill=st!==own&&STYLE[st] ? tplOf(st,role,isMelee(c.slug),true).items : fill;
-      const pg=pageFor(st);
-      const runes=pg ? pg[0].map(runeKey) : (real.find(p=>p.style===st)||{}).runes || (STYLE[st]?tplOf(st,role,isMelee(c.slug),st!==own).runes:(V[0]||{}).runes) || [];
-      out.push({id:"t"+i, tab:"top", style:st, lbl:`#${i+1}`, ic:"trophy", wr:x[1], pr:x[2], core, runes, runeSrc:pageSrc(pg),
-        sub:`${STYLE[st]?STYLE[st].lbl+" · ":""}%${dec1(x[1])} kazanma · %${dec1(x[2])} seçilme (çekirdek: ilk 3 item)`, items:arrange([...core,...sfill,boot],c,role), src:"Elmas+ maçlar, CN sunucusu"}); });
-  }
+  // En çok kazananlar: aynı gerçek çekirdekler, kazanma oranına göre
+  [...coreB].sort((a,b)=>b.wr-a.wr).forEach((b,i)=>{ const [runes,runeSrc]=runesFor(b.st);
+    out.push({id:"t"+i, tab:"top", style:b.st, lbl:`#${i+1}`, ic:"trophy", wr:b.wr, pr:b.pr, core:b.core, runes, runeSrc,
+      sub:`${STYLE[b.st]?STYLE[b.st].lbl+" · ":""}%${dec1(b.wr)} kazanma · %${dec1(b.pr)} seçilme (çekirdek: ilk 3 item)`, items:b.items, src:coreSrc}); });
   out.styles=styles.filter(s=>out.some(p=>p.tab==="rec"&&p.style===s));
   if(!out.styles.length) out.styles=[own];
   return PRE_CACHE[ck]=out;
@@ -1036,7 +1052,7 @@ function buildPool(c, role, style){
   return [...s].filter(en=>IT[en]&&(role==="sup"||!isQuest(en))&&(!style||style===styleOfArch(c.arch)||itemFits(en,style)));
 }
 /* Seçili stile aykırı hasar itemlarını havuzdan çıkarır (ör. büyücü stilde kritik itemı) */
-const itemFits = (en, style) => { const k=itemKind(en); if(!k||style==="tank"||style==="bruiser"&&k==="tank") return true;
+const itemFits = (en, style) => { const k=itemKind(en); if(!k||style==="tank"||style==="sup"||style==="bruiser"&&k==="tank") return true;
   if(k==="tank") return (DEF_POOL[(STYLE[style]||{}).kind]||[]).includes(en);
   return style==="ap" ? k==="ap" : k!=="ap"; };
 /* ===================================================================

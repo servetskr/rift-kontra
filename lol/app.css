@@ -313,9 +313,6 @@ main{padding-block:22px 48px}
 .f-rune .rn{font-weight:600}
 .f-rune .sps{display:flex;gap:3px;margin-left:4px}
 .f-rune .sps .spi{width:24px;height:24px;border-radius:5px}
-.f-sup{display:grid;gap:3px;padding:8px 10px;border-radius:10px;background:var(--surface-2);font-size:13px;line-height:1.4}
-.f-sup .l{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.f-sup .muted{font-size:12px}
 details.more{margin-top:8px}
 details.more summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--teal);padding:6px 0}
 details.more .rec-list{margin-top:6px}
@@ -357,13 +354,6 @@ details.more .rec-list{margin-top:6px}
 .rec2 .add{align-self:center;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal)}
 .rec2 .add .ic{width:16px;height:16px}
 .repl{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
-.f-sup .sellrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}
-.f-sup .sellrow .l{font-size:11px;letter-spacing:.04em}
-.sell{display:inline-flex;align-items:center;gap:4px}
-.sell .itile{padding:0;min-width:0;width:auto}
-.sell .itile .ib{width:40px;height:40px}
-.sell .itile .nm{display:none}
-.sellk{align-self:center;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);border:1px dashed var(--gold);border-radius:6px;padding:2px 6px;margin-left:6px}
 .runes .rn small{display:block;font-size:11px;font-weight:400}
 @media (max-width:760px){.fighter.en .f-grps{justify-content:flex-start}}
 /* ---- Bilgi kutusu ---- */
@@ -378,3 +368,19 @@ details.more .rec-list{margin-top:6px}
 #tip .tt-st{margin:0;padding-left:16px;color:var(--teal)}
 #tip .tt-fx{display:grid;gap:4px;max-height:220px;overflow:hidden;color:var(--muted)}
 #tip .tt-fx .fxn{color:var(--fg)}
+
+/* ---- Destek: oyun sonu değişimi (build içinde) ---- */
+.f-sup{display:flex;gap:6px;align-items:flex-start;margin:0;line-height:1.4}
+.f-sup .ic{width:15px;height:15px;flex:none;margin-top:1px;color:var(--gold)}
+.late{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 10px;border-radius:12px;border:1px dashed var(--gold);background:var(--gold-soft);color:var(--fg)}
+.late-l{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.late-i{display:inline-flex;align-items:center;gap:4px}
+.late-i .itile{width:auto}
+.late-i .itile .ib{width:40px;height:40px}
+.late-i .itile .nm{display:none}
+.late-i .arrow{color:var(--gold);font-weight:700}
+.late-t{font-size:12px;line-height:1.35;min-width:0}
+.fighter .late{justify-self:start}
+.fighter.en .late{justify-self:end}
+.brow2 .irow .late{margin-left:6px;align-self:center}
+@media (max-width:760px){.fighter.en .late{justify-self:start}.brow2 .irow .late{margin-left:0;flex-basis:100%}}

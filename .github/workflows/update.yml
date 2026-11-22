@@ -47,6 +47,15 @@ jobs:
             node valorant/scripts/update.js ${{ inputs.full && '--full' || '' }} || echo "failed=1" >> "$GITHUB_OUTPUT"
           fi
 
+      # Lineup'lar YouTube rehber videolarının bölümlerinden günde en fazla bir kez büyür (durum dosyasındaki
+      # zamana bakar). YouTube engellerse veriye dokunmadan geçer; bu adımın hatası işi başarısız saymaz.
+      - name: VALORANT lineup'ları
+        continue-on-error: true
+        run: |
+          if [ -f valorant/scripts/lineups.js ]; then
+            timeout 15m node valorant/scripts/lineups.js || echo "::warning::VALORANT lineup adımı tamamlanamadı; veri değişmedi."
+          fi
+
       - name: Değişiklik varsa kaydet ve yayınla
         run: |
           git config user.name "github-actions[bot]"

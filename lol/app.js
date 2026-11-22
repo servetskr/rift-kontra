@@ -215,13 +215,13 @@ function buildCard(c) {
     <div class="vtabs" role="tablist" aria-label="Build">${P.map((p, i) => p.grp !== V.grp ? "" : `<button type="button" role="tab" data-bv="${i}" aria-selected="${i === bVar}">${ic(p.ic)}${esc(p.lbl)}${p.wr != null ? ` <small>${pct(p.wr)}</small>` : ""}</button>`).join("")}</div>
     <p class="muted small" style="margin:0 0 10px">${esc(ROLE_LONG[bRole])}${R ? ` · ${n0(R.g)} maç · kazanma ${pct(R.wr)}` : ""} · <b>${esc(V.grpLbl)} · ${esc(V.lbl)}</b> · ${esc(V.sub)}</p>
     ${V.start && V.start.length ? `<div class="brow2"><span class="l" title="Başlangıç">Başla</span><div class="irow">${V.start.map(id => itile(id)).join("")}</div></div>` : ""}
-    <div class="brow2"><span class="l" title="Eşya sırası">Build</span><div class="irow">${V.items.filter(x => !isBoot(x)).map((id, i) => itile(id, i + 1)).join('<span class="arrow" aria-hidden="true">›</span>')}${bRole === "sup" && V.after ? `<span class="sellk" title="Build dolunca destek eşyasını sat, yerine bunu al">Satınca</span>${itile(V.after)}` : ""}</div></div>
+    <div class="brow2"><span class="l" title="Eşya sırası">Build</span><div class="irow">${V.items.filter(x => !isBoot(x)).map((id, i) => itile(id, i + 1)).join('<span class="arrow" aria-hidden="true">›</span>')}${bRole === "sup" ? lateTile(V.items, V.after) : ""}</div></div>
     <div class="bsub">
       ${boot ? `<div><span class="l" title="Çizme">${ic("boot")}</span>${itile(boot)}</div>` : ""}
       ${ru.length ? `<div class="runes"><span class="l" title="Rünler">${ic("rune")}</span>${runeImg(ru[0], "ks")}<span class="minor">${ru.slice(1, 4).map(n => runeImg(n)).join("")}</span><span class="minor sec">${ru.slice(4, 6).map(n => runeImg(n)).join("")}</span><span class="rn">${esc((RUNES.r[ru[0]] || [""])[0])}${V.ruSrc ? `<small class="muted">${esc(V.ruSrc)}</small>` : ""}</span></div>` : ""}
       ${V.sp && V.sp.length ? `<div class="spells"><span class="l" title="Sihirdar büyüleri">${ic("spark")}</span>${V.sp.map(spellImg).join("")}<span class="small">${esc(V.sp.map(s => (RUNES.sp[s] || [""])[0]).join(" + "))}</span></div>` : ""}
     </div>
-    ${bRole === "sup" ? supPath(V.items, null) : ""}
+    ${bRole === "sup" ? supPath(V.items) : ""}
     <p class="muted small" style="margin:8px 0 0">${ic("info")} ${bRole === "adc" ? "Alt koridor rol görevi çizmeye ayrı yuva açar: çizme + 6 eşya." : bRole === "mid" ? "Orta koridor rol görevi çizmeyi gelişmiş (3. kademe) çizmeye yükseltir; çizme + 5 eşya." : bRole === "sup" ? "Destek eşyası yalnızca destek rolünde alınır; çizme + 5 eşya." : "Çizme + 5 eşya; gelişmiş çizmeler yalnızca orta koridorda."} Aynı gruptan tek eşya alınabilir (ör. tek zırh delme, tek can simidi, tek Hydra).</p>
     ${R && R.so ? `<h3 class="h3">Yetenek sırası</h3>${skillOrderHTML(R.so, R.mx)}` : ""}
     ${vsM.length || vsP.length ? `<h3 class="h3">Karşı takıma göre savunma</h3><div class="irow">${vsM.map(id => itile(id)).join("")}<span class="muted small" style="align-self:center">← çoğu büyü hasarıysa</span></div><div class="irow" style="margin-top:6px">${vsP.map(id => itile(id)).join("")}<span class="muted small" style="align-self:center">← çoğu fiziksel hasarsa</span></div>` : ""}
@@ -854,16 +854,17 @@ function runeLine(ru, sp) {
     ${sp && sp.length ? `<span class="sps">${sp.map(spellImg).join("")}</span>` : ""}</div>`;
 }
 /* Destek eşyası yolu ve sonrası (Data Dragon: Dünya Atlası → Rün Pusulası → Dünyaların Ganimeti → bedelsiz son yükseltme) */
-function supPath(items, after) {
+function supPath(items) {
   const fin = (items || []).find(isSupItem); if (!fin) return "";
-  return `<div class="f-sup"><span class="l">${ic("scroll")}Destek eşyası</span>
-    <span>${esc(iname("3865"))} → Rün Pusulası → Dünyaların Ganimeti → <b>${esc(iname(fin))}</b></span>
-    <span class="muted">Destek görevinin altını dolunca kendiliğinden yükselir; son adım bedelsizdir. Satış değeri 160 altın: satarsan altın geliri ve totem yükleri gider.</span>
-    ${after ? `<span class="sellrow"><span class="l">Build dolunca sat, yerine al</span>${sellTile(fin, after)}</span>` : ""}</div>`;
+  return `<p class="f-sup muted small">${ic("scroll")}<span>${esc(iname("3865"))} → Rün Pusulası → Dünyaların Ganimeti → <b>${esc(iname(fin))}</b> (görev altını dolunca kendiliğinden yükselir)</span></p>`;
 }
-/* "Satınca:" — destek eşyası → yerine alınacak eşya (kutucuk) */
-function sellTile(fin, after) {
-  return `<span class="sell">${itile(fin)}<span class="arrow" aria-hidden="true">→</span>${itile(after)}</span>`;
+/* Oyun sonu: build dolunca destek eşyası (satış değeri 160 altın) satılır, yerine bu eşya alınır */
+function lateTile(items, after) {
+  const fin = (items || []).find(isSupItem); if (!fin || !after) return "";
+  return `<div class="late" title="Build dolunca ${esc(iname(fin))} satılır (160 altın), yerine ${esc(iname(after))} alınır">
+    <span class="late-l">Oyun sonu</span>
+    <span class="late-i">${itile(fin)}<span class="arrow" aria-hidden="true">→</span>${itile(after)}</span>
+    <span class="late-t"><b>${esc(iname(fin))}</b> yerine <b>${esc(iname(after))}</b></span></div>`;
 }
 function fighterHTML(side) {
   const f = D[side], c = f.c, st = fstats(f), P = presetsFor(c, f.role), cur = P.find(p => p.id === f.build);
@@ -878,6 +879,7 @@ function fighterHTML(side) {
     <div class="f-roles" role="group" aria-label="Koridor">${ROLE_ORDER.map(r => `<button type="button" data-drole="${side}:${r}" aria-pressed="${r === f.role}"${hasData(c, r) ? "" : ` class="nod" title="Bu koridorda ${esc(c.disp)} için oyuncu verisi yok; build uyarlanır"`}>${ROLE[r]}</button>`).join("")}</div>
     <div class="f-items${f.role === "adc" ? " seven" : ""}">${f.items.map((id, i) => id && IT[id] ? `<button type="button" class="slot-i${isBoot(id) ? " boot" : ""}" data-dslot="${side}:${i}" aria-label="${esc(iname(id))}: değiştir" title="${esc(iname(id))}"><img src="${IT[id].img}" alt="">${chgBadge(ICHG[id] && ICHG[id].v)}</button>`
       : `<button type="button" class="slot-i empty" data-dslot="${side}:${i}" aria-label="Eşya ekle">${ic("plus")}</button>`).join("")}</div>
+    ${f.role === "sup" ? lateTile(f.full || f.items, cur && cur.after) : ""}
     ${st ? `<dl class="f-stats">
       <div><dt>Can</dt><dd>${n0(st.hp)}</dd></div>
       ${(m => `<div><dt>${m ? "Yetenek G." : "Saldırı G."}</dt><dd>${n0(m ? st.ap : st.ad)}</dd></div>`)(st.ap > st.bad)}
@@ -890,7 +892,7 @@ function fighterHTML(side) {
       <div class="f-styles" role="group" aria-label="Hazır build">${GP.map(p => `<button type="button" data-dbuild="${side}:${p.id}" aria-pressed="${f.build === p.id}" title="${esc(p.sub)}">${ic(p.ic)}${esc(p.lbl)}${p.wr != null ? ` <small>${pct(p.wr)}</small>` : ""}</button>`).join("") || '<span class="muted small">Bu şampiyon için build verisi yok.</span>'}</div>
       <p class="f-bsub muted small">${cur ? `<b>${esc(cur.grpLbl)} · ${esc(cur.lbl)}</b> · ${esc(cur.sub)}` : "Elle seçilmiş eşyalar"} · ${f.role === "adc" ? "Alt koridor: çizme + 6 eşya" : f.role === "mid" ? "Orta: gelişmiş çizme alınabilir" : "Çizme + 5 eşya"}${f.swaps && f.swaps.length ? ` · <span class="gold-t">Karşı takıma göre: ${esc(f.swaps.map(([a, b]) => `${iname(a)} → ${iname(b)}`).join(", "))}</span>` : ""}</p>
       ${ruP ? runeLine(ruP.ru, ruP.sp) : ""}
-      ${f.role === "sup" ? supPath(f.full || f.items, cur && cur.after) : ""}
+      ${f.role === "sup" ? supPath(f.full || f.items) : ""}
     </div>
     <div class="f-acts"><button type="button" class="lnk" data-dclear="${side}">${ic("reset")}Yuvaları boşalt</button>${abl ? "" : `<span class="muted small">Yetenek verisi yok, ortalama alınıyor</span>`}</div>`;
 }

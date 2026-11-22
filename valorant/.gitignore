@@ -1,0 +1,2 @@
+# Güncelleyicilerin yarıda kalan geçici dosyaları (zaman aşımında yayınlanmasın)
+data/*.tmp

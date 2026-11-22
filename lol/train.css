@@ -1,0 +1,114 @@
+/* Rift Kontra · Antrenman sayfası. Renk ve yazı belirteçleri index.html ile aynıdır. */
+:root{
+  --bg:#0c131d; --surface:#131c29; --surface-2:#1a2535; --line:#263449; --fg:#e9eef6; --muted:#97a5b9;
+  --gold:#e0b153; --gold-ink:#1d1405; --gold-soft:#3a2f17; --teal:#4cc7bc; --teal-soft:#15363a;
+  --good:#5ed294; --good-soft:#143224; --bad:#f2806f; --bad-soft:#3b1b18; --even:#e6cf6b; --even-soft:#36311a;
+  --ad:#f09060; --ap:#a29cff;
+  --f-display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --radius:12px; color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#eef1f5; --surface:#ffffff; --surface-2:#f4f6f9; --line:#d5dce6; --fg:#121b28; --muted:#5a6779;
+  --gold:#9a6a12; --gold-ink:#ffffff; --gold-soft:#f6ecd6; --teal:#0b7d74; --teal-soft:#d9f0ed;
+  --good:#1b7a46; --good-soft:#dcf2e5; --bad:#b2392d; --bad-soft:#f9e1dd; --even:#7a6410; --even-soft:#f4edc8;
+  --ad:#c0542a; --ap:#5a52c8; color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#eef1f5; --surface:#ffffff; --surface-2:#f4f6f9; --line:#d5dce6; --fg:#121b28; --muted:#5a6779;
+  --gold:#9a6a12; --gold-ink:#ffffff; --gold-soft:#f6ecd6; --teal:#0b7d74; --teal-soft:#d9f0ed;
+  --good:#1b7a46; --good-soft:#dcf2e5; --bad:#b2392d; --bad-soft:#f9e1dd; --even:#7a6410; --even-soft:#f4edc8;
+  --ad:#c0542a; --ap:#5a52c8; color-scheme:light}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+a{color:var(--teal)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);margin:0;line-height:1.15}
+.ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+
+/* Üst çubuk (index.html ile aynı) */
+header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;align-items:center;gap:14px;padding-block:10px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fg);min-width:0}
+.brand b{font-family:var(--f-display);font-size:21px;letter-spacing:.03em;white-space:nowrap}
+.brand b span{color:var(--gold)}
+.brand .gt{font:700 10px/1 var(--f-mono);letter-spacing:.12em;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:3px 5px}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-left:24px;margin-right:auto}
+nav.tabs a{display:inline-flex;align-items:center;gap:6px;flex:none;font-weight:600;font-size:14px;text-decoration:none;color:var(--muted);padding:8px 12px;border-radius:8px}
+nav.tabs a:hover{color:var(--fg);background:var(--surface-2)}
+nav.tabs a[aria-current="page"]{color:var(--gold-ink);background:var(--gold)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface-2);padding:9px 14px;border-radius:9px;cursor:pointer;font-weight:600;text-decoration:none;color:var(--fg)}
+.btn:hover{border-color:var(--gold)}
+.btn.gold{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+.btn.icon{width:40px;height:40px;padding:0;flex:none;margin-left:auto}
+.lnk{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:6px 2px;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer}
+.lnk:hover{color:var(--fg)}
+.bnav{display:none}
+@media (max-width:760px){
+  nav.tabs{display:none}
+  .bnav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .bnav a{display:grid;justify-items:center;gap:2px;padding:8px 0 7px;font-size:11px;font-weight:600;text-decoration:none;color:var(--muted)}
+  .bnav a .ic{width:22px;height:22px}
+  .bnav a[aria-current="page"]{color:var(--gold)}
+  body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+}
+@media (max-width:420px){.brand b{font-size:18px}}
+
+main{padding-block:24px 48px;display:grid;gap:18px}
+.page-head{display:grid;gap:6px}
+.page-head h1{font-size:clamp(26px,4vw,36px)}
+.page-head p{margin:0;color:var(--muted);max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;min-width:0}
+.card h2{font-size:19px;margin-bottom:12px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.card h2 small{font-family:var(--f-body);font-size:13px;font-weight:500;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{border:1px solid var(--line);background:var(--surface-2);padding:7px 12px;border-radius:99px;cursor:pointer;font-size:14px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg);font-weight:600}
+footer{border-top:1px solid var(--line);padding-block:22px;color:var(--muted);font-size:13px}
+footer p{margin:0 0 6px;max-width:90ch}
+
+/* Seçenekler */
+.t-opts{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;padding:12px 16px}
+.t-opt{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.t-l{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.t-chk{display:inline-flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.t-chk input{width:18px;height:18px;accent-color:var(--gold)}
+
+/* Oyun alanı */
+.t-stage{position:relative;padding:0;overflow:hidden;user-select:none;-webkit-user-select:none}
+#t-cv{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair;background:#0a1018}
+.t-hud{position:absolute;left:0;right:0;top:0;display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;pointer-events:none;z-index:2}
+.t-hud .h{font-family:var(--f-mono);font-size:13px;background:rgba(10,16,24,.78);color:#e9eef6;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:3px 9px}
+.t-hud .h b{color:#e0b153;font-weight:600}
+.t-hud .h.cd b{color:#97a5b9}
+.t-hud .h.ok b{color:#5ed294}
+.t-panel{position:absolute;inset:0;display:grid;place-items:center;padding:16px;background:rgba(8,12,18,.72);z-index:3;overflow:auto}
+.t-box{max-width:520px;width:100%;display:grid;gap:12px;text-align:center;color:#e9eef6}
+.t-box h2{font-size:24px}
+.t-box p{margin:0;color:#c3cddb;font-size:14px}
+.t-box .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.t-box .btn{color:#e9eef6;background:#1a2535;border-color:#263449}
+.t-box .btn.gold{background:#e0b153;color:#1d1405;border-color:#e0b153}
+.t-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.t-stats div{background:#131c29;border:1px solid #263449;border-radius:10px;padding:8px}
+.t-stats b{display:block;font-family:var(--f-mono);font-size:20px;color:#e0b153}
+.t-stats span{font-size:12px;color:#97a5b9}
+.t-new{color:#5ed294;font-weight:700}
+.t-touch{position:absolute;right:10px;bottom:10px;display:flex;gap:8px;z-index:2}
+.t-touch .btn{background:rgba(26,37,53,.9);color:#e9eef6;border-color:#263449;min-height:44px}
+.t-touch .btn[disabled]{opacity:.5}
+.howto{margin:0;padding-left:18px;display:grid;gap:6px}
+.howto li::marker{color:var(--gold)}
+kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--surface-2)}
+.tbest{width:100%;border-collapse:collapse;font-size:14px}
+.tbest th,.tbest td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.tbest th{font-size:12px;color:var(--muted);font-weight:600}
+.tbest td.v{font-family:var(--f-mono)}
